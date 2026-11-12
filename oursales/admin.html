@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>الحسابات — متابعة المبيعات</title>
+<style>body{margin:0;background:#F3F6FA;font-family:system-ui,Tahoma,sans-serif;color:#1d2733}.wrap{max-width:860px;margin:auto;padding:16px}
+.card{background:#fff;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 2px 10px rgba(0,0,0,.05)}h1{font-size:20px;color:#1F4E79}
+table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #eee;text-align:right;font-size:14px}input{padding:8px;border:1px solid #cfd8e3;border-radius:8px}
+button{padding:7px 12px;border:0;border-radius:8px;background:#1F4E79;color:#fff;cursor:pointer}.sec{background:#e9eef5;color:#1F4E79}.muted{color:#6b7785;font-size:13px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}</style></head>
+<body><div class="wrap"><div class="row"><h1 style="margin-inline-end:auto">👥 حسابات المستخدمين</h1><a href="./">↩ رجوع للتطبيق</a></div>
+<div class="card"><b>إضافة مستخدم</b><form id="nf" class="row" style="margin-top:10px"><input name="name" placeholder="الاسم" required><input name="username" placeholder="اسم المستخدم (إنجليزي)" required dir="ltr"><input name="password" placeholder="كلمة مرور مؤقتة" required minlength="6" dir="ltr"><label><input type="checkbox" name="admin"> مسؤول حسابات</label><button>إضافة</button></form>
+<p class="muted">بعد الإضافة حدّد صلاحيته (الدور والفروع) من صفحة «المستخدمون» داخل التطبيق. المستخدم يغيّر كلمة المرور أول مرة يدخل.</p></div>
+<div class="card"><table><thead><tr><th>الاسم</th><th>اسم المستخدم</th><th>الحالة</th><th></th></tr></thead><tbody id="tb"></tbody></table></div><div class="card"><b>بيانات أودو اليومية</b><div id="sync" class="muted" style="margin-top:8px"></div></div><p id="msg" class="muted"></p></div>
+<script src="api.js"></script>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
+const call=(u,b)=>fetch(u,{method:b?"POST":"GET",headers:{"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined}).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.status);return j});
+const ERR={exists:"اسم المستخدم موجود",bad_username:"اسم المستخدم: حروف إنجليزية وأرقام فقط (3 أحرف على الأقل)",short:"كلمة المرور 6 أحرف على الأقل"};
+const msg=t=>$("#msg").textContent=t;
+async function load(){const {users}=await call("api/admin/users");$("#tb").innerHTML=users.map(u=>`<tr><td>${esc(u.name)}${u.admin?" 🛡️":""}</td><td dir="ltr">${esc(u.username)}</td><td>${u.disabled?"موقوف":u.mustChange?"لم يغيّر كلمة المرور":"نشط"}</td>
+<td class="row"><button class="sec" data-pw="${u.id}">🔑 كلمة مرور جديدة</button><button class="sec" data-ds="${u.id}" data-v="${u.disabled?0:1}">${u.disabled?"تفعيل":"إيقاف"}</button><button class="sec" data-nm="${u.id}">✏️ الاسم</button></td></tr>`).join("");
+  document.querySelectorAll("[data-pw]").forEach(b=>b.onclick=async()=>{const p=prompt("كلمة المرور المؤقتة الجديدة (6 أحرف على الأقل):");if(!p)return;try{await call("api/admin/users/"+b.dataset.pw,{password:p});msg("تم — يغيّرها المستخدم عند الدخول");load()}catch(e){msg(ERR[e.message]||"تعذّر")}});
+  document.querySelectorAll("[data-ds]").forEach(b=>b.onclick=async()=>{try{await call("api/admin/users/"+b.dataset.ds,{disabled:b.dataset.v==="1"});load()}catch(e){msg("تعذّر")}});
+  document.querySelectorAll("[data-nm]").forEach(b=>b.onclick=async()=>{const n=prompt("الاسم:");if(!n)return;try{await call("api/admin/users/"+b.dataset.nm,{name:n});load()}catch(e){msg("تعذّر")}})}
+$("#nf").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{await call("api/admin/users",{name:f.get("name"),username:f.get("username"),password:f.get("password"),admin:!!f.get("admin")});e.target.reset();msg("تمت الإضافة");load()}catch(er){msg(ERR[er.message]||"تعذّر")}};
+load();
+call("api/admin/token").then(j=>{$("#sync").innerHTML=Object.entries(j.files).map(([n,f])=>`${n}: ${f?new Date(f.at).toLocaleString("ar-SA")+" — "+Math.round(f.bytes/1024)+" KB":"لم تُرفع بعد"}`).join("<br>")+`<br>مفتاح الرفع: <code dir="ltr" style="user-select:all">${j.token}</code>`}).catch(()=>{});
+</script></body></html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>متابعة المبيعات — يونايتد</title><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="img/icon-180.png"><meta name="theme-color" content="#1F4E79">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#F3F6FA;font-family:system-ui,Tahoma,sans-serif;color:#1d2733}
+.box{background:#fff;padding:28px 26px;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.08);width:min(340px,90vw);text-align:center}
+img{height:64px}h1{font-size:19px;margin:10px 0 18px;color:#1F4E79}input{width:100%;box-sizing:border-box;padding:11px;margin:6px 0;border:1px solid #cfd8e3;border-radius:10px;font-size:15px}
+button{width:100%;padding:11px;margin-top:10px;border:0;border-radius:10px;background:#1F4E79;color:#fff;font-size:15px;cursor:pointer}.err{color:#c0392b;min-height:20px;font-size:13px;margin-top:8px}.hint{font-size:12px;color:#6b7785}</style></head>
+<body><div class="box"><img src="img/logo.png" alt=""><h1>متابعة المبيعات</h1>
+<form id="lf"><input name="u" placeholder="اسم المستخدم" autocomplete="username" required dir="ltr"><input name="p" type="password" placeholder="كلمة المرور" autocomplete="current-password" required dir="ltr"><button>دخول</button></form>
+<form id="cf" hidden><p class="hint">غيّر كلمة المرور (6 أحرف على الأقل)</p><input name="o" type="password" placeholder="كلمة المرور الحالية" required dir="ltr"><input name="n" type="password" placeholder="كلمة المرور الجديدة" required minlength="6" dir="ltr"><input name="n2" type="password" placeholder="تأكيد كلمة المرور الجديدة" required dir="ltr"><button>حفظ</button></form>
+<div class="err" id="err"></div><button id="inst" type="button" hidden style="background:#e9eef5;color:#1F4E79">📲 تثبيت التطبيق على الجهاز</button><p class="hint" id="ih"></p></div>
+<script src="api.js"></script>
+<script>
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+let _bip=null;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();_bip=e;document.getElementById("inst").hidden=false});
+document.addEventListener("DOMContentLoaded",()=>{const b=document.getElementById("inst");b.onclick=async()=>{if(_bip){_bip.prompt();await _bip.userChoice.catch(()=>{});_bip=null;b.hidden=true}};
+ const sa=/Safari/.test(navigator.userAgent)&&!/Chrome|CriOS|Edg|Android/.test(navigator.userAgent),st=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+ if(sa&&!st)document.getElementById("ih").textContent=/Mac/.test(navigator.platform)&&!("ontouchend" in document)?"للتثبيت على الماك: من قائمة «ملف» في سفاري اختر «إضافة إلى Dock».":"للتثبيت على الآيفون: زر المشاركة ثم «إضافة إلى الشاشة الرئيسية».";});
+const $=s=>document.querySelector(s),err=t=>$("#err").textContent=t;
+const post=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(async r=>({ok:r.ok,status:r.status,j:await r.json().catch(()=>({}))}));
+function showChange(){$("#lf").hidden=true;$("#cf").hidden=false}
+(async()=>{const r=await fetch("api/me");if(r.ok){const {user}=await r.json();if(user.mustChange||location.search.includes("change"))showChange();else location.href="./"}})();
+$("#lf").onsubmit=async e=>{e.preventDefault();err("");const f=new FormData(e.target);const r=await post("api/login",{username:f.get("u"),password:f.get("p")});
+  if(!r.ok)return err(r.status===429?"محاولات كثيرة — حاول بعد 15 دقيقة":"اسم المستخدم أو كلمة المرور غير صحيحة");
+  window.US_TOK(r.j.token);if(r.j.user.mustChange){showChange();$("#cf [name=o]").value=f.get("p")}else location.href="./"};
+$("#cf").onsubmit=async e=>{e.preventDefault();err("");const f=new FormData(e.target);if(f.get("n")!==f.get("n2"))return err("كلمتا المرور غير متطابقتين");
+  const r=await post("api/password",{old:f.get("o"),new:f.get("n")});if(!r.ok)return err(r.j.error==="bad_old"?"كلمة المرور الحالية غير صحيحة":"كلمة المرور قصيرة");location.href="./"};
+</script></body></html>
