@@ -433,8 +433,10 @@ function regionCode(q){const r=Object.values(S.D.reps||{}).find(x=>x.name===q.sa
 /* reference shown on quotations: Q26-JP-5120 = year - city letter + type (P project / R retail) - number */
 const CITY_L=[[/riyadh|الرياض/i,"R"],[/jedd?ah|جدة|جده/i,"J"],[/khamis|خميس/i,"K"],[/dammam|khobar|dhahran|الدمام|الخبر|الظهران/i,"D"],[/sakaka|سكاكا|الجوف/i,"S"],[/tabuk|تبوك/i,"T"],[/madinah|medina|المدينة/i,"M"],[/qassim|buraid|unaizah|القصيم|بريدة|عنيزة/i,"Q"],[/makkah|mecca|مكة/i,"C"],[/taif|الطائف/i,"F"],[/abha|أبها|ابها/i,"A"],[/jazan|jizan|جازان/i,"Z"],[/hail|حائل/i,"H"],[/arar|عرعر/i,"N"]];
 const BR_L={RI:"R",JE:"J",KH:"K",DA:"D",SA:"S",TA:"T",MA:"M",QA:"Q",DP:"R"};
-function cityLetter(q){const c=String(q.city||"")+" "+String(q.projName||"");for(const [re,l] of CITY_L)if(re.test(c))return l;
-  const k=Object.keys(S.D.reps||{}).find(k=>S.D.reps[k].name===q.sales);return k?BR_L[brOf(k)]||"R":"R"}
+const LAT_REP={"azher ali khan":"أزهر علي","azhar ali khan":"أزهر علي","syed najaf abbas":"سيد نجف","syed najaf":"سيد نجف","hamza khan":"حمزة خان","shabuddin mohammed":"شهاب الدين","khaled taqlo":"خالد تقلو","ziyad barami":"زياد البرامي","ahmad awny":"أحمد عوني","mahmoud awny":"محمود عوني","muhammad yaseen":"محمد ياسين","waleed assy":"وليد عاصي","akram mordos":"أكرم مردس","ramy ibrahim omran":"رامي إبراهيم","hasham hussain":"هشام حسين","ahmad al-khouly":"أحمد الخولي"};
+function repKey(n){n=String(n||"").replace(/^(Mr\.|Ms\.|Mrs\.|Engr?\.)\s*/i,"").trim();const ar=LAT_REP[n.toLowerCase()]||n;return Object.keys(S.D.reps||{}).find(k=>S.D.reps[k].name===ar)}
+function cityLetter(q){const k=repKey(q.sales);if(k)return BR_L[brOf(k)]||"R";   // letter from the salesperson's branch
+  const c=String(q.city||"")+" "+String(q.projName||"");for(const [re,l] of CITY_L)if(re.test(c))return l;return "R"}
 const qType=q=>q.qtype||(q.projName||q.projId?"P":"R");
 const qRef=q=>(q.ref&&/^Q\d\d-[A-Z][PR]-\d+$/.test(q.ref)?q.ref:"")||"Q"+String((q.date||todayR()).slice(2,4))+"-"+cityLetter(q)+qType(q)+"-"+String(q.no||0).padStart(4,"0");
 const QPM=["م. محمد العطاس","أ. ندى الحازمي","م. سيد نجف"];
