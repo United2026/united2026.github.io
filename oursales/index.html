@@ -385,7 +385,6 @@ const P_WHY=["وقت التسليم","وقت عرض السعر","مواصفات 
 const P_FOLLOW={daily:"يومي — يحتاج المواد خلال 1-20 يوم",weekly:"أسبوعي — خلال شهر إلى 4 أشهر",monthly:"شهري — خلال 4 إلى 7 أشهر"};
 const projList=()=>Object.values(S.proj||{}).sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||""));
 const quoteList=()=>Object.values(S.quote||{}).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.no||0)-(a.no||0));
-const qTotal=q=>{const sub=sum((q.items||[]).map(i=>(+i.qty||0)*(+i.price||0)));const disc=sub*(+q.disc||0)/100;const net=sub-disc;return {sub,disc,net,vat:net*.15,total:net*1.15}};
 function projectsView(app){
   const role=myRole();if(!canProj(role)){S.nav=[{t:"home"}];return render()}
   const tab=S.opt.ptab||"proj";const q=(S.opt.pq||"").trim();const fs=S.opt.pst||"";
@@ -469,70 +468,125 @@ function projView(app,n){
   app.querySelectorAll("[data-qid]").forEach(b=>b.onclick=()=>go({t:"quote",id:b.dataset.qid}));
 }
 
-/* ----- quotations ----- */
-const qNo=x=>"Q-"+String(x.no||0).padStart(4,"0");
+/* ----- quotations (layout of the company's quotation, e.g. Q26-5108) ----- */
+const qNo=x=>"Q"+String((x.date||todayR()).slice(2,4))+"-"+String(x.no||0).padStart(4,"0");
 const Q_SRC=[["stock","البضائع الموجودة"],["mdb","MDB"],["hvac","HVAC"]];
+const COMP={en:"United Electrical Supplies Factory Co",ar:"شركة المصنع المتحد للمستلزمات الكهربائية",addr1:"2584 Al-Kharj Rd - 2nd Industrial",addr2:"City: Riyadh (SA) - Saudi Arabia",vat:"VAT Number: 300046582500003",
+  footAr:"المملكة العربية السعودية - الرياض - طريق الخرج - الصناعة الثانية - هاتف: 00966114993249",footEn:"Kingdom of Saudi Arabia - Riyadh - Al-Kharj Road - 2nd Industrial Area - Tel: 00966114993249"};
+const Q_TERMS=[["A. TERMS & CONDITIONS","الشروط والأحكام",[
+  ["Quotation Validity: Valid for {v} days from the date of issue.","صلاحية عرض السعر: عرض السعر صالح لمدة {v} أيام من تاريخ الإصدار."],
+  ["Delivery Time: As stated in the quotation, subject to full payment and product availability.","مدة التوريد: حسب ما هو مذكور في عرض السعر، وتخضع لسداد كامل المبلغ وتوفر المنتج."],
+  ["Payment Terms: {p} payment is required before production or order processing.","شروط الدفع: يلزم سداد {pa} قبل بدء الإنتاج أو تنفيذ الطلب."],
+  ["Delivery: Free delivery within Riyadh city limits for orders with a minimum total value of SAR 3,000.","التوصيل: التوصيل مجاني داخل مدينة الرياض للطلبات التي لا تقل قيمتها الإجمالية عن 3,000 ريال سعودي."],
+  ["Scope of Supply: Prices cover the listed products only. Installation, wiring, unloading, and commissioning are excluded unless stated in the quotation.","نطاق التوريد: الأسعار تشمل المنتجات المذكورة فقط، ولا تشمل التركيب أو التمديدات الكهربائية أو التفريغ أو التشغيل ما لم يُذكر ذلك في عرض السعر."],
+  ["Order Cancellation: Cancellation after production starts or materials are purchased may incur charges.","إلغاء الطلب: قد يترتب على إلغاء الطلب بعد بدء الإنتاج أو شراء المواد رسوم إضافية."],
+  ["Prices & VAT: All prices are in Saudi Riyals (SAR). VAT is charged separately at the applicable rate.","الأسعار وضريبة القيمة المضافة: جميع الأسعار بالريال السعودي، وتُحتسب ضريبة القيمة المضافة بشكل منفصل وفق النسبة المعمول بها."]]],
+ ["B. WARRANTY & SERVICE CONDITIONS","شروط الضمان والخدمة",[
+  ["Warranty Period: All products carry a 2-year warranty against manufacturing defects, starting from the date of delivery unless otherwise stated.","مدة الضمان: جميع المنتجات مشمولة بضمان لمدة سنتين ضد عيوب التصنيع اعتباراً من تاريخ التسليم ما لم يُذكر خلاف ذلك."],
+  ["Warranty Claims: The original invoice or proof of purchase is required. The Company reserves the right to inspect the product to verify the reported defect.","المطالبة بالضمان: يلزم تقديم الفاتورة الأصلية أو إثبات الشراء، وتحتفظ الشركة بحق فحص المنتج للتحقق من العيب المُبلّغ عنه."],
+  ["Repair or Replacement: Confirmed manufacturing defects will be repaired or replaced under the warranty. The product must be returned to our factory in Riyadh for inspection.","الإصلاح أو الاستبدال: يتم إصلاح عيوب التصنيع المؤكدة أو استبدال المنتج بموجب الضمان، ويجب إعادة المنتج إلى مصنعنا في الرياض للفحص."],
+  ["Warranty Exclusions: The warranty does not cover improper installation, incorrect wiring, voltage fluctuations, misuse, negligence, unauthorized repairs, physical damage, lack of maintenance, or normal wear and tear.","استثناءات الضمان: لا يغطي الضمان التركيب غير السليم أو التوصيلات الخاطئة أو تذبذب الجهد أو سوء الاستخدام أو الإهمال أو الإصلاحات غير المصرح بها أو الأضرار المادية أو عدم الصيانة أو الاستهلاك الطبيعي."],
+  ["Installation & Site Visits: Installation and on-site repair services are excluded. Technician visits are subject to availability and additional charges.","التركيب والزيارات الميدانية: خدمات التركيب والإصلاح في الموقع غير مشمولة، وتخضع زيارات الفنيين للتوفر ورسوم إضافية."],
+  ["Inspection Fee: Site visits within Riyadh are subject to a fee of SAR 200 per visit. Additional transportation charges apply outside Riyadh.","رسوم الفحص: تخضع الزيارات الميدانية داخل الرياض لرسوم قدرها 200 ريال سعودي للزيارة الواحدة، وتُطبق رسوم نقل إضافية خارج الرياض."],
+  ["Returns & Exchanges: Unused standard products may be considered for return within 3 days of receipt, subject to approval and original packaging. Custom-made or special-order products are not returnable.","الإرجاع والاستبدال: يمكن النظر في إرجاع المنتجات القياسية غير المستخدمة خلال 3 أيام من الاستلام، وذلك بعد الموافقة وبالتغليف الأصلي، أما المنتجات المصنعة حسب الطلب فغير قابلة للإرجاع."],
+  ["Storage Charges: Additional storage charges may apply if the Buyer delays receiving ready goods, subject to prior agreement.","رسوم التخزين: قد تُطبق رسوم تخزين إضافية في حال تأخر المشتري عن استلام البضاعة الجاهزة، وذلك بموجب اتفاق مسبق."]]]];
+const lineAmt=it=>(+it.qty||0)*(+it.price||0)*(1-(+it.disc||0)/100);
+const qTotal=q=>{const gross=sum((q.items||[]).map(it=>(+it.qty||0)*(+it.price||0)));const lines=sum((q.items||[]).map(lineAmt));const disc=gross-lines+lines*(+q.disc||0)/100;const net=gross-disc;return {gross,sub:gross,disc,net,vat:net*.15,total:net*1.15}};
+const addDays=(d,n)=>{const t=new Date((d||todayR())+"T12:00:00");t.setDate(t.getDate()+(+n||0));return t.toISOString().slice(0,10)};
 function quoteView(app,n){
   const role=myRole();if(!canProj(role)){S.nav=[{t:"home"}];return render()}
   if(!S.qdraft||S.qdraft._for!==n.id){
     const src=n.id==="new"?null:(S.quote||{})[n.id];
     if(n.id!=="new"&&!src){app.innerHTML='<div class="empty">العرض غير موجود</div>';return}
-    const pj=n.proj&&(S.proj||{})[n.proj];
-    S.qdraft=src?JSON.parse(JSON.stringify(src)):{id:newId("q"),date:todayR(),valid:30,status:pj?pj.status:"s1",projId:pj?pj.id:"",projName:pj?pj.name:"",customer:pj?pj.contractor||"":"",items:[],disc:0,terms:"الأسعار بالريال السعودي. التوريد حسب الاتفاق. صلاحية العرض 30 يوم."};
+    const pj=n.proj&&(S.proj||{})[n.proj];const ct=pj&&pj.poles&&pj.poles.contractor||{};
+    S.qdraft=src?JSON.parse(JSON.stringify(src)):{id:newId("q"),date:todayR(),valid:7,status:pj?pj.status:"s1",projId:pj?pj.id:"",projName:pj?pj.name:"",customer:pj?pj.contractor||"":"",city:pj?(pj.location||"").split(/[-–،,]/)[0].trim():"",country:"Saudi Arabia",contact:ct.name||"",phone:ct.phone||"",email:"",custCode:"",pay:"100% Advance",sales:myName().split("—")[0].trim(),items:[],disc:0,notes:""};
     S.qdraft._for=n.id;
   }
   const q=S.qdraft;const T=qTotal(q);const isNew=n.id==="new";const src=S.opt.qsrc||"stock";const qs=(S.opt.qs||"").trim().toLowerCase();
   const cat=(S.D.qcat||[]);const hits=src==="stock"&&qs?cat.filter(c=>(c[1]+" "+c[2]).toLowerCase().includes(qs)).slice(0,30):[];
+  const I=(id,l,v,t="text",x="")=>`<label class="f">${l}<input id="${id}" type="${t}" value="${esc(v??"")}" ${x}></label>`;
   app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin-inline-end:auto">${isNew?"عرض سعر جديد":"عرض سعر "+esc(qNo(q))}</h1>
      <button class="btn pri" id="qsave">💾 حفظ</button>${!isNew?`<button class="btn" id="qpdf">🖨️ PDF</button>`:""}</div>
-   <div class="card"><div class="grid2">
+   <div class="card"><h2 style="margin-top:0">بيانات العميل / CUSTOMER INFO.</h2><div class="grid2">
      <label class="f">المشروع<select id="qproj"><option value="">— بدون مشروع —</option>${projList().map(p=>`<option value="${esc(p.id)}" ${q.projId===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
-     <label class="f">العميل / المقاول<input id="qcust" value="${esc(q.customer||"")}"></label>
-     <label class="f">التاريخ<input type="date" id="qdate" value="${esc(q.date)}"></label>
+     ${I("qcust","اسم العميل / Company Name",q.customer)}${I("qcity","المدينة / City",q.city)}${I("qcountry","الدولة / Country",q.country)}
+     ${I("qcontact","الشخص الذي يمكن الاتصال به / Contact Person",q.contact)}${I("qphone","رقم الجوال / Cellphone",q.phone,"tel")}${I("qemail","البريد الإلكتروني / Email",q.email,"email")}${I("qcode","كود العميل / Customer Code",q.custCode)}</div></div>
+   <div class="card"><h2 style="margin-top:0">بيانات العرض</h2><div class="grid2">
+     ${I("qdate","تاريخ عرض السعر / Quotation Date",q.date,"date")}${I("qvalid","مدة الصلاحية (يوم) / Validity",q.valid||7,"number")}
+     ${I("qsales","مندوب المبيعات / Salesperson",q.sales)}${I("qpay","شروط الدفع / Payment Terms",q.pay)}
      <label class="f">الحالة<select id="qst">${P_STATUS.map(s=>`<option value="${s[0]}" ${q.status===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select></label>
-     <label class="f">صلاحية العرض (يوم)<input type="number" id="qvalid" value="${esc(q.valid||30)}"></label>
-     <label class="f">الخصم %<input type="number" id="qdisc" step="0.1" value="${esc(q.disc||0)}"></label></div>
-     <label class="f">الشروط والملاحظات<textarea id="qterms" rows="2">${esc(q.terms||"")}</textarea></label></div>
+     ${I("qdisc","خصم إضافي على الإجمالي %",q.disc||0,"number",'step="0.1"')}</div>
+     <label class="f">ملاحظات إضافية تطلع في العرض<textarea id="qnotes" rows="2">${esc(q.notes||"")}</textarea></label>
+     <p class="small muted" style="margin:0">صالح حتى: ${fd(addDays(q.date,q.valid))} · الشروط والأحكام والضمان تنضاف تلقائياً في الصفحة الثانية.</p></div>
    <div class="card"><h2 style="margin-top:0">إضافة مواد</h2>
      <div class="seg">${Q_SRC.map(([k,l])=>`<button data-qsrc="${k}" aria-pressed="${src===k}">${l}</button>`).join("")}</div>
      ${src==="stock"?`<input type="search" id="qs" placeholder="ابحث باسم الصنف أو الكود (من أودو بالسعر)" value="${esc(S.opt.qs||"")}" style="margin-top:8px;width:100%">
        ${hits.length?`<div class="tbl" style="margin-top:6px;max-height:300px"><table><thead><tr><th>الكود</th><th>الصنف</th><th>السعر</th><th></th></tr></thead><tbody>${hits.map(c=>`<tr><td class="ltr small">${esc(c[1])}</td><td>${esc(c[2])}</td><td>${fmt(c[3],2)}</td><td><button class="btn sm" data-add="${c[0]}">＋ إضافة</button></td></tr>`).join("")}</tbody></table></div>`:qs?'<div class="small muted">لا توجد نتائج</div>':""}`
-     :`<form id="qfree" class="row" style="margin-top:8px"><input name="name" placeholder="وصف الصنف (${src==="mdb"?"لوحة MDB …":"وحدة HVAC …"})" style="flex:2;min-width:200px" required><input name="unit" placeholder="الوحدة" style="width:80px"><input name="qty" type="number" step="any" placeholder="الكمية" style="width:90px" required><input name="price" type="number" step="any" placeholder="سعر الوحدة" style="width:110px" required><button class="btn">＋ إضافة</button></form>`}</div>
+     :`<form id="qfree" class="row" style="margin-top:8px"><input name="code" placeholder="الكود" style="width:110px"><input name="name" placeholder="وصف الصنف (${src==="mdb"?"لوحة MDB …":"وحدة HVAC …"})" style="flex:2;min-width:200px" required><input name="spec" placeholder="المواصفات (مثال: Size: 10&quot;)" style="flex:1;min-width:140px"><input name="qty" type="number" step="any" placeholder="الكمية" style="width:90px" required><input name="price" type="number" step="any" placeholder="سعر الوحدة" style="width:110px" required><button class="btn">＋ إضافة</button></form>`}</div>
    <div class="card"><h2 style="margin-top:0">الأصناف (${q.items.length})</h2>
-     ${q.items.length?`<div class="tbl"><table><thead><tr><th>#</th><th>النوع</th><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody>
-      ${q.items.map((it,i)=>`<tr><td>${i+1}</td><td>${esc((Q_SRC.find(s=>s[0]===it.src)||["",""])[1])}</td><td>${it.code?`<span class="ltr small">${esc(it.code)}</span> `:""}${esc(it.name)}</td><td>${esc(it.unit||"")}</td>
-        <td><input type="number" step="any" data-qty="${i}" value="${esc(it.qty)}" style="width:80px"></td><td><input type="number" step="any" data-price="${i}" value="${esc(it.price)}" style="width:100px"></td><td><b>${fmt((+it.qty||0)*(+it.price||0),2)}</b></td><td><button class="btn sm bad" data-rm="${i}">حذف</button></td></tr>`).join("")}</tbody></table></div>
-      <div class="kpis" style="margin-top:10px"><div class="kpi"><span>المجموع</span><b>${fmt(T.sub,2)}</b></div><div class="kpi"><span>الخصم</span><b>${fmt(T.disc,2)}</b></div><div class="kpi"><span>ضريبة 15%</span><b>${fmt(T.vat,2)}</b></div><div class="kpi"><span>الإجمالي شامل الضريبة</span><b>${fmt(T.total,2)}</b></div></div>`:'<div class="small muted">ما أضفت أصناف للحين</div>'}</div>
+     ${q.items.length?`<div class="tbl"><table><thead><tr><th>#</th><th>الصنف / DESCRIPTION</th><th>المواصفات</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>خصم %</th><th>المبلغ</th><th></th></tr></thead><tbody>
+      ${q.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.code?`<b class="ltr small">${esc(it.code)}</b><br>`:""}${esc(it.name)}<div class="small muted">${esc((Q_SRC.find(s=>s[0]===it.src)||["",""])[1])}</div></td>
+        <td><input data-f="spec" data-i="${i}" value="${esc(it.spec||"")}" style="width:130px"></td><td><input type="number" step="any" data-f="qty" data-i="${i}" value="${esc(it.qty)}" style="width:80px"></td><td><input data-f="unit" data-i="${i}" value="${esc(it.unit||"Units")}" style="width:70px"></td>
+        <td><input type="number" step="any" data-f="price" data-i="${i}" value="${esc(it.price)}" style="width:95px"></td><td><input type="number" step="any" data-f="disc" data-i="${i}" value="${esc(it.disc||"")}" style="width:60px"></td><td><b>${fmt(lineAmt(it),2)}</b></td><td><button class="btn sm bad" data-rm="${i}">حذف</button></td></tr>`).join("")}</tbody></table></div>
+      <div class="kpis" style="margin-top:10px"><div class="kpi"><span>Gross Amount</span><b>${fmt(T.gross,2)}</b></div><div class="kpi"><span>الخصم</span><b>${fmt(T.disc,2)}</b></div><div class="kpi"><span>Untaxed Amount</span><b>${fmt(T.net,2)}</b></div><div class="kpi"><span>VAT 15%</span><b>${fmt(T.vat,2)}</b></div><div class="kpi"><span>Total</span><b>${fmt(T.total,2)}</b></div></div>`:'<div class="small muted">ما أضفت أصناف للحين</div>'}</div>
    <div id="qdocWrap" style="position:absolute;left:-10000px;top:0"></div></div>`;
-  const keep=()=>{q.projId=app.querySelector("#qproj").value;const pj=(S.proj||{})[q.projId];q.projName=pj?pj.name:"";q.customer=app.querySelector("#qcust").value.trim();q.date=app.querySelector("#qdate").value;q.status=app.querySelector("#qst").value;q.valid=+app.querySelector("#qvalid").value||30;q.disc=+app.querySelector("#qdisc").value||0;q.terms=app.querySelector("#qterms").value};
-  app.querySelector("#qproj").onchange=()=>{keep();const pj=(S.proj||{})[q.projId];if(pj&&!q.customer)q.customer=pj.contractor||"";render()};
-  ["#qdisc"].forEach(s=>app.querySelector(s).onchange=()=>{keep();render()});
+  const v=s=>app.querySelector(s).value;
+  const keep=()=>{q.projId=v("#qproj");const pj=(S.proj||{})[q.projId];q.projName=pj?pj.name:"";q.customer=v("#qcust").trim();q.city=v("#qcity").trim();q.country=v("#qcountry").trim();q.contact=v("#qcontact").trim();q.phone=v("#qphone").trim();q.email=v("#qemail").trim();q.custCode=v("#qcode").trim();
+    q.date=v("#qdate");q.valid=+v("#qvalid")||7;q.sales=v("#qsales").trim();q.pay=v("#qpay").trim();q.status=v("#qst");q.disc=+v("#qdisc")||0;q.notes=v("#qnotes")};
+  app.querySelector("#qproj").onchange=()=>{keep();const pj=(S.proj||{})[q.projId];if(pj){if(!q.customer)q.customer=pj.contractor||"";const ct=pj.poles&&pj.poles.contractor||{};if(!q.contact)q.contact=ct.name||"";if(!q.phone)q.phone=ct.phone||""}render()};
+  ["#qdisc","#qdate","#qvalid"].forEach(s=>app.querySelector(s).onchange=()=>{keep();render()});
   app.querySelectorAll("[data-qsrc]").forEach(b=>b.onclick=()=>{keep();S.opt.qsrc=b.dataset.qsrc;render()});
   const qsI=app.querySelector("#qs");if(qsI){qsI.oninput=()=>{clearTimeout(S._qt);S._qt=setTimeout(()=>{keep();S.opt.qs=qsI.value;render();const x=document.querySelector("#qs");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}},350)}}
-  app.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{keep();const c=cat.find(c=>String(c[0])===b.dataset.add);q.items.push({src:"stock",pid:c[0],code:c[1],name:c[2],unit:c[4]||"",qty:1,price:c[3]});render()});
-  const ff=app.querySelector("#qfree");if(ff)ff.onsubmit=e=>{e.preventDefault();keep();const F=new FormData(ff);q.items.push({src,name:F.get("name").trim(),unit:F.get("unit").trim(),qty:+F.get("qty"),price:+F.get("price")});render()};
-  app.querySelectorAll("[data-qty]").forEach(i=>i.onchange=()=>{keep();q.items[+i.dataset.qty].qty=+i.value;render()});
-  app.querySelectorAll("[data-price]").forEach(i=>i.onchange=()=>{keep();q.items[+i.dataset.price].price=+i.value;render()});
+  app.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{keep();const c=cat.find(c=>String(c[0])===b.dataset.add);q.items.push({src:"stock",pid:c[0],code:c[1],name:c[2],spec:"",unit:"Units",qty:1,price:c[3],disc:0});render()});
+  const ff=app.querySelector("#qfree");if(ff)ff.onsubmit=e=>{e.preventDefault();keep();const F=new FormData(ff);q.items.push({src,code:F.get("code").trim(),name:F.get("name").trim(),spec:F.get("spec").trim(),unit:"Units",qty:+F.get("qty"),price:+F.get("price"),disc:0});render()};
+  app.querySelectorAll("[data-f]").forEach(i=>i.onchange=()=>{keep();const it=q.items[+i.dataset.i],f=i.dataset.f;it[f]=["qty","price","disc"].includes(f)?+i.value:i.value;render()});
   app.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{keep();q.items.splice(+b.dataset.rm,1);render()});
-  app.querySelector("#qsave").onclick=async()=>{keep();if(!q.items.length){toast("أضف صنف واحد على الأقل");return}
+  app.querySelector("#qsave").onclick=async()=>{keep();if(!q.items.length){toast("أضف صنف واحد على الأقل");return}if(!q.customer){toast("اكتب اسم العميل");return}
     const d={...q};delete d._for;const old=(S.quote||{})[q.id];
     if(!d.no)d.no=Math.max(0,...Object.values(S.quote||{}).map(x=>x.no||0))+1;
     if(!old){d.by=S.uid;d.createdAt=nowIso()}d.updatedAt=nowIso();d.updBy=S.uid;
     try{await S.db.doc("quote/"+d.id).set(d);S.qdraft=null;toast("تم حفظ العرض "+qNo(d));logAct(old?"quote_edit":"quote_add",qNo(d)+" — "+(d.projName||d.customer||"")+" — "+Math.round(qTotal(d).total)+" ريال"+(old&&old.status!==d.status?` (الحالة: ${P_ST[old.status][1]} ← ${P_ST[d.status][1]})`:""));S.nav[S.nav.length-1]={t:"quote",id:d.id};render()}catch(e){toast("تعذّر الحفظ")}};
-  const pdf=app.querySelector("#qpdf");if(pdf)pdf.onclick=e=>{keep();const w=app.querySelector("#qdocWrap");w.innerHTML=quoteDoc(q);chartPdf(w.firstElementChild,"عرض سعر "+qNo(q),e.currentTarget)};
+  const pdf=app.querySelector("#qpdf");if(pdf)pdf.onclick=e=>{keep();const w=app.querySelector("#qdocWrap");w.innerHTML=quoteDoc(q);pagesPdf([...w.querySelectorAll(".qpage")],qNo(q),e.currentTarget)};
+}
+/* A4 pages (794×1123 px), each one becomes one PDF page */
+async function pagesPdf(pages,name,btn){
+  let dl=null;try{dl=window.claude&&await claude.use("downloads")}catch(e){}
+  if(!dl){toast("حفظ الملفات يعمل عند فتح التطبيق من رابطه");return}
+  const lbl=btn&&btn.textContent;if(btn){btn.disabled=true;btn.textContent="جاري التجهيز…"}
+  try{await loadLibs();const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:"p",unit:"mm",format:"a4"});const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight();
+    for(let i=0;i<pages.length;i++){const c=await html2canvas(pages[i],{scale:2,backgroundColor:"#ffffff",useCORS:true});if(i)pdf.addPage();pdf.addImage(c.toDataURL("image/jpeg",.92),"JPEG",0,0,W,H)}
+    await dl.save({filename:name.replace(/[\\/:*?"<>|]/g,"-")+".pdf",data:pdf.output("blob")});toast("تم حفظ ملف PDF")}
+  catch(e){if(!(e&&e.code==="declined"))toast("تعذّر إنشاء ملف PDF")}
+  finally{if(btn){btn.disabled=false;btn.textContent=lbl}}
 }
 function quoteDoc(q){
-  const T=qTotal(q);const td='style="border:1px solid #999;padding:5px 7px"',th='style="border:1px solid #999;padding:6px 7px;background:#8B1A1A;color:#fff"';
-  return `<div dir="rtl" style="background:#fff;color:#000;width:820px;padding:24px;font-family:Calibri,Arial,sans-serif;font-size:13px">
-   <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #8B1A1A;padding-bottom:10px"><img src="img/logo.png" style="height:64px"><div style="text-align:left"><div style="font-size:22px;font-weight:700">عرض سعر / Quotation</div><div>No: <b>${esc(qNo(q))}</b></div><div>Date: ${fd(q.date)}</div></div></div>
-   <div style="display:flex;gap:20px;margin:12px 0"><div style="flex:1"><b>العميل:</b> ${esc(q.customer||"")}<br><b>المشروع:</b> ${esc(q.projName||"—")}</div><div style="flex:1"><b>صلاحية العرض:</b> ${esc(q.valid||30)} يوم<br><b>أعدّه:</b> ${esc(pname(q.by||S.uid))}</div></div>
-   <table style="width:100%;border-collapse:collapse"><tr><th ${th}>#</th><th ${th}>الصنف</th><th ${th}>الوحدة</th><th ${th}>الكمية</th><th ${th}>سعر الوحدة</th><th ${th}>الإجمالي</th></tr>
-   ${(q.items||[]).map((it,i)=>`<tr><td ${td}>${i+1}</td><td ${td}>${it.code?`<span dir="ltr">${esc(it.code)}</span> — `:""}${esc(it.name)}${it.src!=="stock"?` <small>(${esc((Q_SRC.find(s=>s[0]===it.src)||["",""])[1])})</small>`:""}</td><td ${td}>${esc(it.unit||"")}</td><td ${td}>${fmt(it.qty,2)}</td><td ${td}>${fmt(it.price,2)}</td><td ${td}>${fmt((+it.qty||0)*(+it.price||0),2)}</td></tr>`).join("")}
-   <tr><td ${td} colspan="5"><b>المجموع</b></td><td ${td}><b>${fmt(T.sub,2)}</b></td></tr>${T.disc?`<tr><td ${td} colspan="5">الخصم ${esc(q.disc)}%</td><td ${td}>${fmt(T.disc,2)}</td></tr>`:""}
-   <tr><td ${td} colspan="5">ضريبة القيمة المضافة 15%</td><td ${td}>${fmt(T.vat,2)}</td></tr><tr><td ${td} colspan="5"><b>الإجمالي شامل الضريبة</b></td><td ${td}><b>${fmt(T.total,2)}</b></td></tr></table>
-   ${q.terms?`<div style="margin-top:12px;white-space:pre-wrap"><b>الشروط:</b> ${esc(q.terms)}</div>`:""}
-   <div style="margin-top:20px;border-top:1px solid #999;padding-top:6px;font-size:11px;color:#555">شركة المصنع المتحد للمستلزمات الكهربائية — United Electrical Supplies Factory Co.</div></div>`;
+  const T=qTotal(q);const sar=v=>"SR "+Number(v||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const pg='class="qpage" dir="ltr" style="position:relative;box-sizing:border-box;width:794px;height:1123px;background:#fff;color:#222;padding:34px 40px 70px;font-family:Helvetica,Arial,sans-serif;font-size:11px;overflow:hidden"';
+  const head=`<div style="display:flex;justify-content:space-between;align-items:flex-start"><div><img src="img/logo.png" style="height:58px;display:block"><div style="color:#8B1A1A;font-weight:700;font-size:11px;margin-top:4px;direction:rtl;text-align:left">${COMP.ar}</div><div style="font-size:10px">${COMP.en}</div></div>
+    <div style="text-align:right;font-size:10.5px;line-height:1.6"><b style="font-size:11.5px">${COMP.en}</b><br>${COMP.addr1}<br>${COMP.addr2}<br>${COMP.vat}</div></div>
+    <div style="font-size:22px;color:#999;margin:18px 0 10px">Quotation # ${esc(qNo(q))}</div>`;
+  const foot=n=>`<div style="position:absolute;left:40px;right:40px;bottom:24px;border-top:1px solid #999;padding-top:5px;text-align:center;font-size:9.5px;line-height:1.5"><div dir="rtl">${COMP.footAr}</div><div>${COMP.footEn}</div><div style="position:absolute;right:0;bottom:0;color:#666">Page ${n} / 2</div></div>`;
+  const ci=(en,ar,v)=>`<tr><td style="border:1px solid #333;padding:4px 6px;text-align:center;width:46%">${esc(v||"—")}</td><td style="border:1px solid #333;padding:4px 6px;text-align:right;font-weight:700;font-size:10px">${en} / <span dir="rtl">${ar}</span></td></tr>`;
+  const meta=(en,ar,v)=>`<div style="flex:1"><div style="font-size:9.5px"><b>${en}</b> / <span dir="rtl">${ar}</span></div><div style="border-bottom:1px solid #333;padding:4px 0;font-size:11.5px">${esc(v||"—")}</div></div>`;
+  const th='style="border:1px solid #333;padding:6px;text-align:left;font-size:10.5px"',thc='style="border:1px solid #333;padding:6px;text-align:center;font-size:10.5px"',td='style="border:1px solid #333;padding:6px;vertical-align:middle"',tdc='style="border:1px solid #333;padding:6px;vertical-align:middle;text-align:center"',tdr='style="border:1px solid #333;padding:6px;vertical-align:middle;text-align:right"';
+  const tot=(l,v,dark)=>`<tr style="${dark?"background:#7B0D0D;color:#fff":""}"><td style="border:1px solid #333;padding:6px 8px;font-weight:700">${l}</td><td style="border:1px solid #333;padding:6px 8px;text-align:right;font-weight:700">${v}</td></tr>`;
+  const v=q.valid||7,pay=q.pay||"100% Advance";
+  const terms=Q_TERMS.map(([en,ar,L])=>`<div style="display:flex;justify-content:space-between;font-weight:700;margin:12px 0 6px;border-bottom:1px solid #999;padding-bottom:3px"><span>${en}</span><span dir="rtl">${ar}</span></div>
+    ${L.map((x,i)=>`<div style="display:flex;gap:18px;margin-bottom:5px;font-size:9.6px;line-height:1.4"><div style="flex:1">${i+1}. ${esc(x[0].replace("{v}",v).replace("{p}",pay))}</div><div style="flex:1;text-align:right" dir="rtl">${esc(x[1].replace("{v}",v).replace("{pa}",pay.replace(/advance/i,"مقدماً")))}</div></div>`).join("")}`).join("");
+  return `<div><div ${pg}>${head}
+    <table style="border-collapse:collapse;width:56%;margin-left:auto;font-size:10.5px"><tr><td colspan="2" style="border:1px solid #333;padding:5px;text-align:center;font-weight:700">CUSTOMER INFO. / <span dir="rtl">بيانات العميل</span></td></tr>
+     ${ci("COMPANY NAME","اسم العميل",q.customer)}${ci("CITY","المدينة",q.city)}${ci("COUNTRY","الدولة",q.country)}${ci("CONTACT PERSON","الشخص الذي يمكن الاتصال به",q.contact)}${ci("CELLPHONE NUMBER","رقم الجوال",q.phone)}${ci("EMAIL","البريد الإلكتروني",q.email)}</table>
+    <div style="display:flex;gap:24px;margin-top:16px">${meta("Quotation Date","تاريخ عرض السعر",q.date)}${meta("Valid Until","صالح حتى",addDays(q.date,v))}${meta("Salesperson","مندوب المبيعات",q.sales)}</div>
+    <div style="display:flex;gap:24px;margin-top:10px">${meta("Project Name","اسم المشروع",q.projName)}${meta("Payment Terms","شروط الدفع",pay)}${meta("Validity","مدة الصلاحية",v+" days")}${meta("Customer Code","كود العميل",q.custCode)}</div>
+    <table style="border-collapse:collapse;width:100%;margin-top:16px"><tr><th ${th}>#</th><th ${th}>DESCRIPTION</th><th ${thc}>QUANTITY</th><th ${th}>UNIT PRICE</th><th ${thc}>DISC.</th><th ${th}>AMOUNT</th></tr>
+     ${(q.items||[]).map((it,i)=>`<tr><td ${td}>${i+1}</td><td ${td}>${it.code?`<b>${esc(it.code)}</b><br>`:""}<span style="color:#444">${esc(it.name)}</span>${it.spec?`<br><span style="color:#666">${esc(it.spec)}</span>`:""}</td>
+       <td ${tdc}>${Number(it.qty||0).toFixed(3)} ${esc(it.unit||"Units")}</td><td ${td}>${sar(it.price)}</td><td ${tdc}>${it.disc?esc(it.disc)+"%":"—"}</td><td ${tdr}>${sar(lineAmt(it))}</td></tr>`).join("")}</table>
+    <table style="border-collapse:collapse;width:44%;margin:14px 0 0 auto;font-size:11px">${tot("Gross Amount",sar(T.gross))}${T.disc?tot("Discount",sar(T.disc)):""}${tot("Untaxed Amount",sar(T.net))}${tot("VAT Taxes (15%)",sar(T.vat))}${tot("Total",sar(T.total),1)}</table>
+    ${q.notes?`<div style="margin-top:14px;font-size:10.5px;white-space:pre-wrap"><b>Notes / ملاحظات:</b> ${esc(q.notes)}</div>`:""}
+    ${foot(1)}</div>
+   <div ${pg}>${head}<div style="font-weight:700;font-size:12px">Terms &amp; Conditions / <span dir="rtl">الشروط والأحكام</span></div>${terms}${foot(2)}</div></div>`;
 }
+
 function quoteReportHtml(){
   const o=S.opt;const from=o.rf||"",to=o.rt||"",who=o.rw||"",st=o.pst||"";
   let L=quoteList();if(from)L=L.filter(x=>x.date>=from);if(to)L=L.filter(x=>x.date<=to);if(who)L=L.filter(x=>x.by===who);if(st)L=L.filter(x=>x.status===st);
