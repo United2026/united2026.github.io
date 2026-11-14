@@ -387,9 +387,56 @@ const P_WHY=["وقت التسليم","وقت عرض السعر","مواصفات 
 const P_FOLLOW={daily:"يومي — يحتاج المواد خلال 1-20 يوم",weekly:"أسبوعي — خلال شهر إلى 4 أشهر",monthly:"شهري — خلال 4 إلى 7 أشهر"};
 const projList=()=>Object.values(S.proj||{}).sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||""));
 const quoteList=()=>Object.values(S.quote||{}).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.no||0)-(a.no||0));
+/* ----- projects team overview: head of projects and sales manager see the total and each member ----- */
+const teamIds=()=>{const ids=Object.entries(S.members).filter(([u,m])=>isProj(m.role)).map(([u])=>u);if(isProj(myRole())&&S.uid&&!ids.includes(S.uid))ids.push(S.uid);
+  return ids.sort((a,b)=>((S.members[a]||{}).role==="proj_head"?0:1)-((S.members[b]||{}).role==="proj_head"?0:1)||pname(a).localeCompare(pname(b),"ar"))};
+const canTeam=r=>r==="sales_mgr"||r==="proj_head";
+function teamRange(){const t=todayR(),p=S.opt.tper||"m";
+  if(p==="w")return [weekOf(t).slice(1),t,"هذا الأسبوع"];if(p==="m")return [t.slice(0,8)+"01",t,"هذا الشهر"];
+  if(p==="c")return [S.opt.tf||t.slice(0,8)+"01",S.opt.tt||t,"فترة محددة"];return ["",t,"كل الفترات"]}
+const inR=(d,f,t)=>!!d&&(!f||d>=f)&&d<=t;
+function teamStats(u,f,t){
+  const mine=x=>u==="all"||x.by===u;const today=todayR();
+  const P=projList().filter(mine),Q=quoteList().filter(mine).filter(x=>inR(x.date,f,t));
+  const acts=(S.log||[]).filter(l=>(u==="all"?teamIds().includes(l.by):l.by===u)&&inR(l.d,f,t)&&/^(proj|quote)/.test(l.kind||""));
+  const open=P.filter(p=>["s1","s2","s3"].includes(p.status));
+  const last=(S.log||[]).filter(l=>u==="all"?teamIds().includes(l.by):l.by===u).reduce((m,l)=>l.at>m?l.at:m,"");
+  return {P,Q,acts,newP:P.filter(p=>inR(dayOf(p.createdAt),f,t)).length,open:open.length,won:P.filter(p=>p.status==="won").length,lost:P.filter(p=>p.status==="lost").length,
+    late:open.filter(p=>p.nextDate&&p.nextDate<today),qv:sum(Q.map(x=>qTotal(x).total)),qwon:sum(Q.filter(x=>x.status==="won").map(x=>qTotal(x).total)),last}}
+function teamHtml(){
+  const [f,t,lbl]=teamRange();const ids=teamIds();names(ids);const sel=S.opt.tm||"";const per=S.opt.tper||"m";
+  const card=(u,title,sub)=>{const s=teamStats(u,f,t);return `<button class="tile" data-tm="${esc(u)}" aria-pressed="${sel===u}" style="text-align:start;${sel===u?"outline:3px solid var(--pri,#8B1A1A)":""}">
+     <b style="font-size:17px">${title}</b><span class="small muted">${sub}</span>
+     <div class="small" style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin-top:6px;width:100%">
+      <span>مشاريع قيد العمل</span><b>${s.open}</b><span>مشاريع جديدة (${esc(lbl)})</span><b>${s.newP}</b><span>فزنا / ما فزنا</span><b>${s.won} / ${s.lost}</b>
+      <span>متابعات متأخرة</span><b style="color:${s.late.length?"#B42318":"inherit"}">${s.late.length}</b><span>عروض الأسعار (${esc(lbl)})</span><b>${s.Q.length} · ${fmt(s.qv)}</b>
+      <span>تحديثات (${esc(lbl)})</span><b>${s.acts.length}</b><span>آخر نشاط</span><b>${s.last?esc(tmFmt(s.last)):"—"}</b></div></button>`};
+  let det="";
+  if(sel){const s=teamStats(sel,f,t);const nm=sel==="all"?"الفريق كامل":pname(sel);const today=todayR();
+    det=`<div class="card"><div class="row"><h2 style="margin:0;margin-inline-end:auto">${esc(nm)} — ${esc(lbl)}</h2>${sel!=="all"?`<button class="btn sm pri" id="tdaily">📝 تقريره اليومي</button>`:""}<button class="btn sm" id="tclose">إغلاق</button></div>
+     <div class="kpis" style="margin:10px 0"><div class="kpi"><span>كل المشاريع</span><b>${s.P.length}</b></div><div class="kpi"><span>قيد العمل</span><b>${s.open}</b></div><div class="kpi"><span>فزنا</span><b>${s.won}</b></div><div class="kpi"><span>ما فزنا</span><b>${s.lost}</b></div><div class="kpi"><span>عروض الأسعار</span><b>${s.Q.length}</b></div><div class="kpi"><span>قيمة العروض</span><b>${fmt(s.qv)}</b></div><div class="kpi"><span>عروض فزنا فيها</span><b>${fmt(s.qwon)}</b></div></div>
+     <h3>المشاريع</h3>${s.P.length?`<div class="tbl"><table><thead><tr><th>المشروع</th><th>المقاول</th><th>الحالة</th><th>المتابعة الجاية</th><th>عروض الأسعار</th>${sel==="all"?"<th>المسؤول</th>":""}<th>آخر تحديث</th></tr></thead><tbody>
+      ${s.P.map(p=>{const qs=quoteList().filter(x=>x.projId===p.id);const lt=p.nextDate&&p.nextDate<today&&["s1","s2","s3"].includes(p.status);return `<tr data-pid="${esc(p.id)}" style="cursor:pointer"><td><b>${esc(p.name)}</b></td><td>${esc(p.contractor||"")}</td><td>${pill(p.status)}</td><td style="${lt?"color:#B42318;font-weight:700":""}">${p.nextDate?fd(p.nextDate)+(lt?" (متأخرة)":""):"—"}</td><td>${qs.length?`${qs.length} · ${fmt(sum(qs.map(x=>qTotal(x).total)))}`:"—"}</td>${sel==="all"?`<td>${esc(pname(p.by))}</td>`:""}<td class="small">${esc(tmFmt(p.updatedAt))}</td></tr>`}).join("")}</tbody></table></div>`:'<div class="small muted">لا توجد مشاريع</div>'}
+     <h3>عروض الأسعار — ${esc(lbl)}</h3>${s.Q.length?`<div class="tbl"><table><thead><tr><th>رقم العرض</th><th>التاريخ</th><th>المشروع / العميل</th><th>الإجمالي شامل الضريبة</th><th>الحالة</th>${sel==="all"?"<th>أعدّه</th>":""}</tr></thead><tbody>
+      ${s.Q.map(x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td><b class="ltr">${esc(qNo(x))}</b></td><td>${fd(x.date)}</td><td>${esc(x.projName||x.customer||"")}</td><td><b>${fmt(qTotal(x).total,2)}</b></td><td>${pill(x.status)}</td>${sel==="all"?`<td>${esc(pname(x.by))}</td>`:""}</tr>`).join("")}</tbody></table></div>`:'<div class="small muted">لا توجد عروض في هذه الفترة</div>'}
+     <h3>سجل الشغل — ${esc(lbl)}</h3>${s.acts.length?s.acts.slice().sort((a,b)=>b.at.localeCompare(a.at)).slice(0,150).map(l=>`<div style="border-bottom:1px solid var(--line);padding:5px 0"><span class="small muted">${esc(tmFmt(l.at))}${sel==="all"?" — "+esc(pname(l.by)):""} · ${esc(LOGK[l.kind]||l.kind)}</span><div>${esc(l.text||"")}</div></div>`).join(""):'<div class="small muted">لا يوجد شغل مسجّل في هذه الفترة</div>'}
+    </div>`}
+  return `<div class="row"><div class="seg">${[["w","هذا الأسبوع"],["m","هذا الشهر"],["all","الكل"],["c","فترة محددة"]].map(([k,l])=>`<button data-tper="${k}" aria-pressed="${per===k}">${l}</button>`).join("")}</div>
+     ${per==="c"?`<label class="f">من<input type="date" id="tf" value="${esc(f)}"></label><label class="f">إلى<input type="date" id="tt" value="${esc(t)}" max="${todayR()}"></label>`:""}</div>
+    <p class="small muted" style="margin:0">اضغط على الاسم عشان تشوف كل شغله: مشاريعه وعروض أسعاره وسجل تحديثاته وتقريره اليومي.</p>
+    <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))">${card("all","📊 الإجمالي","الفريق كامل")}${ids.map(u=>card(u,"👤 "+esc(pname(u))+(u===S.uid?" (أنا)":""),esc(ROLES[(S.members[u]||{}).role]||ROLES[myRole()]||""))).join("")}</div>
+    ${ids.length?"":'<div class="empty">ما فيه أعضاء في قسم المشاريع</div>'}${det}`;
+}
+function wireTeam(app){
+  app.querySelectorAll("[data-tper]").forEach(b=>b.onclick=()=>{S.opt.tper=b.dataset.tper;render()});
+  app.querySelectorAll("[data-tm]").forEach(b=>b.onclick=()=>{S.opt.tm=S.opt.tm===b.dataset.tm?"":b.dataset.tm;render()});
+  const tf=app.querySelector("#tf");if(tf)tf.onchange=()=>{S.opt.tf=tf.value;render()};const tt=app.querySelector("#tt");if(tt)tt.onchange=()=>{S.opt.tt=tt.value;render()};
+  const tc=app.querySelector("#tclose");if(tc)tc.onclick=()=>{S.opt.tm="";render()};
+  const td=app.querySelector("#tdaily");if(td)td.onclick=()=>{const u=S.opt.tm;S.nav.push({t:"daily"});S.opt={du:u};render();scrollTo(0,0)};
+}
 function projectsView(app){
   const role=myRole();if(!canProj(role)){S.nav=[{t:"home"}];return render()}
-  const tab=S.opt.ptab||"proj";const q=(S.opt.pq||"").trim();const fs=S.opt.pst||"";
+  const tab=S.opt.ptab||(canTeam(role)?"team":"proj");const q=(S.opt.pq||"").trim();const fs=S.opt.pst||"";
   let body="";
   if(tab==="proj"){
     let L=projList();if(fs)L=L.filter(p=>p.status===fs);if(q)L=L.filter(p=>[p.name,p.contractor,p.location,p.consultant&&p.consultant.name,p.owner&&p.owner.name].join(" ").includes(q));
@@ -404,9 +451,10 @@ function projectsView(app){
       <div class="seg"><button data-pst="" aria-pressed="${!fs}">الكل</button>${P_STATUS.map(s=>`<button data-pst="${s[0]}" aria-pressed="${fs===s[0]}">${s[1]}</button>`).join("")}</div></div>
      ${L.length?`<div class="tbl"><table><thead><tr><th>رقم العرض</th><th>التاريخ</th><th>المشروع / العميل</th><th>الأصناف</th><th>الإجمالي شامل الضريبة</th><th>الحالة</th><th>أعدّه</th></tr></thead><tbody>
       ${L.map(x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td><b class="ltr">${esc(qNo(x))}</b></td><td>${fd(x.date)}</td><td>${esc(x.projName||x.customer||"")}</td><td>${(x.items||[]).length}</td><td><b>${fmt(qTotal(x).total,2)}</b></td><td>${pill(x.status)}</td><td>${esc(pname(x.by))}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">لا توجد عروض أسعار</div>`}`;
-  }else body=quoteReportHtml();
+  }else if(tab==="team"&&canTeam(role))body=teamHtml();
+  else body=quoteReportHtml();
   app.innerHTML=`<div class="stack"><h1>المشاريع</h1>
-    <div class="seg" role="tablist"><button data-tab="proj" aria-pressed="${tab==="proj"}">🏗️ المشاريع</button><button data-tab="quote" aria-pressed="${tab==="quote"}">🧾 عروض الأسعار</button><button data-tab="rep" aria-pressed="${tab==="rep"}">📑 تقارير عروض الأسعار</button></div>
+    <div class="seg" role="tablist">${canTeam(role)?`<button data-tab="team" aria-pressed="${tab==="team"}">👥 الفريق</button>`:""}<button data-tab="proj" aria-pressed="${tab==="proj"}">🏗️ المشاريع</button><button data-tab="quote" aria-pressed="${tab==="quote"}">🧾 عروض الأسعار</button><button data-tab="rep" aria-pressed="${tab==="rep"}">📑 تقارير عروض الأسعار</button></div>
     ${body}</div>`;
   app.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{S.opt.ptab=b.dataset.tab;S.opt.pst="";S.opt.pq="";render()});
   app.querySelectorAll("[data-pst]").forEach(b=>b.onclick=()=>{S.opt.pst=b.dataset.pst;render()});
@@ -416,6 +464,7 @@ function projectsView(app){
   const pn=app.querySelector("#pnew");if(pn)pn.onclick=()=>go({t:"proj",id:"new"});
   const qn=app.querySelector("#qnew");if(qn)qn.onclick=()=>go({t:"quote",id:"new"});
   if(tab==="rep")wireQuoteReport(app);
+  if(tab==="team"&&canTeam(role))wireTeam(app);
 }
 const chk=(name,list,sel)=>`<div class="row" style="gap:6px 14px">${list.map(v=>`<label style="display:flex;gap:4px;align-items:center;font-size:14px"><input type="checkbox" name="${name}" value="${esc(v)}" ${(sel||[]).includes(v)?"checked":""}>${esc(v)}</label>`).join("")}</div>`;
 const rad=(name,list,v)=>`<div class="row" style="gap:6px 14px">${list.map(([k,l])=>`<label style="display:flex;gap:4px;align-items:center;font-size:14px"><input type="radio" name="${name}" value="${esc(k)}" ${v===k?"checked":""}>${esc(l)}</label>`).join("")}</div>`;
@@ -1243,7 +1292,7 @@ function dailyAuto(uid,date,brs){
 function dailyView(app,n){
   const role=myRole();const brs=allowedBranches();const canAll=(S.isOwner&&!S.preview)||role==="sales_mgr"||role==="deputy";
   const date=S.opt.dd||todayR();
-  const users=canAll?[...new Set([S.uid,...Object.keys(S.members)])]:[S.uid];names(users);
+  const users=canAll?[...new Set([S.uid,...Object.keys(S.members)])]:role==="proj_head"?[...new Set([S.uid,...teamIds()])]:[S.uid];names(users);
   const who=S.opt.du&&users.includes(S.opt.du)?S.opt.du:S.uid;
   const roleOf=u=>u===S.uid?myRole():(S.members[u]||{}).role;
   const ub=u=>{const r=roleOf(u);return r==="sales_mgr"||r==="deputy"?allowedBranches():areasFor(r).flatMap(branchesOfArea)};
@@ -1251,7 +1300,7 @@ function dailyView(app,n){
   const docId=who+"_"+date;const extra=S.daily.find(d=>d.id===docId)||{};
   const A=dailyAuto(who,date,sb);
   app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin-inline-end:auto">التقرير اليومي</h1>
-     ${canAll?`<label class="f">المستخدم<select id="du">${users.map(u=>`<option value="${esc(u)}" ${u===who?"selected":""}>${esc(u===S.uid?"أنا":pname(u))}${roleOf(u)?" — "+esc(ROLES[roleOf(u)]||""):""}</option>`).join("")}</select></label>`:""}
+     ${users.length>1?`<label class="f">المستخدم<select id="du">${users.map(u=>`<option value="${esc(u)}" ${u===who?"selected":""}>${esc(u===S.uid?"أنا":pname(u))}${roleOf(u)?" — "+esc(ROLES[roleOf(u)]||""):""}</option>`).join("")}</select></label>`:""}
      <label class="f">التاريخ<input type="date" id="dd" value="${date}" max="${todayR()}"></label><button class="btn pri" id="dpdf" style="align-self:flex-end">🖨️ إصدار PDF</button></div>
    <div class="row"><span class="small muted">الفروع:</span><div class="seg">${ub(who).map(b=>`<button data-dbr="${b}" aria-pressed="${sb.includes(b)}">${esc(brLabel(b))}</button>`).join("")}</div></div>
    <p class="small muted" style="margin:0">التقرير يتبني تلقائياً من حركات المستخدم في التطبيق بهذا اليوم: مكالمات وملاحظات الكهربائيين، تحديثاتهم واعتمادها، ملاحظات العملاء، الأهداف اليدوية، مع بيع وتحصيل المناديب من أودو (بيانات أودو حتى ${fd(S.D.asof)}). الخانات تحت اختيارية للإضافة.</p>
