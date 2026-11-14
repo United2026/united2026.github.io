@@ -726,50 +726,84 @@ function forecastView(app){
 }
 async function loadFc(){if(S._fcl)return;S._fcl=1;try{const r=await fetch("forecast.json",{cache:"no-store"});if(r.ok){S.fc=await r.json();render()}}catch(e){}S._fcl=0}
 
-/* ----- targets of the area managers (ندى، نسرين، عيدة): monthly per rep + written tasks ----- */
+/* ----- targets of the area managers (ندى، نسرين، عيدة): monthly or weekly — reps, customers, electricians, written tasks ----- */
 const monthOf=d=>(d||todayR()).slice(0,7);
-const tgtOf=(uid,m)=>(S.tgt||{})[uid+"_"+m];
+const weekOf=d=>{const t=new Date((d||todayR())+"T12:00:00");t.setDate(t.getDate()-t.getDay());return "W"+t.toISOString().slice(0,10)};   // weeks start on Sunday
+const perDays=k=>{if(k.startsWith("W")){const s=new Date(k.slice(1)+"T12:00:00");return Array.from({length:7},(_,i)=>{const x=new Date(s);x.setDate(s.getDate()+i);return x.toISOString().slice(0,10)})}
+  const [y,m]=k.split("-").map(Number);const n=new Date(y,m,0).getDate();return Array.from({length:n},(_,i)=>k+"-"+String(i+1).padStart(2,"0"))};
+const perLabel=k=>k.startsWith("W")?"أسبوع "+fd(k.slice(1))+" — "+fd(perDays(k)[6]):"شهر "+k;
+const tgtOf=(uid,k)=>(S.tgt||{})[uid+"_"+k];
+const repAch=(i,k)=>{const days=perDays(k);const r=R(i);return {sale:sum(days.map(d=>(r.dSale||{})[d]||0)),col:sum(days.map(d=>(r.dCol||{})[d]||0))}};
+const elVisits=(e,k)=>{const days=new Set(perDays(k));return (e.visits||[]).filter(v=>days.has(v.d||dayOf(v.at))).length};
 function targetsView(app){
   const role=myRole();const mgr=role==="sales_mgr"||role==="deputy";
   if(!TGT_ROLES.includes(role)&&!mgr){S.nav=[{t:"home"}];return render()}
   const girls=Object.entries(S.members).filter(([id,m])=>TGT_ROLES.includes(m.role)).map(([id])=>id);
   const who=mgr?(S.opt.tw&&girls.includes(S.opt.tw)?S.opt.tw:girls[0]):S.uid;
   const wrole=who===S.uid?role:(S.members[who]||{}).role;
-  const m=S.opt.tm||monthOf();const cur=m===monthOf(S.D.asof);const T=tgtOf(who,m)||{reps:{},tasks:[]};const edit=who===S.uid&&TGT_ROLES.includes(role);
-  const reps=wrole?areasFor(wrole).flatMap(branchesOfArea).flatMap(repsOfBranch).filter(i=>i&&R(i)):[];
-  const row=i=>{const t=T.reps[i]||{};const k=R(i).kpi;return `<tr><td><b>${esc(R(i).name)}</b><div class="small muted">${esc(brLabel(brOf(i)))}</div></td>
-    <td>${edit?`<input type="number" data-ts="${i}" value="${esc(t.sale??"")}" style="width:120px">`:fmt(t.sale)}</td><td>${cur?fmt(k.mtdSale):"—"}</td><td>${cur&&t.sale?pct(k.mtdSale/t.sale):"—"}</td>
-    <td>${edit?`<input type="number" data-tc="${i}" value="${esc(t.col??"")}" style="width:120px">`:fmt(t.col)}</td><td>${cur?fmt(k.mtdCol):"—"}</td><td>${cur&&t.col?pct(k.mtdCol/t.col):"—"}</td></tr>`};
-  const tasks=(T.tasks||[]).slice().sort((a,b)=>(a.done?1:0)-(b.done?1:0)||(a.due||"").localeCompare(b.due||""));
+  const per=S.opt.tp||"m";const k=per==="w"?(S.opt.tk&&S.opt.tk.startsWith("W")?S.opt.tk:weekOf()):(S.opt.tk&&!S.opt.tk.startsWith("W")?S.opt.tk:monthOf());
+  const T0=tgtOf(who,k)||{};const T={reps:T0.reps||{},custs:T0.custs||[],elecs:T0.elecs||[],tasks:T0.tasks||[]};const edit=who===S.uid&&TGT_ROLES.includes(role);
+  const brs=wrole?areasFor(wrole).flatMap(branchesOfArea):[];const reps=brs.flatMap(repsOfBranch).filter(i=>i&&R(i));
+  const custOpts=reps.flatMap(i=>R(i).customers.map(c=>[String(c[0]),c[1],i]));
+  const elOpts=elecOf(reps,null).concat(S.elec.filter(e=>!e.rep&&brs.includes(e.br))).filter((e,ix,a)=>a.indexOf(e)===ix);
+  const dis=edit?"":"disabled";
+  const repRow=i=>{const t=T.reps[i]||{};const a=repAch(i,k);return `<tr><td><b>${esc(R(i).name)}</b><div class="small muted">${esc(brLabel(brOf(i)))}</div></td>
+    <td><input type="number" data-ts="${i}" value="${esc(t.sale??"")}" ${dis} style="width:120px"></td><td>${fmt(a.sale)}</td><td>${t.sale?pct(a.sale/t.sale):"—"}</td>
+    <td><input type="number" data-tc="${i}" value="${esc(t.col??"")}" ${dis} style="width:120px"></td><td>${fmt(a.col)}</td><td>${t.col?pct(a.col/t.col):"—"}</td></tr>`};
+  const custName=cid=>(custOpts.find(c=>c[0]===String(cid))||[0,""])[1];
+  const repOfCust=cid=>(custOpts.find(c=>c[0]===String(cid))||[0,"",""])[2];
+  const elById=id=>S.elec.find(e=>e.id===id);
   app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin-inline-end:auto">الأهداف</h1>
-     ${mgr?`<label class="f">المديرة<select id="tw">${girls.map(g=>`<option value="${esc(g)}" ${g===who?"selected":""}>${esc(pname(g))}</option>`).join("")}</select></label>`:""}
-     <label class="f">الشهر<input type="month" id="tm" value="${m}"></label></div>
+     ${mgr?`<label class="f">المديرة<select id="tw">${girls.map(g=>`<option value="${esc(g)}" ${g===who?"selected":""}>${esc(pname(g))}</option>`).join("")}</select></label>`:""}</div>
+   <div class="row"><div class="seg"><button data-tp="m" aria-pressed="${per==="m"}">🗓️ الهدف الشهري</button><button data-tp="w" aria-pressed="${per==="w"}">📅 الهدف الأسبوعي</button></div>
+     ${per==="m"?`<label class="f">الشهر<input type="month" id="tm" value="${k}"></label>`:`<label class="f">الأسبوع (يبدأ الأحد)<input type="date" id="twk" value="${k.slice(1)}"></label>`}
+     <b style="align-self:flex-end">${esc(perLabel(k))}</b>${T0.at?`<span class="small muted" style="align-self:flex-end">آخر تحديث ${esc(tmFmt(T0.at))}</span>`:`<span class="pill s-bad" style="align-self:flex-end">${edit?"لازم تحددين الأهداف":"ما حُددت للحين"}</span>`}</div>
    ${!girls.length&&mgr?'<div class="empty">ما فيه مديرات مسجّلات للحين</div>':""}
-   <div class="card"><h2 style="margin-top:0">أهداف الشهر لكل مندوب ${Object.keys(T.reps||{}).length?`<span class="small muted">— آخر تحديث ${esc(tmFmt(T.at))}</span>`:edit?'<span class="pill s-bad">لازم تحددين أهداف الشهر</span>':'<span class="pill s-bad">ما حُددت للحين</span>'}</h2>
-    <div class="tbl"><table><thead><tr><th>المندوب</th><th>هدف البيع</th><th>المحقق</th><th>%</th><th>هدف التحصيل</th><th>المحقق</th><th>%</th></tr></thead><tbody>${reps.map(row).join("")}</tbody></table></div>
-    ${edit?'<div class="row" style="margin-top:8px"><button class="btn pri" id="tsave">💾 حفظ الأهداف</button></div>':""}</div>
-   <div class="card"><h2 style="margin-top:0">المهام المكتوبة</h2>
+   <div class="card"><h2 style="margin-top:0">١. هدف كل مندوب</h2>
+    <div class="tbl"><table><thead><tr><th>المندوب</th><th>هدف البيع</th><th>المحقق</th><th>%</th><th>هدف التحصيل</th><th>المحقق</th><th>%</th></tr></thead><tbody>${reps.map(repRow).join("")}</tbody></table></div></div>
+   <div class="card"><h2 style="margin-top:0">٢. أهداف العملاء</h2>
+    ${edit?`<div class="row"><input list="tcl" id="tcn" placeholder="اختر العميل من قائمة فرعك" style="flex:2;min-width:220px"><datalist id="tcl">${custOpts.map(c=>`<option value="${esc(c[1])}">`).join("")}</datalist><input type="number" id="tca" placeholder="الهدف (ريال)" style="width:130px"><input id="tcm" placeholder="ملاحظة (مثال: تحصيل، طلبية لوحات)" style="flex:1;min-width:160px"><button class="btn" id="tcadd">＋ إضافة</button></div>`:""}
+    ${T.custs.length?`<div class="tbl" style="margin-top:6px"><table><thead><tr><th>العميل</th><th>المندوب</th><th>الهدف</th><th>ملاحظة</th><th>بيع السنة</th><th></th></tr></thead><tbody>${T.custs.map((c,ix)=>{const row=(R(c.rep)||{customers:[]}).customers.find(x=>String(x[0])===String(c.cid));return `<tr><td><b>${esc(c.name)}</b></td><td>${esc(R(c.rep)?R(c.rep).name:"")}</td><td>${fmt(c.amt)}</td><td>${esc(c.note||"")}</td><td>${row?fmt(row[6]):"—"}</td><td>${edit?`<button class="btn sm bad" data-tcd="${ix}">حذف</button>`:""}</td></tr>`}).join("")}</tbody></table></div>`:'<div class="small muted" style="margin-top:6px">لا توجد أهداف عملاء</div>'}</div>
+   <div class="card"><h2 style="margin-top:0">٣. أهداف الكهربائيين</h2>
+    ${edit?`<div class="row"><input list="tel" id="ten" placeholder="اختر الكهربائي من قائمة فرعك" style="flex:2;min-width:220px"><datalist id="tel">${elOpts.map(e=>`<option value="${esc(e.name+(e.phone?" — "+e.phone:""))}">`).join("")}</datalist><input id="tea" placeholder="الهدف (مثال: 5 لوحات، زيارتين)" style="flex:1;min-width:180px"><button class="btn" id="teadd">＋ إضافة</button></div>`:""}
+    ${T.elecs.length?`<div class="tbl" style="margin-top:6px"><table><thead><tr><th>الكهربائي</th><th>المنطقة</th><th>الهدف</th><th>تواصل خلال الفترة</th><th></th></tr></thead><tbody>${T.elecs.map((x,ix)=>{const e=elById(x.id);return `<tr><td><b>${esc(x.name)}</b></td><td>${esc(e?e.region||e.area||"":"")}</td><td>${esc(x.goal)}</td><td>${e?elVisits(e,k):"—"}</td><td>${edit?`<button class="btn sm bad" data-ted="${ix}">حذف</button>`:""}</td></tr>`}).join("")}</tbody></table></div>`:'<div class="small muted" style="margin-top:6px">لا توجد أهداف كهربائيين</div>'}</div>
+   <div class="card"><h2 style="margin-top:0">٤. المهام المكتوبة</h2>
     ${edit?`<form id="tadd" class="row"><input name="text" placeholder="مثال: زيارة 5 عملاء في حي النسيم، تحصيل من عميل …" style="flex:1;min-width:220px" required><input name="due" type="date" value="${todayR()}"><button class="btn">＋ إضافة</button></form>`:""}
-    ${tasks.length?tasks.map(t=>`<div class="row" style="border-bottom:1px solid var(--line);padding:6px 0">${edit?`<input type="checkbox" data-done="${esc(t.id)}" ${t.done?"checked":""}>`:t.done?"✅":"⬜"}<span style="flex:1;${t.done?"text-decoration:line-through;color:var(--muted)":""}">${esc(t.text)}</span><span class="small muted">${t.due?"موعد "+fd(t.due):""}${t.done?" · تم "+esc(tmFmt(t.doneAt)):""}</span></div>`).join(""):'<div class="small muted">لا توجد مهام</div>'}</div></div>`;
-  app.querySelector("#tm").onchange=e=>{S.opt.tm=e.target.value;render()};
+    ${T.tasks.length?T.tasks.slice().sort((a,b)=>(a.done?1:0)-(b.done?1:0)||(a.due||"").localeCompare(b.due||"")).map(t=>`<div class="row" style="border-bottom:1px solid var(--line);padding:6px 0">${edit?`<input type="checkbox" data-done="${esc(t.id)}" ${t.done?"checked":""}>`:t.done?"✅":"⬜"}<span style="flex:1;${t.done?"text-decoration:line-through;color:var(--muted)":""}">${esc(t.text)}</span><span class="small muted">${t.due?"موعد "+fd(t.due):""}${t.done?" · تم "+esc(tmFmt(t.doneAt)):""}</span></div>`).join(""):'<div class="small muted">لا توجد مهام</div>'}</div>
+   ${edit?'<div class="row"><button class="btn pri" id="tsave">💾 حفظ الأهداف</button></div>':""}</div>`;
+  app.querySelectorAll("[data-tp]").forEach(b=>b.onclick=()=>{S.opt.tp=b.dataset.tp;S.opt.tk="";render()});
+  const tm=app.querySelector("#tm");if(tm)tm.onchange=()=>{S.opt.tk=tm.value;render()};
+  const twk=app.querySelector("#twk");if(twk)twk.onchange=()=>{S.opt.tk=weekOf(twk.value);render()};
   const tw=app.querySelector("#tw");if(tw)tw.onchange=()=>{S.opt.tw=tw.value;render()};
-  const save=async(nT,msg)=>{try{await S.db.doc("tgt/"+who+"_"+m).set({...nT,by:S.uid,month:m,at:nowIso()});toast("تم الحفظ");logAct(msg[0],msg[1])}catch(e){toast("تعذّر الحفظ")}};
-  const ts=app.querySelector("#tsave");if(ts)ts.onclick=()=>{const r2={};reps.forEach(i=>{const s=app.querySelector(`[data-ts="${i}"]`).value,c=app.querySelector(`[data-tc="${i}"]`).value;if(s!==""||c!=="")r2[i]={sale:s===""?null:+s,col:c===""?null:+c}});
-    if(!Object.keys(r2).length){toast("اكتب الأهداف");return}save({...T,reps:r2},["tgt_set","أهداف شهر "+m+": بيع "+Math.round(sum(Object.values(r2).map(x=>x.sale||0)))+" / تحصيل "+Math.round(sum(Object.values(r2).map(x=>x.col||0)))])};
-  const ta=app.querySelector("#tadd");if(ta)ta.onsubmit=e=>{e.preventDefault();const F=new FormData(ta);const t={id:newId("t"),text:F.get("text").trim(),due:F.get("due"),at:nowIso()};save({...T,tasks:[...(T.tasks||[]),t]},["task_add",t.text])};
-  app.querySelectorAll("[data-done]").forEach(c=>c.onchange=()=>{const L=(T.tasks||[]).map(t=>t.id===c.dataset.done?{...t,done:c.checked,doneAt:c.checked?nowIso():null}:t);const t=L.find(x=>x.id===c.dataset.done);save({...T,tasks:L},[c.checked?"task_done":"task_undo",t.text])});
+  const readReps=()=>{const r2={};reps.forEach(i=>{const s=app.querySelector(`[data-ts="${i}"]`).value,c=app.querySelector(`[data-tc="${i}"]`).value;if(s!==""||c!=="")r2[i]={sale:s===""?null:+s,col:c===""?null:+c}});return r2};
+  const save=async(nT,msg)=>{try{await S.db.doc("tgt/"+who+"_"+k).set({...nT,by:S.uid,per:k,at:nowIso()});toast("تم الحفظ");logAct(msg[0],perLabel(k)+": "+msg[1])}catch(e){toast("تعذّر الحفظ")}};
+  if(!edit)return;
+  app.querySelector("#tsave").onclick=()=>{const r2=readReps();save({...T,reps:r2},["tgt_set","هدف المناديب: بيع "+Math.round(sum(Object.values(r2).map(x=>x.sale||0)))+" / تحصيل "+Math.round(sum(Object.values(r2).map(x=>x.col||0)))])};
+  app.querySelector("#tcadd").onclick=()=>{const n=app.querySelector("#tcn").value.trim();const c=custOpts.find(x=>x[1]===n);const a=+app.querySelector("#tca").value;
+    if(!c){toast("اختر العميل من القائمة");return}if(!a){toast("اكتب الهدف");return}
+    save({...T,reps:readReps(),custs:[...T.custs,{cid:c[0],name:c[1],rep:c[2],amt:a,note:app.querySelector("#tcm").value.trim()}]},["tgt_set","هدف عميل "+c[1]+" = "+a])};
+  app.querySelector("#teadd").onclick=()=>{const n=app.querySelector("#ten").value.trim();const e=elOpts.find(x=>(x.name+(x.phone?" — "+x.phone:""))===n||x.name===n);const g=app.querySelector("#tea").value.trim();
+    if(!e){toast("اختر الكهربائي من القائمة");return}if(!g){toast("اكتب الهدف");return}
+    save({...T,reps:readReps(),elecs:[...T.elecs,{id:e.id,name:e.name,goal:g}]},["tgt_set","هدف كهربائي "+e.name+": "+g])};
+  app.querySelectorAll("[data-tcd]").forEach(b=>b.onclick=()=>{const L=T.custs.slice();const x=L.splice(+b.dataset.tcd,1)[0];save({...T,custs:L},["tgt_set","حذف هدف عميل "+x.name])});
+  app.querySelectorAll("[data-ted]").forEach(b=>b.onclick=()=>{const L=T.elecs.slice();const x=L.splice(+b.dataset.ted,1)[0];save({...T,elecs:L},["tgt_set","حذف هدف كهربائي "+x.name])});
+  app.querySelector("#tadd").onsubmit=e=>{e.preventDefault();const F=new FormData(e.target);const t={id:newId("t"),text:F.get("text").trim(),due:F.get("due"),at:nowIso()};save({...T,tasks:[...T.tasks,t]},["task_add",t.text])};
+  app.querySelectorAll("[data-done]").forEach(c=>c.onchange=()=>{const L=T.tasks.map(t=>t.id===c.dataset.done?{...t,done:c.checked,doneAt:c.checked?nowIso():null}:t);const t=L.find(x=>x.id===c.dataset.done);save({...T,tasks:L},[c.checked?"task_done":"task_undo",t.text])});
 }
 function targetsDaily(uid,date,role){
   if(!TGT_ROLES.includes(role))return "";
-  const m=monthOf(date),T=tgtOf(uid,m);const cur=m===monthOf(S.D.asof);
   const td='style="border:1px solid #999;padding:5px 7px"',th='style="border:1px solid #999;padding:5px 7px;background:#D9E1F2"';
-  const head=`<div style="background:#8B1A1A;color:#fff;font-weight:700;padding:6px 10px;margin:14px 0 6px;font-size:15px">٥. الأهداف (${m})</div>`;
-  if(!T)return head+'<div style="color:#B42318;font-weight:700">لم تُحدَّد أهداف هذا الشهر.</div>';
-  const reps=Object.keys(T.reps||{}).filter(i=>R(i));
-  const tasks=(T.tasks||[]).filter(t=>t.due===date||(t.doneAt&&dayOf(t.doneAt)===date)||(!t.done&&t.due&&t.due<date));
-  return head+(reps.length?`<table style="width:100%;border-collapse:collapse"><tr><th ${th}>المندوب</th><th ${th}>هدف البيع</th><th ${th}>المحقق</th><th ${th}>%</th><th ${th}>هدف التحصيل</th><th ${th}>المحقق</th><th ${th}>%</th></tr>
-    ${reps.map(i=>{const t=T.reps[i],k=R(i).kpi;return `<tr><td ${td}><b>${esc(R(i).name)}</b></td><td ${td}>${fmt(t.sale)}</td><td ${td}>${cur?fmt(k.mtdSale):"—"}</td><td ${td}>${cur&&t.sale?pct(k.mtdSale/t.sale):"—"}</td><td ${td}>${fmt(t.col)}</td><td ${td}>${cur?fmt(k.mtdCol):"—"}</td><td ${td}>${cur&&t.col?pct(k.mtdCol/t.col):"—"}</td></tr>`}).join("")}</table>`:"")
-    +`<div style="margin-top:6px"><b>المهام:</b>${tasks.length?`<ul style="margin:4px 0">${tasks.map(t=>`<li>${t.done?"✅":"⬜"} ${esc(t.text)}${t.due?` <small>(موعد ${fd(t.due)})</small>`:""}${t.done?` <small>— تم ${esc(tmFmt(t.doneAt))}</small>`:t.due&&t.due<date?' <small style="color:#B42318">— متأخرة</small>':""}</li>`).join("")}</ul>`:" لا توجد مهام لهذا اليوم"}</div>`;
+  const tb=(h,rows)=>`<table style="width:100%;border-collapse:collapse;margin-top:4px"><tr>${h.map(x=>`<th ${th}>${x}</th>`).join("")}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td ${td}>${c}</td>`).join("")}</tr>`).join("")}</table>`;
+  const block=(k,title)=>{const T=tgtOf(uid,k);
+    if(!T)return `<div style="font-weight:700;margin-top:8px">${title} — ${esc(perLabel(k))}</div><div style="color:#B42318;font-weight:700">لم تُحدَّد الأهداف.</div>`;
+    const reps=Object.keys(T.reps||{}).filter(i=>R(i));
+    const tasks=(T.tasks||[]).filter(t=>t.due===date||(t.doneAt&&dayOf(t.doneAt)===date)||(!t.done&&t.due&&t.due<date));
+    return `<div style="font-weight:700;margin-top:8px">${title} — ${esc(perLabel(k))}</div>
+     ${reps.length?tb(["المندوب","هدف البيع","المحقق","%","هدف التحصيل","المحقق","%"],reps.map(i=>{const t=T.reps[i],a=repAch(i,k);return [`<b>${esc(R(i).name)}</b>`,fmt(t.sale),fmt(a.sale),t.sale?pct(a.sale/t.sale):"—",fmt(t.col),fmt(a.col),t.col?pct(a.col/t.col):"—"]})):""}
+     ${(T.custs||[]).length?tb(["العميل","المندوب","الهدف","ملاحظة"],T.custs.map(c=>[`<b>${esc(c.name)}</b>`,esc(R(c.rep)?R(c.rep).name:""),fmt(c.amt),esc(c.note||"")])):""}
+     ${(T.elecs||[]).length?tb(["الكهربائي","الهدف","تواصل خلال الفترة"],T.elecs.map(x=>{const e=S.elec.find(z=>z.id===x.id);return [`<b>${esc(x.name)}</b>`,esc(x.goal),e?elVisits(e,k):"—"]})):""}
+     <div style="margin-top:4px"><b>المهام:</b>${tasks.length?`<ul style="margin:4px 0">${tasks.map(t=>`<li>${t.done?"✅":"⬜"} ${esc(t.text)}${t.due?` <small>(موعد ${fd(t.due)})</small>`:""}${t.done?` <small>— تم ${esc(tmFmt(t.doneAt))}</small>`:t.due&&t.due<date?' <small style="color:#B42318">— متأخرة</small>':""}</li>`).join("")}</ul>`:" لا توجد مهام لهذا اليوم"}</div>`};
+  return `<div style="background:#8B1A1A;color:#fff;font-weight:700;padding:6px 10px;margin:14px 0 6px;font-size:15px">٥. الأهداف</div>${block(weekOf(date),"الهدف الأسبوعي")}${block(monthOf(date),"الهدف الشهري")}`;
 }
 
 /* ----- customer agreements (اتفاقيات العملاء): filled by the area manager, approved by the sales manager, sent to the customer by link ----- */
@@ -905,9 +939,9 @@ function salesView(app){
   }else{
     body=`<h2>فروعي</h2><div class="tiles">${branchesOfArea(role).map(branchTile).join("")}</div>`;
   }
-  const tgtMiss=TGT_ROLES.includes(role)&&!Object.keys((tgtOf(S.uid,monthOf())||{}).reps||{}).length&&!S.preview;
+  const tgtMiss=TGT_ROLES.includes(role)&&!S.preview&&(!tgtOf(S.uid,monthOf())||!tgtOf(S.uid,weekOf()));
   app.innerHTML=`<div class="stack"><div class="row"><h1>أهلاً ${esc(S.preview?ROLES[role]:(S.people[S.uid]&&S.people[S.uid].name)||ROLES[role])}</h1></div>
-    ${tgtMiss?'<div class="alertbar" role="alert"><b>🎯 لازم تحددين أهداف هذا الشهر لمناديبك</b><div class="row"><button data-go="targets">تحديد الأهداف الآن</button></div></div>':""}
+    ${tgtMiss?`<div class="alertbar" role="alert"><b>🎯 لازم تحددين أهداف هذا ${!tgtOf(S.uid,monthOf())?"الشهر":"الأسبوع"}: المناديب والعملاء والكهربائيين</b><div class="row"><button data-go="targets">تحديد الأهداف الآن</button></div></div>`:""}
     ${alertBar(ids)}${kpiRow(agg(ids),ids)}${body}</div>`;
   wireTiles(app);
   app.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go({t:b.dataset.go}));
