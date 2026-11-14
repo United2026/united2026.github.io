@@ -8,7 +8,7 @@ button{width:100%;padding:11px;margin-top:10px;border:0;border-radius:10px;backg
 <form id="lf"><input name="u" placeholder="اسم المستخدم" autocomplete="username" required dir="ltr"><input name="p" type="password" placeholder="كلمة المرور" autocomplete="current-password" required dir="ltr"><button>دخول</button></form>
 <form id="cf" hidden><p class="hint">غيّر كلمة المرور (6 أحرف على الأقل)</p><input name="o" type="password" placeholder="كلمة المرور الحالية" required dir="ltr"><input name="n" type="password" placeholder="كلمة المرور الجديدة" required minlength="6" dir="ltr"><input name="n2" type="password" placeholder="تأكيد كلمة المرور الجديدة" required dir="ltr"><button>حفظ</button></form>
 <div class="err" id="err"></div><button id="inst" type="button" hidden style="background:#e9eef5;color:#1F4E79">📲 تثبيت التطبيق على الجهاز</button><p class="hint" id="ih"></p></div>
-<script src="api.js"></script>
+<script src="api.js"></script><script src="i18n.js"></script>
 <script>
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 let _bip=null;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();_bip=e;document.getElementById("inst").hidden=false});
