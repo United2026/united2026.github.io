@@ -130,7 +130,7 @@ const pct=(x,d=0)=>x==null||!isFinite(x)?"—":'<span class="ltr">'+(Math.abs(x*
 const fd=s=>s?s.split("-").reverse().join("/"):"—";
 const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
 const PROD_URL="https://claude.ai/artifact/W8BwwrBXMq5oWHxX24PiTx";
-const ROLES={sales_mgr:"مدير المبيعات",deputy:"نائب مدير المبيعات",nada:"ندى الحازمي",nesreen:"نسرين الدوسري",eida:"عيدة القحطاني"};
+const ROLES={sales_mgr:"مدير المبيعات",deputy:"نائب مدير المبيعات",nada:"ندى الحازمي",nesreen:"نسرين الدوسري",eida:"عيدة القحطاني",proj_head:"رئيس قسم المشاريع",proj_member:"عضو قسم المشاريع"};
 const AGE_COL=["#70AD47","#FFE699","#FFFF00","#F4B183","#E06666","#E00000","#800000","#000000"];
 const RCLS={"قوي":"r-strong","جيد":"r-good","يحتاج متابعة":"r-watch","ضعيف":"r-weak","متوقف":"r-off"};
 const RPILL={"قوي":"s-ok","جيد":"s-info","يحتاج متابعة":"s-warn","ضعيف":"s-bad","متوقف":"s-done"};
@@ -191,7 +191,7 @@ const custAlertCount=ids=>sum(ids.map(i=>R(i).alerts.length));
 /* ---------- activity log: every action a user does, for the daily report ---------- */
 async function logAct(kind,text,extra){try{if(!S.db||S.offline||!S.uid)return;const now=new Date();const id=S.uid.slice(-8)+"_"+now.getTime().toString(36)+Math.random().toString(36).slice(2,5);
   await S.db.doc("log/"+id).set({by:S.uid,at:now.toISOString(),d:new Date(now.getTime()+3*3600e3).toISOString().slice(0,10),kind,text:String(text||"").slice(0,500),...(extra||{})})}catch(e){}}
-const LOGK={cust_note:"ملاحظة عميل",cust_col:"متابعة تحصيل",cust_data:"تحديث بيانات عميل",cust_target:"هدف عميل",el_add:"إضافة كهربائي",el_call:"مكالمة كهربائي",el_edit:"تعديل كهربائي",el_draft:"تعديل كهربائي (مسودة)",el_ok:"اعتماد تعديل كهربائي",el_rej:"رفض تعديل كهربائي",el_move:"نقل كهربائي",rep_move:"نقل مندوب",user:"صلاحيات المستخدمين",daily:"إضافات التقرير اليومي"};
+const LOGK={cust_note:"ملاحظة عميل",cust_col:"متابعة تحصيل",cust_data:"تحديث بيانات عميل",cust_target:"هدف عميل",el_add:"إضافة كهربائي",el_call:"مكالمة كهربائي",el_edit:"تعديل كهربائي",el_draft:"تعديل كهربائي (مسودة)",el_ok:"اعتماد تعديل كهربائي",el_rej:"رفض تعديل كهربائي",el_move:"نقل كهربائي",rep_move:"نقل مندوب",user:"صلاحيات المستخدمين",daily:"إضافات التقرير اليومي",proj_add:"مشروع جديد",proj_edit:"تحديث مشروع",proj_note:"ملاحظة مشروع",quote_add:"عرض سعر جديد",quote_edit:"تعديل عرض سعر",tgt_set:"تحديد أهداف الشهر",task_add:"مهمة جديدة",task_done:"إنجاز مهمة",task_undo:"إلغاء إنجاز مهمة"};
 /* ---------- electricians: imported list (elec.json) + changes and new ones in the shared db ---------- */
 function mergeElec(){
   const M=new Map();((S.elecBase&&S.elecBase.items)||[]).forEach(e=>M.set(e.id,e));
@@ -214,7 +214,7 @@ function back(i){S.nav=S.nav.slice(0,i+1);S.opt={};render();window.scrollTo(0,0)
 const PB={1:"RI",25:"RI",64:"RI",30:"JE",36:"JE",31:"KH",32:"DA",35:"DA",27:"SA",28:"TA",29:"MA",26:"QA"};
 const prodOf=b=>S.prod?(S.prod.items||[]).filter(x=>PB[x.branch]===b):(S.D.branches[b].prod||[]);
 const brLabel=b=>(b==="DP"?"":"فرع ")+S.D.branches[b].name;
-const navLabel=n=>n.t==="home"?"الرئيسية":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="branches"?"الفروع":"";
+const navLabel=n=>n.t==="home"?"الرئيسية":n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="branches"?"الفروع":"";
 
 /* ---------- boot ---------- */
 async function boot(){
@@ -233,6 +233,9 @@ async function boot(){
   db.doc("config/repmap").onSnapshot(s=>{S.repmap=(s.exists&&s.data().map)||{};render()},()=>{});
   db.collection("cust").onSnapshot(s=>{S.cust={};s.docs.forEach(d=>S.cust[d.id]=d.data());render()},()=>{});
   db.collection("log").onSnapshot(s=>{S.log=s.docs.map(d=>d.data());render()},()=>{});
+  db.collection("proj").onSnapshot(s=>{S.proj={};s.docs.forEach(d=>S.proj[d.id]={id:d.id,...d.data()});render()},()=>{});
+  db.collection("quote").onSnapshot(s=>{S.quote={};s.docs.forEach(d=>S.quote[d.id]={id:d.id,...d.data()});render()},()=>{});
+  db.collection("tgt").onSnapshot(s=>{S.tgt={};s.docs.forEach(d=>S.tgt[d.id]=d.data());render()},()=>{});
   db.collection("daily").onSnapshot(s=>{S.daily=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("elec").onSnapshot(s=>{S.elecDb=s.docs.map(d=>({id:d.id,...d.data()}));mergeElec();render()},()=>toast("تعذّر تحميل الكهربائيين"));
   render();
@@ -250,6 +253,7 @@ function render(){
   const w=$("#who");w.innerHTML="";
   if(S.uid&&S.people[S.uid]&&S.people[S.uid].avatarUrl){const i=document.createElement("img");i.src=S.people[S.uid].avatarUrl;i.alt="";w.append(i)}
   if(role){const c=document.createElement("span");c.className="chip";c.textContent=ROLES[role]+(S.preview?" (معاينة)":"");w.append(c)}
+  if(role&&(TGT_ROLES.includes(role)||role==="sales_mgr"||role==="deputy")){const t=document.createElement("button");t.className="btn sm";t.textContent="🎯 الأهداف";t.onclick=()=>{S.nav=[{t:"home"},{t:"targets"}];S.opt={};render();scrollTo(0,0)};w.append(t)}
   if(role){const d=document.createElement("button");d.className="btn sm pri";d.textContent="📝 التقرير اليومي";d.onclick=()=>{S.nav=[{t:"home"},{t:"daily"}];S.opt={};render();scrollTo(0,0)};w.append(d)}
   if(S.isOwner){
     const sel=document.createElement("select");sel.setAttribute("aria-label","معاينة كمستخدم");
@@ -265,9 +269,11 @@ function render(){
   if(!role){app.innerHTML="";app.append(joinView());return}
   const n=S.nav[S.nav.length-1];
   // guard: a branch/rep outside this person's scope sends them home
+  if(isProj(role)&&!["home","projects","proj","quote","daily"].includes(n.t)){S.nav=[{t:"home"}];return render()}
+  if(["projects","proj","quote"].includes(n.t)&&!canProj(role)||["forecast","exports"].includes(n.t)&&role!=="sales_mgr"){S.nav=[{t:"home"}];return render()}
   const ok=allowedBranches();
   if((n.t==="branch"&&!ok.includes(n.id))||(n.t==="rep"&&!ok.includes(brOf(n.id)))||(n.t==="items"&&!ok.includes(n.scope.t==="rep"?brOf(n.scope.id):n.scope.id))||(n.t==="area"&&!areasFor(role).includes(n.id))){S.nav=[{t:"home"}];return render()}
-  ({daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
+  ({sales:salesView,projects:projectsView,proj:projView,quote:quoteView,forecast:forecastView,exports:exportsView,targets:targetsView,daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
 }
 
 /* ---------- join ---------- */
@@ -347,7 +353,288 @@ function wireTiles(app){
 }
 
 /* ---------- views ---------- */
+/* ---------- sales manager main menu, projects, quotations, forecasting, exports, targets ---------- */
+const PROJ_ROLES=["proj_head","proj_member"];
+const isProj=r=>PROJ_ROLES.includes(r);
+const canProj=r=>r==="sales_mgr"||isProj(r);
+const TGT_ROLES=["nada","nesreen","eida"];
+const nowIso=()=>new Date().toISOString();
+const newId=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const tmFmt=at=>at?new Date(at).toLocaleString("ar-SA-u-nu-latn",{timeZone:"Asia/Riyadh",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+const myName=()=>(S.people[S.uid]&&S.people[S.uid].name)||ROLES[myRole()]||"";
+const BIG=(go,ic,t,s,dis)=>`<button class="tile" data-go="${go}" style="align-items:center;text-align:center;padding:26px 14px;${dis?"opacity:.6":""}"><span style="font-size:40px;line-height:1" aria-hidden="true">${ic}</span><b style="font-size:19px">${t}</b><span class="small muted">${s}</span></button>`;
+function mainMenuView(app){
+  app.innerHTML=`<div class="stack"><h1>أهلاً ${esc(S.preview?ROLES.sales_mgr:myName())}</h1>
+   <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
+    ${BIG("sales","📊","متابعة المبيعات","المديرات والفروع والمناديب والتقارير")}
+    ${BIG("projects","🏗️","المشاريع","المشاريع وعروض الأسعار وتقاريرها")}
+    ${BIG("forecast","📈","فوركاستنج","توقعات 2027 للمراوح واللوحات")}
+    ${BIG("exports","🚢","الصادرات","قريباً",1)}
+   </div></div>`;
+  app.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go({t:b.dataset.go}));
+}
+function exportsView(app){app.innerHTML=`<div class="card empty"><span style="font-size:44px">🚢</span><h2>الصادرات</h2><p>هذا القسم يتجهّز — بيضاف لما يوصل جدول الصادرات.</p></div>`}
+
+/* ----- projects: the four stages of the projects chart ----- */
+const P_STATUS=[["s1","١ التحقيق","s-info"],["s2","٢ التقييم","s-info"],["s3","٣ المتابعة","s-warn"],["won","٤ فزنا بالمشروع","s-ok"],["lost","٤ ما فزنا","s-bad"],["left","متروك (تقييم سيء)","s-done"]];
+const P_ST=Object.fromEntries(P_STATUS.map(x=>[x[0],x]));
+const pill=(st)=>{const x=P_ST[st]||P_STATUS[0];return `<span class="pill ${x[2]}">${x[1]}</span>`};
+const P_MAT=["لوحات Load Center","مراوح شفط","أنظمة تهوية","MDB","HVAC","قواطع","أخرى"];
+const P_KIND=["مول","فلل","شقق","برج","مطعم","مستشفى/مدرسة","أخرى"];
+const P_WHY=["وقت التسليم","وقت عرض السعر","مواصفات وماركات مختلفة","أسعار أعلى منا","سوء تفاهم بيننا وبينه","أخرى"];
+const P_FOLLOW={daily:"يومي — يحتاج المواد خلال 1-20 يوم",weekly:"أسبوعي — خلال شهر إلى 4 أشهر",monthly:"شهري — خلال 4 إلى 7 أشهر"};
+const projList=()=>Object.values(S.proj||{}).sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||""));
+const quoteList=()=>Object.values(S.quote||{}).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.no||0)-(a.no||0));
+const qTotal=q=>{const sub=sum((q.items||[]).map(i=>(+i.qty||0)*(+i.price||0)));const disc=sub*(+q.disc||0)/100;const net=sub-disc;return {sub,disc,net,vat:net*.15,total:net*1.15}};
+function projectsView(app){
+  const role=myRole();if(!canProj(role)){S.nav=[{t:"home"}];return render()}
+  const tab=S.opt.ptab||"proj";const q=(S.opt.pq||"").trim();const fs=S.opt.pst||"";
+  let body="";
+  if(tab==="proj"){
+    let L=projList();if(fs)L=L.filter(p=>p.status===fs);if(q)L=L.filter(p=>[p.name,p.contractor,p.location,p.consultant&&p.consultant.name,p.owner&&p.owner.name].join(" ").includes(q));
+    const cnt=Object.fromEntries(P_STATUS.map(s=>[s[0],projList().filter(p=>p.status===s[0]).length]));
+    body=`<div class="row"><button class="btn pri" id="pnew">＋ مشروع جديد</button><input type="search" id="pq" placeholder="ابحث باسم المشروع أو المقاول" value="${esc(q)}" style="flex:1;min-width:180px">
+      <div class="seg"><button data-pst="" aria-pressed="${!fs}">الكل (${projList().length})</button>${P_STATUS.map(s=>`<button data-pst="${s[0]}" aria-pressed="${fs===s[0]}">${s[1]} (${cnt[s[0]]})</button>`).join("")}</div></div>
+     ${L.length?`<div class="tbl"><table><thead><tr><th>المشروع</th><th>المقاول</th><th>الموقع</th><th>القطاع</th><th>الحالة</th><th>عروض الأسعار</th><th>المسؤول</th><th>آخر تحديث</th></tr></thead><tbody>
+      ${L.map(p=>{const qs=quoteList().filter(x=>x.projId===p.id);return `<tr data-pid="${esc(p.id)}" style="cursor:pointer"><td><b>${esc(p.name)}</b></td><td>${esc(p.contractor||"")}</td><td>${esc(p.location||"")}</td><td>${esc(p.sector||"")}</td><td>${pill(p.status)}</td><td>${qs.length?`${qs.length} · ${fmt(sum(qs.map(x=>qTotal(x).total)))}`:"—"}</td><td>${esc(pname(p.by))}</td><td class="small">${esc(tmFmt(p.updatedAt))}</td></tr>`}).join("")}</tbody></table></div>`:`<div class="empty">لا توجد مشاريع${fs||q?" بهذا البحث":" — ابدأ بإضافة مشروع"}</div>`}`;
+  }else if(tab==="quote"){
+    let L=quoteList();if(fs)L=L.filter(x=>x.status===fs);if(q)L=L.filter(x=>[x.no,x.projName,x.customer].join(" ").includes(q));
+    body=`<div class="row"><button class="btn pri" id="qnew">＋ عرض سعر جديد</button><input type="search" id="pq" placeholder="ابحث برقم العرض أو المشروع أو العميل" value="${esc(q)}" style="flex:1;min-width:180px">
+      <div class="seg"><button data-pst="" aria-pressed="${!fs}">الكل</button>${P_STATUS.map(s=>`<button data-pst="${s[0]}" aria-pressed="${fs===s[0]}">${s[1]}</button>`).join("")}</div></div>
+     ${L.length?`<div class="tbl"><table><thead><tr><th>رقم العرض</th><th>التاريخ</th><th>المشروع / العميل</th><th>الأصناف</th><th>الإجمالي شامل الضريبة</th><th>الحالة</th><th>أعدّه</th></tr></thead><tbody>
+      ${L.map(x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td><b class="ltr">${esc(qNo(x))}</b></td><td>${fd(x.date)}</td><td>${esc(x.projName||x.customer||"")}</td><td>${(x.items||[]).length}</td><td><b>${fmt(qTotal(x).total,2)}</b></td><td>${pill(x.status)}</td><td>${esc(pname(x.by))}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">لا توجد عروض أسعار</div>`}`;
+  }else body=quoteReportHtml();
+  app.innerHTML=`<div class="stack"><h1>المشاريع</h1>
+    <div class="seg" role="tablist"><button data-tab="proj" aria-pressed="${tab==="proj"}">🏗️ المشاريع</button><button data-tab="quote" aria-pressed="${tab==="quote"}">🧾 عروض الأسعار</button><button data-tab="rep" aria-pressed="${tab==="rep"}">📑 تقارير عروض الأسعار</button></div>
+    ${body}</div>`;
+  app.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{S.opt.ptab=b.dataset.tab;S.opt.pst="";S.opt.pq="";render()});
+  app.querySelectorAll("[data-pst]").forEach(b=>b.onclick=()=>{S.opt.pst=b.dataset.pst;render()});
+  const pq=app.querySelector("#pq");if(pq)pq.onchange=()=>{S.opt.pq=pq.value;render()};
+  app.querySelectorAll("[data-pid]").forEach(r=>r.onclick=()=>go({t:"proj",id:r.dataset.pid}));
+  app.querySelectorAll("[data-qid]").forEach(r=>r.onclick=()=>go({t:"quote",id:r.dataset.qid}));
+  const pn=app.querySelector("#pnew");if(pn)pn.onclick=()=>go({t:"proj",id:"new"});
+  const qn=app.querySelector("#qnew");if(qn)qn.onclick=()=>go({t:"quote",id:"new"});
+  if(tab==="rep")wireQuoteReport(app);
+}
+const chk=(name,list,sel)=>`<div class="row" style="gap:6px 14px">${list.map(v=>`<label style="display:flex;gap:4px;align-items:center;font-size:14px"><input type="checkbox" name="${name}" value="${esc(v)}" ${(sel||[]).includes(v)?"checked":""}>${esc(v)}</label>`).join("")}</div>`;
+const rad=(name,list,v)=>`<div class="row" style="gap:6px 14px">${list.map(([k,l])=>`<label style="display:flex;gap:4px;align-items:center;font-size:14px"><input type="radio" name="${name}" value="${esc(k)}" ${v===k?"checked":""}>${esc(l)}</label>`).join("")}</div>`;
+const inp=(name,label,v,type="text",ph="")=>`<label class="f">${label}<input name="${name}" type="${type}" value="${esc(v??"")}" placeholder="${esc(ph)}"></label>`;
+function projView(app,n){
+  const role=myRole();if(!canProj(role)){S.nav=[{t:"home"}];return render()}
+  const isNew=n.id==="new";const p=isNew?{id:newId("p"),status:"s1",poles:{}}:(S.proj||{})[n.id];
+  if(!p){app.innerHTML='<div class="empty">المشروع غير موجود</div>';return}
+  const po=p.poles||{};const ev=p.ev||{};const rs=p.res||{};
+  const sec=(t,h)=>`<div class="card"><h2 style="margin-top:0">${t}</h2><div class="stack">${h}</div></div>`;
+  const qs=quoteList().filter(x=>x.projId===p.id);
+  app.innerHTML=`<form id="pf" class="stack"><div class="row"><h1 style="margin-inline-end:auto">${isNew?"مشروع جديد":esc(p.name)}</h1>
+     <label class="f">الحالة<select name="status">${P_STATUS.map(s=>`<option value="${s[0]}" ${p.status===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select></label>
+     <button class="btn pri" style="align-self:flex-end">💾 حفظ</button>${!isNew?`<button type="button" class="btn" id="pq2" style="align-self:flex-end">🧾 عرض سعر لهذا المشروع</button>`:""}</div>
+   ${!isNew?`<p class="small muted" style="margin:0">أضافه ${esc(pname(p.by))} ${esc(tmFmt(p.createdAt))} · آخر تحديث ${esc(pname(p.updBy||p.by))} ${esc(tmFmt(p.updatedAt))}</p>`:""}
+   ${sec("المرحلة ١ — التحقيق",`<div class="grid2">${inp("name","اسم المشروع *",p.name)}${inp("contractor","اسم المقاول",p.contractor)}${inp("location","موقع المشروع",p.location)}${inp("size","كمية وحجم المشروع",p.size)}</div>
+     <label class="f">قطاع المشروع</label>${rad("sector",[["خاص","خاص"],["حكومي","حكومي"]],p.sector)}
+     <label class="f">المواد المطلوبة</label>${chk("mat",P_MAT,p.mat)}${inp("matNote","تفاصيل المواد",p.matNote)}
+     ${inp("needDate","متى يحتاج المواد للمشروع؟",p.needDate,"date")}
+     <h3 style="margin:6px 0 0">أطراف المشروع الثلاثة (الاسم والرقم)</h3>
+     <div class="grid2">${inp("c_name","١ المقاول — الاسم",(po.contractor||{}).name)}${inp("c_phone","المقاول — الرقم",(po.contractor||{}).phone,"tel")}${inp("k_name","٢ الاستشاري — الاسم",(po.consultant||{}).name)}${inp("k_phone","الاستشاري — الرقم",(po.consultant||{}).phone,"tel")}${inp("o_name","٣ المالك — الاسم",(po.owner||{}).name)}${inp("o_phone","المالك — الرقم",(po.owner||{}).phone,"tel")}</div>`)}
+   ${sec("المرحلة ٢ — تقييم المقاول",`${rad("eval",[["good","جيد — نكمل التحقيق"],["bad","سيء — نتركه"]],ev.eval)}
+     <div class="grid2">${inp("e_n","كم مشروع عنده؟",ev.n,"number")}${inp("e_hq","قابلنا المكتب الرئيسي وجهاً لوجه؟ (نعم/لا)",ev.hq)}</div>
+     <label class="f">نوع المشاريع</label>${chk("kind",P_KIND,ev.kind)}
+     <div class="grid2">${inp("e_el","قسم الكهرباء — الاسم والرقم",ev.el)}${inp("e_elm","المواد اللي يعتمدها قسم الكهرباء",ev.elm)}${inp("e_pu","قسم المشتريات — الاسم والرقم",ev.pu)}${inp("e_pum","المواد اللي يعتمدها قسم المشتريات",ev.pum)}</div>`)}
+   ${sec("المرحلة ٣ — المتابعة",`${rad("follow",Object.entries(P_FOLLOW),p.follow)}${inp("nextDate","موعد المتابعة الجاية",p.nextDate,"date")}`)}
+   ${sec("المرحلة ٤ — النتيجة",`${rad("res",[["won","أخذنا المشروع"],["lost","ما أخذنا المشروع"]],rs.r)}
+     <div class="small muted">إذا أخذناه: نستمر نتابعهم على المشاريع الجديدة ونزورهم كأصدقاء.</div>
+     <div class="grid2">${inp("r_who","مين أخذ المشروع؟ (المنافس)",rs.who)}${inp("r_price","كم السعر الإجمالي اللي أخذوه فيه؟",rs.price,"number")}</div>
+     <label class="f">سعرهم مقارنة بنا</label>${rad("r_cmp",[["higher","أعلى منا"],["lower","أقل منا"]],rs.cmp)}
+     <label class="f">ليش خسرنا المشروع؟</label>${chk("why",P_WHY,rs.why)}
+     <label class="f">الإجراء</label>${rad("r_act",[["want","يبغوننا — نتابعهم يومياً"],["dont","ما يبغوننا — ليش؟ نروح لشخص أو منصب ثاني"]],rs.act)}
+     <label class="f">تفاصيل وملاحظات النتيجة<textarea name="r_note" rows="2">${esc(rs.note||"")}</textarea></label>`)}
+   ${!isNew?`<div class="card"><h2 style="margin-top:0">سجل التحديثات والملاحظات</h2><div class="row"><input id="pnote" placeholder="اكتب ملاحظة أو تحديث" style="flex:1"><button type="button" class="btn" id="paddn">إضافة</button></div>
+     ${(p.notes||[]).slice().reverse().map(x=>`<div style="border-bottom:1px solid var(--line);padding:6px 0"><span class="small muted">${esc(tmFmt(x.at))} — ${esc(pname(x.by))}</span><div>${esc(x.text)}</div></div>`).join("")||'<div class="small muted">لا توجد ملاحظات</div>'}</div>
+     ${qs.length?`<div class="card"><h2 style="margin-top:0">عروض الأسعار</h2>${qs.map(x=>`<button type="button" class="btn sm" data-qid="${esc(x.id)}">${esc(qNo(x))} · ${fmt(qTotal(x).total)} · ${P_ST[x.status]?P_ST[x.status][1]:""}</button>`).join(" ")}</div>`:""}`:""}
+   </form>`;
+  const f=app.querySelector("#pf");
+  f.onsubmit=async e=>{e.preventDefault();const F=new FormData(f);const g=k=>(F.get(k)||"").toString().trim();const all=k=>F.getAll(k).map(String);
+    if(!g("name")){toast("اكتب اسم المشروع");return}
+    const ev2=g("eval");let st=g("status");if(ev2==="bad"&&st!=="left"&&isNew)st="left";
+    const d={...p,name:g("name"),contractor:g("contractor"),location:g("location"),size:g("size"),sector:g("sector"),mat:all("mat"),matNote:g("matNote"),needDate:g("needDate"),
+      poles:{contractor:{name:g("c_name"),phone:g("c_phone")},consultant:{name:g("k_name"),phone:g("k_phone")},owner:{name:g("o_name"),phone:g("o_phone")}},
+      ev:{eval:ev2,n:g("e_n"),hq:g("e_hq"),kind:all("kind"),el:g("e_el"),elm:g("e_elm"),pu:g("e_pu"),pum:g("e_pum")},follow:g("follow"),nextDate:g("nextDate"),
+      res:{r:g("res"),who:g("r_who"),price:g("r_price"),cmp:g("r_cmp"),why:all("why"),act:g("r_act"),note:g("r_note")},status:st,updatedAt:nowIso(),updBy:S.uid};
+    if(isNew){d.by=S.uid;d.createdAt=d.updatedAt}
+    const ch=!isNew&&p.status!==st?` (الحالة: ${P_ST[p.status]?P_ST[p.status][1]:""} ← ${P_ST[st][1]})`:"";
+    try{await S.db.doc("proj/"+d.id).set(d);toast("تم الحفظ");logAct(isNew?"proj_add":"proj_edit",d.name+ch);if(isNew){S.nav[S.nav.length-1]={t:"proj",id:d.id}}render()}catch(err){toast("تعذّر الحفظ")}};
+  const an=app.querySelector("#paddn");if(an)an.onclick=async()=>{const t=app.querySelector("#pnote").value.trim();if(!t)return;
+    try{await S.db.doc("proj/"+p.id).set({...p,notes:[...(p.notes||[]),{at:nowIso(),by:S.uid,text:t}],updatedAt:nowIso(),updBy:S.uid});logAct("proj_note",p.name+": "+t);toast("تمت الإضافة")}catch(e){toast("تعذّر الحفظ")}};
+  const q2=app.querySelector("#pq2");if(q2)q2.onclick=()=>go({t:"quote",id:"new",proj:p.id});
+  app.querySelectorAll("[data-qid]").forEach(b=>b.onclick=()=>go({t:"quote",id:b.dataset.qid}));
+}
+
+/* ----- quotations ----- */
+const qNo=x=>"Q-"+String(x.no||0).padStart(4,"0");
+const Q_SRC=[["stock","البضائع الموجودة"],["mdb","MDB"],["hvac","HVAC"]];
+function quoteView(app,n){
+  const role=myRole();if(!canProj(role)){S.nav=[{t:"home"}];return render()}
+  if(!S.qdraft||S.qdraft._for!==n.id){
+    const src=n.id==="new"?null:(S.quote||{})[n.id];
+    if(n.id!=="new"&&!src){app.innerHTML='<div class="empty">العرض غير موجود</div>';return}
+    const pj=n.proj&&(S.proj||{})[n.proj];
+    S.qdraft=src?JSON.parse(JSON.stringify(src)):{id:newId("q"),date:todayR(),valid:30,status:pj?pj.status:"s1",projId:pj?pj.id:"",projName:pj?pj.name:"",customer:pj?pj.contractor||"":"",items:[],disc:0,terms:"الأسعار بالريال السعودي. التوريد حسب الاتفاق. صلاحية العرض 30 يوم."};
+    S.qdraft._for=n.id;
+  }
+  const q=S.qdraft;const T=qTotal(q);const isNew=n.id==="new";const src=S.opt.qsrc||"stock";const qs=(S.opt.qs||"").trim().toLowerCase();
+  const cat=(S.D.qcat||[]);const hits=src==="stock"&&qs?cat.filter(c=>(c[1]+" "+c[2]).toLowerCase().includes(qs)).slice(0,30):[];
+  app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin-inline-end:auto">${isNew?"عرض سعر جديد":"عرض سعر "+esc(qNo(q))}</h1>
+     <button class="btn pri" id="qsave">💾 حفظ</button>${!isNew?`<button class="btn" id="qpdf">🖨️ PDF</button>`:""}</div>
+   <div class="card"><div class="grid2">
+     <label class="f">المشروع<select id="qproj"><option value="">— بدون مشروع —</option>${projList().map(p=>`<option value="${esc(p.id)}" ${q.projId===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
+     <label class="f">العميل / المقاول<input id="qcust" value="${esc(q.customer||"")}"></label>
+     <label class="f">التاريخ<input type="date" id="qdate" value="${esc(q.date)}"></label>
+     <label class="f">الحالة<select id="qst">${P_STATUS.map(s=>`<option value="${s[0]}" ${q.status===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select></label>
+     <label class="f">صلاحية العرض (يوم)<input type="number" id="qvalid" value="${esc(q.valid||30)}"></label>
+     <label class="f">الخصم %<input type="number" id="qdisc" step="0.1" value="${esc(q.disc||0)}"></label></div>
+     <label class="f">الشروط والملاحظات<textarea id="qterms" rows="2">${esc(q.terms||"")}</textarea></label></div>
+   <div class="card"><h2 style="margin-top:0">إضافة مواد</h2>
+     <div class="seg">${Q_SRC.map(([k,l])=>`<button data-qsrc="${k}" aria-pressed="${src===k}">${l}</button>`).join("")}</div>
+     ${src==="stock"?`<input type="search" id="qs" placeholder="ابحث باسم الصنف أو الكود (من أودو بالسعر)" value="${esc(S.opt.qs||"")}" style="margin-top:8px;width:100%">
+       ${hits.length?`<div class="tbl" style="margin-top:6px;max-height:300px"><table><thead><tr><th>الكود</th><th>الصنف</th><th>السعر</th><th></th></tr></thead><tbody>${hits.map(c=>`<tr><td class="ltr small">${esc(c[1])}</td><td>${esc(c[2])}</td><td>${fmt(c[3],2)}</td><td><button class="btn sm" data-add="${c[0]}">＋ إضافة</button></td></tr>`).join("")}</tbody></table></div>`:qs?'<div class="small muted">لا توجد نتائج</div>':""}`
+     :`<form id="qfree" class="row" style="margin-top:8px"><input name="name" placeholder="وصف الصنف (${src==="mdb"?"لوحة MDB …":"وحدة HVAC …"})" style="flex:2;min-width:200px" required><input name="unit" placeholder="الوحدة" style="width:80px"><input name="qty" type="number" step="any" placeholder="الكمية" style="width:90px" required><input name="price" type="number" step="any" placeholder="سعر الوحدة" style="width:110px" required><button class="btn">＋ إضافة</button></form>`}</div>
+   <div class="card"><h2 style="margin-top:0">الأصناف (${q.items.length})</h2>
+     ${q.items.length?`<div class="tbl"><table><thead><tr><th>#</th><th>النوع</th><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody>
+      ${q.items.map((it,i)=>`<tr><td>${i+1}</td><td>${esc((Q_SRC.find(s=>s[0]===it.src)||["",""])[1])}</td><td>${it.code?`<span class="ltr small">${esc(it.code)}</span> `:""}${esc(it.name)}</td><td>${esc(it.unit||"")}</td>
+        <td><input type="number" step="any" data-qty="${i}" value="${esc(it.qty)}" style="width:80px"></td><td><input type="number" step="any" data-price="${i}" value="${esc(it.price)}" style="width:100px"></td><td><b>${fmt((+it.qty||0)*(+it.price||0),2)}</b></td><td><button class="btn sm bad" data-rm="${i}">حذف</button></td></tr>`).join("")}</tbody></table></div>
+      <div class="kpis" style="margin-top:10px"><div class="kpi"><span>المجموع</span><b>${fmt(T.sub,2)}</b></div><div class="kpi"><span>الخصم</span><b>${fmt(T.disc,2)}</b></div><div class="kpi"><span>ضريبة 15%</span><b>${fmt(T.vat,2)}</b></div><div class="kpi"><span>الإجمالي شامل الضريبة</span><b>${fmt(T.total,2)}</b></div></div>`:'<div class="small muted">ما أضفت أصناف للحين</div>'}</div>
+   <div id="qdocWrap" style="position:absolute;left:-10000px;top:0"></div></div>`;
+  const keep=()=>{q.projId=app.querySelector("#qproj").value;const pj=(S.proj||{})[q.projId];q.projName=pj?pj.name:"";q.customer=app.querySelector("#qcust").value.trim();q.date=app.querySelector("#qdate").value;q.status=app.querySelector("#qst").value;q.valid=+app.querySelector("#qvalid").value||30;q.disc=+app.querySelector("#qdisc").value||0;q.terms=app.querySelector("#qterms").value};
+  app.querySelector("#qproj").onchange=()=>{keep();const pj=(S.proj||{})[q.projId];if(pj&&!q.customer)q.customer=pj.contractor||"";render()};
+  ["#qdisc"].forEach(s=>app.querySelector(s).onchange=()=>{keep();render()});
+  app.querySelectorAll("[data-qsrc]").forEach(b=>b.onclick=()=>{keep();S.opt.qsrc=b.dataset.qsrc;render()});
+  const qsI=app.querySelector("#qs");if(qsI){qsI.oninput=()=>{clearTimeout(S._qt);S._qt=setTimeout(()=>{keep();S.opt.qs=qsI.value;render();const x=document.querySelector("#qs");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}},350)}}
+  app.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{keep();const c=cat.find(c=>String(c[0])===b.dataset.add);q.items.push({src:"stock",pid:c[0],code:c[1],name:c[2],unit:c[4]||"",qty:1,price:c[3]});render()});
+  const ff=app.querySelector("#qfree");if(ff)ff.onsubmit=e=>{e.preventDefault();keep();const F=new FormData(ff);q.items.push({src,name:F.get("name").trim(),unit:F.get("unit").trim(),qty:+F.get("qty"),price:+F.get("price")});render()};
+  app.querySelectorAll("[data-qty]").forEach(i=>i.onchange=()=>{keep();q.items[+i.dataset.qty].qty=+i.value;render()});
+  app.querySelectorAll("[data-price]").forEach(i=>i.onchange=()=>{keep();q.items[+i.dataset.price].price=+i.value;render()});
+  app.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{keep();q.items.splice(+b.dataset.rm,1);render()});
+  app.querySelector("#qsave").onclick=async()=>{keep();if(!q.items.length){toast("أضف صنف واحد على الأقل");return}
+    const d={...q};delete d._for;const old=(S.quote||{})[q.id];
+    if(!d.no)d.no=Math.max(0,...Object.values(S.quote||{}).map(x=>x.no||0))+1;
+    if(!old){d.by=S.uid;d.createdAt=nowIso()}d.updatedAt=nowIso();d.updBy=S.uid;
+    try{await S.db.doc("quote/"+d.id).set(d);S.qdraft=null;toast("تم حفظ العرض "+qNo(d));logAct(old?"quote_edit":"quote_add",qNo(d)+" — "+(d.projName||d.customer||"")+" — "+Math.round(qTotal(d).total)+" ريال"+(old&&old.status!==d.status?` (الحالة: ${P_ST[old.status][1]} ← ${P_ST[d.status][1]})`:""));S.nav[S.nav.length-1]={t:"quote",id:d.id};render()}catch(e){toast("تعذّر الحفظ")}};
+  const pdf=app.querySelector("#qpdf");if(pdf)pdf.onclick=e=>{keep();const w=app.querySelector("#qdocWrap");w.innerHTML=quoteDoc(q);chartPdf(w.firstElementChild,"عرض سعر "+qNo(q),e.currentTarget)};
+}
+function quoteDoc(q){
+  const T=qTotal(q);const td='style="border:1px solid #999;padding:5px 7px"',th='style="border:1px solid #999;padding:6px 7px;background:#8B1A1A;color:#fff"';
+  return `<div dir="rtl" style="background:#fff;color:#000;width:820px;padding:24px;font-family:Calibri,Arial,sans-serif;font-size:13px">
+   <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #8B1A1A;padding-bottom:10px"><img src="img/logo.png" style="height:64px"><div style="text-align:left"><div style="font-size:22px;font-weight:700">عرض سعر / Quotation</div><div>No: <b>${esc(qNo(q))}</b></div><div>Date: ${fd(q.date)}</div></div></div>
+   <div style="display:flex;gap:20px;margin:12px 0"><div style="flex:1"><b>العميل:</b> ${esc(q.customer||"")}<br><b>المشروع:</b> ${esc(q.projName||"—")}</div><div style="flex:1"><b>صلاحية العرض:</b> ${esc(q.valid||30)} يوم<br><b>أعدّه:</b> ${esc(pname(q.by||S.uid))}</div></div>
+   <table style="width:100%;border-collapse:collapse"><tr><th ${th}>#</th><th ${th}>الصنف</th><th ${th}>الوحدة</th><th ${th}>الكمية</th><th ${th}>سعر الوحدة</th><th ${th}>الإجمالي</th></tr>
+   ${(q.items||[]).map((it,i)=>`<tr><td ${td}>${i+1}</td><td ${td}>${it.code?`<span dir="ltr">${esc(it.code)}</span> — `:""}${esc(it.name)}${it.src!=="stock"?` <small>(${esc((Q_SRC.find(s=>s[0]===it.src)||["",""])[1])})</small>`:""}</td><td ${td}>${esc(it.unit||"")}</td><td ${td}>${fmt(it.qty,2)}</td><td ${td}>${fmt(it.price,2)}</td><td ${td}>${fmt((+it.qty||0)*(+it.price||0),2)}</td></tr>`).join("")}
+   <tr><td ${td} colspan="5"><b>المجموع</b></td><td ${td}><b>${fmt(T.sub,2)}</b></td></tr>${T.disc?`<tr><td ${td} colspan="5">الخصم ${esc(q.disc)}%</td><td ${td}>${fmt(T.disc,2)}</td></tr>`:""}
+   <tr><td ${td} colspan="5">ضريبة القيمة المضافة 15%</td><td ${td}>${fmt(T.vat,2)}</td></tr><tr><td ${td} colspan="5"><b>الإجمالي شامل الضريبة</b></td><td ${td}><b>${fmt(T.total,2)}</b></td></tr></table>
+   ${q.terms?`<div style="margin-top:12px;white-space:pre-wrap"><b>الشروط:</b> ${esc(q.terms)}</div>`:""}
+   <div style="margin-top:20px;border-top:1px solid #999;padding-top:6px;font-size:11px;color:#555">شركة المصنع المتحد للمستلزمات الكهربائية — United Electrical Supplies Factory Co.</div></div>`;
+}
+function quoteReportHtml(){
+  const o=S.opt;const from=o.rf||"",to=o.rt||"",who=o.rw||"",st=o.pst||"";
+  let L=quoteList();if(from)L=L.filter(x=>x.date>=from);if(to)L=L.filter(x=>x.date<=to);if(who)L=L.filter(x=>x.by===who);if(st)L=L.filter(x=>x.status===st);
+  const people=[...new Set(quoteList().map(x=>x.by))];names(people);
+  const byS=P_STATUS.map(s=>{const a=L.filter(x=>x.status===s[0]);return [s,a.length,sum(a.map(x=>qTotal(x).total))]});
+  const tot=sum(L.map(x=>qTotal(x).total));
+  return `<div class="row"><label class="f">من<input type="date" id="rf" value="${esc(from)}"></label><label class="f">إلى<input type="date" id="rt" value="${esc(to)}"></label>
+     <label class="f">أعدّه<select id="rw"><option value="">الكل</option>${people.map(u=>`<option value="${esc(u)}" ${who===u?"selected":""}>${esc(pname(u))}</option>`).join("")}</select></label>
+     <label class="f">الحالة<select id="rs"><option value="">الكل</option>${P_STATUS.map(s=>`<option value="${s[0]}" ${st===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select></label>
+     <button class="btn pri" id="rpdf" style="align-self:flex-end">🖨️ PDF</button></div>
+   <div id="qrep" dir="rtl" style="background:#fff;color:#000;padding:14px;border-radius:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #8B1A1A;padding-bottom:8px"><div><div style="font-size:20px;font-weight:700">تقرير عروض الأسعار</div><div class="small">${from||to?`الفترة: ${fd(from)||"البداية"} — ${fd(to)||"اليوم"}`:"كل الفترات"}${who?" · "+esc(pname(who)):""}</div></div><img src="img/logo.png" style="height:46px"></div>
+    <div class="kpis" style="margin:10px 0"><div class="kpi"><span>عدد العروض</span><b>${L.length}</b></div><div class="kpi"><span>قيمة العروض</span><b>${fmt(tot)}</b></div>
+     <div class="kpi"><span>فزنا</span><b>${fmt(byS[3][2])}</b><small>${byS[3][1]} عرض · ${pct(tot?byS[3][2]/tot:0)}</small></div><div class="kpi"><span>ما فزنا</span><b>${fmt(byS[4][2])}</b><small>${byS[4][1]} عرض</small></div></div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px">${byS.map(([s,n,v])=>`<tr><td style="border:1px solid #ccc;padding:5px">${pill(s[0])}</td><td style="border:1px solid #ccc;padding:5px">${n} عرض</td><td style="border:1px solid #ccc;padding:5px"><b>${fmt(v)}</b></td><td style="border:1px solid #ccc;padding:5px;width:40%"><div style="background:#1D5C8F;height:10px;width:${tot?v/tot*100:0}%"></div></td></tr>`).join("")}</table>
+    ${L.length?`<table style="width:100%;border-collapse:collapse"><tr>${["رقم العرض","التاريخ","المشروع / العميل","أعدّه","الحالة","الإجمالي شامل الضريبة"].map(h=>`<th style="border:1px solid #999;padding:5px;background:#D9E1F2">${h}</th>`).join("")}</tr>
+     ${L.map(x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td style="border:1px solid #ccc;padding:5px" class="ltr">${esc(qNo(x))}</td><td style="border:1px solid #ccc;padding:5px">${fd(x.date)}</td><td style="border:1px solid #ccc;padding:5px">${esc(x.projName||x.customer||"")}</td><td style="border:1px solid #ccc;padding:5px">${esc(pname(x.by))}</td><td style="border:1px solid #ccc;padding:5px">${pill(x.status)}</td><td style="border:1px solid #ccc;padding:5px"><b>${fmt(qTotal(x).total)}</b></td></tr>`).join("")}</table>`:'<div class="empty">لا توجد عروض بهذا الفلتر</div>'}
+   </div>`;
+}
+function wireQuoteReport(app){
+  [["#rf","rf"],["#rt","rt"],["#rw","rw"],["#rs","pst"]].forEach(([s,k])=>{const e=app.querySelector(s);if(e)e.onchange=()=>{S.opt[k]=e.value;render()}});
+  const b=app.querySelector("#rpdf");if(b)b.onclick=e=>chartPdf(app.querySelector("#qrep"),"تقرير عروض الأسعار - "+todayR(),e.currentTarget);
+}
+
+/* ----- forecasting (tables as in the user's Excel files) ----- */
+function forecastView(app){
+  if(myRole()!=="sales_mgr"){S.nav=[{t:"home"}];return render()}
+  const F=S.fc;if(!F){app.innerHTML='<div class="empty">جاري تحميل جداول الفوركاستنج…</div>';loadFc();return}
+  const bi=+(S.opt.fb||0),B=F.books[bi];const si=Math.min(+(S.opt.fs??(B.sheets.length-1)),B.sheets.length-1),SH=B.sheets[si];
+  const cell=(h,v)=>v==null||v===""?"":typeof v==="number"?(/^نسبة/.test(h)||(h==="31-12-2026"&&Math.abs(v)<20&&!Number.isInteger(v))?pct(v):fmt(v,Number.isInteger(v)?0:2)):esc(v);
+  const fi=s=>s.head.findIndex(h=>/forcast|forecast/i.test(h));
+  const ix=(s,h)=>s.head.indexOf(h);
+  const sumRow=SH.sections.map(s=>{const t=s.total||[];const f=fi(s)>=0?fi(s):ix(s,"31-12-2026");const c26=["30-09-2026","30-06-2026","31-03-2026"].map(h=>[h,t[ix(s,h)]]).find(x=>ix(s,x[0])>=0&&x[1]);return [s.title,t[ix(s,"2025")],c26?c26[1]:null,f>=0?t[f]:null,c26?c26[0]:""]});
+  app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin-inline-end:auto">فوركاستنج 2027</h1><button class="btn pri" id="fpdf">🖨️ PDF</button></div>
+   <div class="seg">${F.books.map((b,i)=>`<button data-fb="${i}" aria-pressed="${i===bi}">${esc(b.title)}</button>`).join("")}</div>
+   <div class="seg">${B.sheets.map((s,i)=>`<button data-fs="${i}" aria-pressed="${i===si}">${esc(s.name)}</button>`).join("")}</div>
+   <div id="fcdoc" style="background:var(--surface)" class="stack">
+    <div class="card"><h2 style="margin-top:0">${esc(B.title)} — ${esc(SH.name)}</h2><div class="tbl"><table><thead><tr><th>المجموعة</th><th>2025</th><th>2026 حتى آخر ربع</th><th>توقع 2027</th><th>التوقع مقابل 2025</th></tr></thead><tbody>
+     ${sumRow.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${fmt(r[1])}</td><td>${fmt(r[2])}${r[4]?` <span class="small muted">(${r[4]})</span>`:""}</td><td><b>${fmt(r[3])}</b></td><td>${r[1]?pct(r[3]/r[1]-1):"—"}</td></tr>`).join("")}</tbody></table></div></div>
+    ${SH.sections.map(s=>`<div class="card"><h3 style="margin-top:0">${esc(s.title)}</h3><div class="tbl" style="max-height:none"><table><thead><tr>${s.head.map(h=>`<th>${esc(/forcast/i.test(h)?"توقع 2027":h)}</th>`).join("")}</tr></thead><tbody>
+      ${s.rows.map(r=>`<tr>${r.map((v,j)=>`<td${j===fi(s)?' style="font-weight:700;background:var(--info-bg)"':""}>${j===0&&v?`<span class="ltr">${esc(v)}</span>`:cell(s.head[j],v)}</td>`).join("")}</tr>`).join("")}
+      ${s.total?`<tr style="font-weight:700;background:var(--line)">${s.total.map((v,j)=>`<td>${(j===1&&!v)||(j===0&&!v)||/^total$/i.test(String(v||""))?(j<=1?"الإجمالي":""):cell(s.head[j],v)}</td>`).join("")}</tr>`:""}</tbody></table></div></div>`).join("")}
+   </div><p class="small muted">من جداولك (${esc(F.asof)}). أي تعديل أو إضافة على الجداول أرسلها وتتحدث هنا.</p></div>`;
+  app.querySelectorAll("[data-fb]").forEach(b=>b.onclick=()=>{S.opt.fb=+b.dataset.fb;S.opt.fs=null;render()});
+  app.querySelectorAll("[data-fs]").forEach(b=>b.onclick=()=>{S.opt.fs=+b.dataset.fs;render()});
+  app.querySelector("#fpdf").onclick=e=>chartPdf(app.querySelector("#fcdoc"),"فوركاستنج 2027 - "+B.title+" - "+SH.name,e.currentTarget);
+}
+async function loadFc(){if(S._fcl)return;S._fcl=1;try{const r=await fetch("forecast.json",{cache:"no-store"});if(r.ok){S.fc=await r.json();render()}}catch(e){}S._fcl=0}
+
+/* ----- targets of the area managers (ندى، نسرين، عيدة): monthly per rep + written tasks ----- */
+const monthOf=d=>(d||todayR()).slice(0,7);
+const tgtOf=(uid,m)=>(S.tgt||{})[uid+"_"+m];
+function targetsView(app){
+  const role=myRole();const mgr=role==="sales_mgr"||role==="deputy";
+  if(!TGT_ROLES.includes(role)&&!mgr){S.nav=[{t:"home"}];return render()}
+  const girls=Object.entries(S.members).filter(([id,m])=>TGT_ROLES.includes(m.role)).map(([id])=>id);
+  const who=mgr?(S.opt.tw&&girls.includes(S.opt.tw)?S.opt.tw:girls[0]):S.uid;
+  const wrole=who===S.uid?role:(S.members[who]||{}).role;
+  const m=S.opt.tm||monthOf();const cur=m===monthOf(S.D.asof);const T=tgtOf(who,m)||{reps:{},tasks:[]};const edit=who===S.uid&&TGT_ROLES.includes(role);
+  const reps=wrole?areasFor(wrole).flatMap(branchesOfArea).flatMap(repsOfBranch).filter(i=>i&&R(i)):[];
+  const row=i=>{const t=T.reps[i]||{};const k=R(i).kpi;return `<tr><td><b>${esc(R(i).name)}</b><div class="small muted">${esc(brLabel(brOf(i)))}</div></td>
+    <td>${edit?`<input type="number" data-ts="${i}" value="${esc(t.sale??"")}" style="width:120px">`:fmt(t.sale)}</td><td>${cur?fmt(k.mtdSale):"—"}</td><td>${cur&&t.sale?pct(k.mtdSale/t.sale):"—"}</td>
+    <td>${edit?`<input type="number" data-tc="${i}" value="${esc(t.col??"")}" style="width:120px">`:fmt(t.col)}</td><td>${cur?fmt(k.mtdCol):"—"}</td><td>${cur&&t.col?pct(k.mtdCol/t.col):"—"}</td></tr>`};
+  const tasks=(T.tasks||[]).slice().sort((a,b)=>(a.done?1:0)-(b.done?1:0)||(a.due||"").localeCompare(b.due||""));
+  app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin-inline-end:auto">الأهداف</h1>
+     ${mgr?`<label class="f">المديرة<select id="tw">${girls.map(g=>`<option value="${esc(g)}" ${g===who?"selected":""}>${esc(pname(g))}</option>`).join("")}</select></label>`:""}
+     <label class="f">الشهر<input type="month" id="tm" value="${m}"></label></div>
+   ${!girls.length&&mgr?'<div class="empty">ما فيه مديرات مسجّلات للحين</div>':""}
+   <div class="card"><h2 style="margin-top:0">أهداف الشهر لكل مندوب ${Object.keys(T.reps||{}).length?`<span class="small muted">— آخر تحديث ${esc(tmFmt(T.at))}</span>`:edit?'<span class="pill s-bad">لازم تحددين أهداف الشهر</span>':'<span class="pill s-bad">ما حُددت للحين</span>'}</h2>
+    <div class="tbl"><table><thead><tr><th>المندوب</th><th>هدف البيع</th><th>المحقق</th><th>%</th><th>هدف التحصيل</th><th>المحقق</th><th>%</th></tr></thead><tbody>${reps.map(row).join("")}</tbody></table></div>
+    ${edit?'<div class="row" style="margin-top:8px"><button class="btn pri" id="tsave">💾 حفظ الأهداف</button></div>':""}</div>
+   <div class="card"><h2 style="margin-top:0">المهام المكتوبة</h2>
+    ${edit?`<form id="tadd" class="row"><input name="text" placeholder="مثال: زيارة 5 عملاء في حي النسيم، تحصيل من عميل …" style="flex:1;min-width:220px" required><input name="due" type="date" value="${todayR()}"><button class="btn">＋ إضافة</button></form>`:""}
+    ${tasks.length?tasks.map(t=>`<div class="row" style="border-bottom:1px solid var(--line);padding:6px 0">${edit?`<input type="checkbox" data-done="${esc(t.id)}" ${t.done?"checked":""}>`:t.done?"✅":"⬜"}<span style="flex:1;${t.done?"text-decoration:line-through;color:var(--muted)":""}">${esc(t.text)}</span><span class="small muted">${t.due?"موعد "+fd(t.due):""}${t.done?" · تم "+esc(tmFmt(t.doneAt)):""}</span></div>`).join(""):'<div class="small muted">لا توجد مهام</div>'}</div></div>`;
+  app.querySelector("#tm").onchange=e=>{S.opt.tm=e.target.value;render()};
+  const tw=app.querySelector("#tw");if(tw)tw.onchange=()=>{S.opt.tw=tw.value;render()};
+  const save=async(nT,msg)=>{try{await S.db.doc("tgt/"+who+"_"+m).set({...nT,by:S.uid,month:m,at:nowIso()});toast("تم الحفظ");logAct(msg[0],msg[1])}catch(e){toast("تعذّر الحفظ")}};
+  const ts=app.querySelector("#tsave");if(ts)ts.onclick=()=>{const r2={};reps.forEach(i=>{const s=app.querySelector(`[data-ts="${i}"]`).value,c=app.querySelector(`[data-tc="${i}"]`).value;if(s!==""||c!=="")r2[i]={sale:s===""?null:+s,col:c===""?null:+c}});
+    if(!Object.keys(r2).length){toast("اكتب الأهداف");return}save({...T,reps:r2},["tgt_set","أهداف شهر "+m+": بيع "+Math.round(sum(Object.values(r2).map(x=>x.sale||0)))+" / تحصيل "+Math.round(sum(Object.values(r2).map(x=>x.col||0)))])};
+  const ta=app.querySelector("#tadd");if(ta)ta.onsubmit=e=>{e.preventDefault();const F=new FormData(ta);const t={id:newId("t"),text:F.get("text").trim(),due:F.get("due"),at:nowIso()};save({...T,tasks:[...(T.tasks||[]),t]},["task_add",t.text])};
+  app.querySelectorAll("[data-done]").forEach(c=>c.onchange=()=>{const L=(T.tasks||[]).map(t=>t.id===c.dataset.done?{...t,done:c.checked,doneAt:c.checked?nowIso():null}:t);const t=L.find(x=>x.id===c.dataset.done);save({...T,tasks:L},[c.checked?"task_done":"task_undo",t.text])});
+}
+function targetsDaily(uid,date,role){
+  if(!TGT_ROLES.includes(role))return "";
+  const m=monthOf(date),T=tgtOf(uid,m);const cur=m===monthOf(S.D.asof);
+  const td='style="border:1px solid #999;padding:5px 7px"',th='style="border:1px solid #999;padding:5px 7px;background:#D9E1F2"';
+  const head=`<div style="background:#8B1A1A;color:#fff;font-weight:700;padding:6px 10px;margin:14px 0 6px;font-size:15px">٥. الأهداف (${m})</div>`;
+  if(!T)return head+'<div style="color:#B42318;font-weight:700">لم تُحدَّد أهداف هذا الشهر.</div>';
+  const reps=Object.keys(T.reps||{}).filter(i=>R(i));
+  const tasks=(T.tasks||[]).filter(t=>t.due===date||(t.doneAt&&dayOf(t.doneAt)===date)||(!t.done&&t.due&&t.due<date));
+  return head+(reps.length?`<table style="width:100%;border-collapse:collapse"><tr><th ${th}>المندوب</th><th ${th}>هدف البيع</th><th ${th}>المحقق</th><th ${th}>%</th><th ${th}>هدف التحصيل</th><th ${th}>المحقق</th><th ${th}>%</th></tr>
+    ${reps.map(i=>{const t=T.reps[i],k=R(i).kpi;return `<tr><td ${td}><b>${esc(R(i).name)}</b></td><td ${td}>${fmt(t.sale)}</td><td ${td}>${cur?fmt(k.mtdSale):"—"}</td><td ${td}>${cur&&t.sale?pct(k.mtdSale/t.sale):"—"}</td><td ${td}>${fmt(t.col)}</td><td ${td}>${cur?fmt(k.mtdCol):"—"}</td><td ${td}>${cur&&t.col?pct(k.mtdCol/t.col):"—"}</td></tr>`}).join("")}</table>`:"")
+    +`<div style="margin-top:6px"><b>المهام:</b>${tasks.length?`<ul style="margin:4px 0">${tasks.map(t=>`<li>${t.done?"✅":"⬜"} ${esc(t.text)}${t.due?` <small>(موعد ${fd(t.due)})</small>`:""}${t.done?` <small>— تم ${esc(tmFmt(t.doneAt))}</small>`:t.due&&t.due<date?' <small style="color:#B42318">— متأخرة</small>':""}</li>`).join("")}</ul>`:" لا توجد مهام لهذا اليوم"}</div>`;
+}
+
 function homeView(app){
+  const role=myRole();
+  if(role==="sales_mgr")return mainMenuView(app);
+  if(isProj(role))return projectsView(app);
+  return salesView(app);
+}
+function salesView(app){
   const role=myRole();const areas=areasFor(role);const ids=repsOfBranches(areas.flatMap(branchesOfArea));
   let body;
   if(role==="sales_mgr"||role==="deputy"){
@@ -361,7 +648,9 @@ function homeView(app){
   }else{
     body=`<h2>فروعي</h2><div class="tiles">${branchesOfArea(role).map(branchTile).join("")}</div>`;
   }
+  const tgtMiss=TGT_ROLES.includes(role)&&!Object.keys((tgtOf(S.uid,monthOf())||{}).reps||{}).length&&!S.preview;
   app.innerHTML=`<div class="stack"><div class="row"><h1>أهلاً ${esc(S.preview?ROLES[role]:(S.people[S.uid]&&S.people[S.uid].name)||ROLES[role])}</h1></div>
+    ${tgtMiss?'<div class="alertbar" role="alert"><b>🎯 لازم تحددين أهداف هذا الشهر لمناديبك</b><div class="row"><button data-go="targets">تحديد الأهداف الآن</button></div></div>':""}
     ${alertBar(ids)}${kpiRow(agg(ids),ids)}${body}</div>`;
   wireTiles(app);
   app.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go({t:b.dataset.go}));
@@ -704,6 +993,7 @@ function dailyDoc(d,A){
    ${sec("٣. متابعة العملاء والتحصيل")}${tbl(["الوقت","العميل","المندوب","النوع","وعد السداد","الملاحظة"],A.custNotes.sort((a,b)=>a.n.at.localeCompare(b.n.at)).map(c=>{const [n2,r]=A.cname(c.cid);return [esc(new Date(c.n.at).toLocaleTimeString("ar-SA-u-nu-latn",{timeZone:"Asia/Riyadh",hour:"2-digit",minute:"2-digit"})),esc(n2),esc(r),({col:"متابعة تحصيل",call:"اتصال",visit:"زيارة"})[c.n.kind]||"ملاحظة",c.n.amt?fmtN(c.n.amt)+(c.n.due?"<br>"+fd(c.n.due):""):"—",esc(c.n.note)]}))}
    ${A.targets.length?`<div style="margin-top:6px"><b>أهداف عملاء تم تحديدها:</b> ${A.targets.map(t=>esc(A.cname(t.cid)[0])+" = "+fmtN(t.t)).join("، ")}</div>`:""}
    ${sec("٤. سجل كل الحركات في الحساب")}${tbl(["الوقت","الحركة","التفاصيل"],A.acts.map(l=>[esc(new Date(l.at).toLocaleTimeString("ar-SA-u-nu-latn",{timeZone:"Asia/Riyadh",hour:"2-digit",minute:"2-digit"})),esc(LOGK[l.kind]||l.kind),esc((l.cname?l.cname+" — ":"")+l.text)+(l.amt?` <b>(وعد ${fmtN(l.amt)}${l.due?" بتاريخ "+fd(l.due):""})</b>`:"")]))}
+   ${targetsDaily(d.by,d.date,d.by===S.uid?myRole():(S.members[d.by]||{}).role)}
    ${d.offers?sec("العروض للعملاء")+`<div style="white-space:pre-wrap">${esc(d.offers)}</div>`:""}
    ${d.issues?sec("التحديات والمعوقات")+`<div style="white-space:pre-wrap">${esc(d.issues)}</div>`:""}
    ${d.plan?sec("خطة الغد")+`<div style="white-space:pre-wrap">${esc(d.plan)}</div>`:""}
