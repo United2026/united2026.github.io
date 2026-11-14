@@ -191,7 +191,7 @@ const custAlertCount=ids=>sum(ids.map(i=>R(i).alerts.length));
 /* ---------- activity log: every action a user does, for the daily report ---------- */
 async function logAct(kind,text,extra){try{if(!S.db||S.offline||!S.uid)return;const now=new Date();const id=S.uid.slice(-8)+"_"+now.getTime().toString(36)+Math.random().toString(36).slice(2,5);
   await S.db.doc("log/"+id).set({by:S.uid,at:now.toISOString(),d:new Date(now.getTime()+3*3600e3).toISOString().slice(0,10),kind,text:String(text||"").slice(0,500),...(extra||{})})}catch(e){}}
-const LOGK={cust_note:"ملاحظة عميل",cust_col:"متابعة تحصيل",cust_data:"تحديث بيانات عميل",cust_target:"هدف عميل",el_add:"إضافة كهربائي",el_call:"مكالمة كهربائي",el_edit:"تعديل كهربائي",el_draft:"تعديل كهربائي (مسودة)",el_ok:"اعتماد تعديل كهربائي",el_rej:"رفض تعديل كهربائي",el_move:"نقل كهربائي",rep_move:"نقل مندوب",user:"صلاحيات المستخدمين",daily:"إضافات التقرير اليومي",proj_add:"مشروع جديد",proj_edit:"تحديث مشروع",proj_note:"ملاحظة مشروع",quote_add:"عرض سعر جديد",quote_edit:"تعديل عرض سعر",tgt_set:"تحديد أهداف الشهر",task_add:"مهمة جديدة",task_done:"إنجاز مهمة",task_undo:"إلغاء إنجاز مهمة"};
+const LOGK={cust_note:"ملاحظة عميل",cust_col:"متابعة تحصيل",cust_data:"تحديث بيانات عميل",cust_target:"هدف عميل",el_add:"إضافة كهربائي",el_call:"مكالمة كهربائي",el_edit:"تعديل كهربائي",el_draft:"تعديل كهربائي (مسودة)",el_ok:"اعتماد تعديل كهربائي",el_rej:"رفض تعديل كهربائي",el_move:"نقل كهربائي",rep_move:"نقل مندوب",user:"صلاحيات المستخدمين",daily:"إضافات التقرير اليومي",proj_add:"مشروع جديد",proj_edit:"تحديث مشروع",proj_note:"ملاحظة مشروع",quote_add:"عرض سعر جديد",quote_edit:"تعديل عرض سعر",tgt_set:"تحديد أهداف الشهر",task_add:"مهمة جديدة",task_done:"إنجاز مهمة",task_undo:"إلغاء إنجاز مهمة",agr:"اتفاقية عميل"};
 /* ---------- electricians: imported list (elec.json) + changes and new ones in the shared db ---------- */
 function mergeElec(){
   const M=new Map();((S.elecBase&&S.elecBase.items)||[]).forEach(e=>M.set(e.id,e));
@@ -214,7 +214,7 @@ function back(i){S.nav=S.nav.slice(0,i+1);S.opt={};render();window.scrollTo(0,0)
 const PB={1:"RI",25:"RI",64:"RI",30:"JE",36:"JE",31:"KH",32:"DA",35:"DA",27:"SA",28:"TA",29:"MA",26:"QA"};
 const prodOf=b=>S.prod?(S.prod.items||[]).filter(x=>PB[x.branch]===b):(S.D.branches[b].prod||[]);
 const brLabel=b=>(b==="DP"?"":"فرع ")+S.D.branches[b].name;
-const navLabel=n=>n.t==="home"?"الرئيسية":n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="branches"?"الفروع":"";
+const navLabel=n=>n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="branches"?"الفروع":"";
 
 /* ---------- boot ---------- */
 async function boot(){
@@ -235,6 +235,7 @@ async function boot(){
   db.collection("log").onSnapshot(s=>{S.log=s.docs.map(d=>d.data());render()},()=>{});
   db.collection("proj").onSnapshot(s=>{S.proj={};s.docs.forEach(d=>S.proj[d.id]={id:d.id,...d.data()});render()},()=>{});
   db.collection("quote").onSnapshot(s=>{S.quote={};s.docs.forEach(d=>S.quote[d.id]={id:d.id,...d.data()});render()},()=>{});
+  db.collection("agr").onSnapshot(s=>{S.agr={};s.docs.forEach(d=>S.agr[d.id]={id:d.id,...d.data()});render()},()=>{});
   db.collection("tgt").onSnapshot(s=>{S.tgt={};s.docs.forEach(d=>S.tgt[d.id]=d.data());render()},()=>{});
   db.collection("daily").onSnapshot(s=>{S.daily=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("elec").onSnapshot(s=>{S.elecDb=s.docs.map(d=>({id:d.id,...d.data()}));mergeElec();render()},()=>toast("تعذّر تحميل الكهربائيين"));
@@ -254,6 +255,7 @@ function render(){
   if(S.uid&&S.people[S.uid]&&S.people[S.uid].avatarUrl){const i=document.createElement("img");i.src=S.people[S.uid].avatarUrl;i.alt="";w.append(i)}
   if(role){const c=document.createElement("span");c.className="chip";c.textContent=ROLES[role]+(S.preview?" (معاينة)":"");w.append(c)}
   if(role&&(TGT_ROLES.includes(role)||role==="sales_mgr"||role==="deputy")){const t=document.createElement("button");t.className="btn sm";t.textContent="🎯 الأهداف";t.onclick=()=>{S.nav=[{t:"home"},{t:"targets"}];S.opt={};render();scrollTo(0,0)};w.append(t)}
+  if(role&&canAgr(role)){const pend=role==="sales_mgr"?agrList().filter(a=>a.status==="pending").length:0;const t=document.createElement("button");t.className="btn sm"+(pend?" bad":"");t.textContent="📄 الاتفاقيات"+(pend?` (${pend} بانتظار موافقتك)`:"");t.onclick=()=>{S.nav=[{t:"home"},{t:"agrs"}];S.opt={};render();scrollTo(0,0)};w.append(t)}
   if(role){const d=document.createElement("button");d.className="btn sm pri";d.textContent="📝 التقرير اليومي";d.onclick=()=>{S.nav=[{t:"home"},{t:"daily"}];S.opt={};render();scrollTo(0,0)};w.append(d)}
   if(S.isOwner){
     const sel=document.createElement("select");sel.setAttribute("aria-label","معاينة كمستخدم");
@@ -273,7 +275,7 @@ function render(){
   if(["projects","proj","quote"].includes(n.t)&&!canProj(role)||["forecast","exports"].includes(n.t)&&role!=="sales_mgr"){S.nav=[{t:"home"}];return render()}
   const ok=allowedBranches();
   if((n.t==="branch"&&!ok.includes(n.id))||(n.t==="rep"&&!ok.includes(brOf(n.id)))||(n.t==="items"&&!ok.includes(n.scope.t==="rep"?brOf(n.scope.id):n.scope.id))||(n.t==="area"&&!areasFor(role).includes(n.id))){S.nav=[{t:"home"}];return render()}
-  ({sales:salesView,projects:projectsView,proj:projView,quote:quoteView,forecast:forecastView,exports:exportsView,targets:targetsView,daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
+  ({agrs:agrsView,agr:agrView,sales:salesView,projects:projectsView,proj:projView,quote:quoteView,forecast:forecastView,exports:exportsView,targets:targetsView,daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
 }
 
 /* ---------- join ---------- */
@@ -682,6 +684,119 @@ function targetsDaily(uid,date,role){
     +`<div style="margin-top:6px"><b>المهام:</b>${tasks.length?`<ul style="margin:4px 0">${tasks.map(t=>`<li>${t.done?"✅":"⬜"} ${esc(t.text)}${t.due?` <small>(موعد ${fd(t.due)})</small>`:""}${t.done?` <small>— تم ${esc(tmFmt(t.doneAt))}</small>`:t.due&&t.due<date?' <small style="color:#B42318">— متأخرة</small>':""}</li>`).join("")}</ul>`:" لا توجد مهام لهذا اليوم"}</div>`;
 }
 
+/* ----- customer agreements (اتفاقيات العملاء): filled by the area manager, approved by the sales manager, sent to the customer by link ----- */
+const AGR_FAM=[["tab","الطبلون (لوحات التوزيع)",[5,10]],["steel","المراوح الحديدية",[5,10]],["plastic","المراوح البلاستيكية",[5,10,15]],["new","البضائع الجديدة (ستائر هوائية، مضخات، مراوح أسقف وتوربين)",[5,10]]];
+const AGR_ST={draft:["مسودة","s-done"],pending:["بانتظار موافقة مدير المبيعات","s-warn"],mgr_no:["مرفوضة من المدير","s-bad"],approved:["معتمدة — جاهزة للإرسال للعميل","s-info"],accepted:["وافق العميل","s-ok"],declined:["العميل ما وافق","s-bad"]};
+const agrPill=s=>{const x=AGR_ST[s]||AGR_ST.draft;return `<span class="pill ${x[1]}">${x[0]}</span>`};
+const agrList=()=>Object.values(S.agr||{}).sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||""));
+const AGR_BASE="https://oursales-sak2.onrender.com/agreement.html?t=";
+const waPhone=p=>{let d=String(p||"").replace(/\D/g,"");if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("05"))d="966"+d.slice(1);else if(d.startsWith("5")&&d.length===9)d="966"+d;return d};
+const canAgr=r=>TGT_ROLES.includes(r)||r==="sales_mgr"||r==="deputy";
+function agrsView(app){
+  const role=myRole();if(!canAgr(role)){S.nav=[{t:"home"}];return render()}
+  const brs=allowedBranches();const f=S.opt.ast||"";
+  let L=agrList().filter(a=>role==="sales_mgr"||role==="deputy"||a.by===S.uid||brs.includes(brOf(String(a.rep))));
+  const cnt=k=>L.filter(a=>a.status===k).length;if(f)L=L.filter(a=>a.status===f);
+  app.innerHTML=`<div class="stack"><h1>اتفاقيات العملاء</h1>
+   <div class="seg"><button data-ast="" aria-pressed="${!f}">الكل</button>${Object.entries(AGR_ST).map(([k,v])=>`<button data-ast="${k}" aria-pressed="${f===k}">${v[0]} (${cnt(k)})</button>`).join("")}</div>
+   ${L.length?`<div class="tbl"><table><thead><tr><th>رقم</th><th>العميل</th><th>المندوب</th><th>الهدف الأعلى</th><th>الحالة</th><th>أعدّتها</th><th>آخر تحديث</th></tr></thead><tbody>
+    ${L.map(a=>`<tr data-agr="${esc(a.id)}" style="cursor:pointer"><td class="ltr">${esc(agrNo(a))}</td><td><b>${esc(a.cname)}</b></td><td>${esc(R(String(a.rep))?R(String(a.rep)).name:"")}</td><td>${fmt(Math.max(0,...(a.tiers||[]).map(t=>+t.amt||0)))}</td><td>${agrPill(a.status)}</td><td>${esc(pname(a.by))}</td><td class="small">${esc(tmFmt(a.updatedAt))}</td></tr>`).join("")}</tbody></table></div>`
+    :'<div class="empty">لا توجد اتفاقيات. الاتفاقية تنعمل من «متابعة العملاء» ← ملف العميل ← «📄 اتفاقية جديدة».</div>'}</div>`;
+  app.querySelectorAll("[data-ast]").forEach(b=>b.onclick=()=>{S.opt.ast=b.dataset.ast;render()});
+  app.querySelectorAll("[data-agr]").forEach(r=>r.onclick=()=>go({t:"agr",id:r.dataset.agr}));
+}
+const agrNo=a=>"A"+String(a.year||"").slice(2)+"-"+String(a.no||0).padStart(4,"0");
+function agrView(app,n){
+  const role=myRole();if(!canAgr(role)){S.nav=[{t:"home"}];return render()}
+  const isNew=n.id==="new";const y=new Date(Date.now()+3*3600e3).getUTCFullYear();
+  const a=isNew?(S.adraft&&S.adraft._for===n.cid?S.adraft:(S.adraft={_for:n.cid,id:newId("a"),cid:n.cid,cname:n.cname||"",rep:n.rep||"",status:"draft",year:y,date:todayR(),p2:{name:n.cname||"",city:"",title:"المدير العام"},
+      tiers:[{amt:"",pct:5,type:"goods"},{amt:"",pct:4,type:"goods"},{amt:"",pct:3,type:"goods"},{amt:"",pct:2,type:"goods"}],payDays:60,credit:"",creditWords:"",disc:{tab:10,steel:10,plastic:15,new:""},bonusBy:(y+1)+"-01-29",from:y+"-01-01",to:y+"-12-31",notice:90,hist:[]}))
+    :(S.agr||{})[n.id];
+  if(!a){app.innerHTML='<div class="empty">الاتفاقية غير موجودة</div>';return}
+  const mine=a.by===S.uid||isNew;const mgr=role==="sales_mgr";const editable=(isNew||(mine&&["draft","mgr_no"].includes(a.status))||mgr&&a.status==="pending");
+  const link=a.token?AGR_BASE+a.token:"";const ph=((S.cust[String(a.cid)]||{}).phone)||((S.D.cinfo||{})[a.cid]||{}).ph||"";
+  const I=(k,l,v,t="text",x="")=>`<label class="f">${l}<input data-k="${k}" type="${t}" value="${esc(v??"")}" ${editable?"":"disabled"} ${x}></label>`;
+  app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin-inline-end:auto">اتفاقية ${isNew?"جديدة":esc(agrNo(a))} — ${esc(a.cname)}</h1>${agrPill(a.status)}</div>
+   ${a.mgrNote?`<div class="alertbar"><b>ملاحظة مدير المبيعات:</b> ${esc(a.mgrNote)}</div>`:""}
+   ${a.custAt?`<div class="card" style="border-color:${a.status==="accepted"?"var(--ok)":"var(--bad)"}"><b>رد العميل (${esc(tmFmt(a.custAt))}):</b> ${a.status==="accepted"?"✅ موافق":"❌ غير موافق"}${a.custName?` — ${esc(a.custName)}`:""}${a.custNote?`<div style="white-space:pre-wrap;margin-top:4px">${esc(a.custNote)}</div>`:""}</div>`:""}
+   <div class="card"><h2 style="margin-top:0">الأطراف والتاريخ</h2><div class="grid2">${I("year","الاتفاقية لعام",a.year,"number")}${I("date","تاريخ الاتفاقية",a.date,"date")}
+     ${I("p2.name","الطرف الثاني (اسم المؤسسة كما في السجل)",a.p2.name)}${I("p2.city","عنوان الطرف الثاني (المدينة)",a.p2.city)}${I("p2.title","صفة الموقّع من الطرف الثاني",a.p2.title)}</div></div>
+   <div class="card"><h2 style="margin-top:0">الأهداف والبونص (مايخص الطرف الثاني)</h2><p class="small muted" style="margin-top:0">المبالغ تُكتب يدوياً، غير شاملة الضريبة. البونص بشرط سداد كامل الرصيد.</p>
+     <div class="tbl"><table><thead><tr><th>#</th><th>مبلغ الهدف (ريال)</th><th>نسبة البونص</th><th>نوع البونص</th><th></th></tr></thead><tbody>
+     ${a.tiers.map((t,i)=>`<tr><td>${i+1}</td><td><input type="number" data-t="${i}" data-tk="amt" value="${esc(t.amt)}" ${editable?"":"disabled"} style="width:140px"></td>
+      <td><select data-t="${i}" data-tk="pct" ${editable?"":"disabled"}>${[1,2,3,4,5].map(p=>`<option value="${p}" ${+t.pct===p?"selected":""}>${p}%</option>`).join("")}</select></td>
+      <td><select data-t="${i}" data-tk="type" ${editable?"":"disabled"}><option value="goods" ${t.type==="goods"?"selected":""}>بضاعة</option><option value="cash" ${t.type==="cash"?"selected":""}>نقداً</option></select></td>
+      <td>${editable&&a.tiers.length>1?`<button class="btn sm bad" data-tdel="${i}">حذف</button>`:""}</td></tr>`).join("")}</tbody></table></div>
+     ${editable?'<button class="btn sm" id="tadd2" style="margin-top:6px">＋ مستوى هدف</button>':""}</div>
+   <div class="card"><h2 style="margin-top:0">مايخص الطرف الأول</h2><div class="grid2">${I("payDays","فترة السداد (يوم من تاريخ الفاتورة)",a.payDays,"number")}${I("credit","الحد الائتماني (ريال)",a.credit,"number")}${I("creditWords","الحد الائتماني كتابةً",a.creditWords,"text",'placeholder="مثال: فقط خمسة وعشرون ألف ريال لا غير"')}</div>
+     <h3>الخصم المباشر على العوائل</h3><div class="tbl"><table><thead><tr><th>العائلة</th><th>الخصم المتاح</th></tr></thead><tbody>
+     ${AGR_FAM.map(([k,l,ops])=>`<tr><td><b>${esc(l)}</b></td><td><select data-d="${k}" ${editable?"":"disabled"}><option value="">بدون خصم</option>${ops.map(p=>`<option value="${p}" ${+a.disc[k]===p?"selected":""}>${p}%</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div>
+     <div class="grid2" style="margin-top:8px">${I("bonusBy","آخر موعد لصرف البونص",a.bonusBy,"date")}${I("from","بداية سريان العقد",a.from,"date")}${I("to","نهاية العقد",a.to,"date")}${I("notice","مدة الإبلاغ قبل الانتهاء (يوم)",a.notice,"number")}</div></div>
+   <div class="row">
+    ${editable&&!mgr||editable&&isNew?`<button class="btn" id="asave">💾 حفظ مسودة</button><button class="btn pri" id="asend">📤 إرسال لمدير المبيعات</button>`:""}
+    ${mgr&&a.status==="pending"?`<button class="btn" id="asave">💾 حفظ التعديلات</button><button class="btn pri" id="aok">✅ موافقة</button><button class="btn bad" id="ano">رفض مع ملاحظة</button>`:""}
+    ${!isNew?`<button class="btn" id="apdf">🖨️ PDF</button>`:""}
+    ${link?`<button class="btn" id="acopy">🔗 نسخ رابط العميل</button><a class="btn pri" target="_blank" rel="noopener" href="https://wa.me/${waPhone(ph)}?text=${encodeURIComponent("السلام عليكم، مرفق رابط اتفاقية "+a.year+" مع شركة المصنع المتحد للمستلزمات الكهربائية. نرجو الاطلاع والموافقة أو كتابة ملاحظاتكم:\n"+link)}">💬 إرسال بالواتساب</a>`:""}
+   </div>
+   ${link?`<p class="small muted ltr" style="margin:0">${esc(link)}</p>`:""}
+   ${(a.hist||[]).length?`<div class="card"><h3 style="margin-top:0">السجل</h3>${a.hist.slice().reverse().map(h=>`<div class="small" style="border-bottom:1px solid var(--line);padding:4px 0">${esc(tmFmt(h.at))} — ${esc(h.by==="customer"?"العميل":pname(h.by))}: ${esc(h.t)}</div>`).join("")}</div>`:""}
+   <div id="adocWrap" style="position:absolute;left:-10000px;top:0"></div></div>`;
+  const keep=()=>{app.querySelectorAll("[data-k]").forEach(i=>{const k=i.dataset.k;const v=i.type==="number"?(i.value===""?"":+i.value):i.value;if(k.startsWith("p2."))a.p2[k.slice(3)]=v;else a[k]=v});
+    app.querySelectorAll("[data-tk]").forEach(i=>{const t=a.tiers[+i.dataset.t];t[i.dataset.tk]=i.dataset.tk==="type"?i.value:(i.value===""?"":+i.value)});
+    app.querySelectorAll("[data-d]").forEach(i=>a.disc[i.dataset.d]=i.value===""?"":+i.value)};
+  const save=async(st,msg,extra)=>{keep();const tiers=a.tiers.filter(t=>t.amt!==""&&+t.amt>0);if(st==="pending"&&!tiers.length){toast("اكتب مبلغ هدف واحد على الأقل");return false}
+    const d={...a,...(extra||{})};delete d._for;d.tiers=(st==="draft"?a.tiers:tiers).sort((x,y)=>(+y.amt||0)-(+x.amt||0));d.status=st;d.updatedAt=nowIso();
+    if(!d.by){d.by=S.uid;d.createdAt=d.updatedAt}if(!d.no)d.no=Math.max(0,...agrList().map(x=>x.no||0))+1;
+    d.hist=[...(a.hist||[]),{at:nowIso(),by:S.uid,t:msg}];
+    try{await S.db.doc("agr/"+d.id).set(d);S.adraft=null;toast("تم");logAct("agr",agrNo(d)+" "+d.cname+" — "+msg,{cid:String(d.cid),cname:d.cname});if(isNew)S.nav[S.nav.length-1]={t:"agr",id:d.id};render();return true}catch(e){toast("تعذّر الحفظ");return false}};
+  app.querySelectorAll("[data-t],[data-k],[data-d]").forEach(i=>i.onchange=()=>keep());
+  const ta=app.querySelector("#tadd2");if(ta)ta.onclick=()=>{keep();a.tiers.push({amt:"",pct:1,type:"goods"});render()};
+  app.querySelectorAll("[data-tdel]").forEach(b=>b.onclick=()=>{keep();a.tiers.splice(+b.dataset.tdel,1);render()});
+  const b1=app.querySelector("#asave");if(b1)b1.onclick=()=>save(mgr&&a.status==="pending"?"pending":"draft",mgr&&a.status==="pending"?"تعديل من مدير المبيعات":"حفظ مسودة");
+  const b2=app.querySelector("#asend");if(b2)b2.onclick=()=>save("pending","إرسال لمدير المبيعات للموافقة");
+  const b3=app.querySelector("#aok");if(b3)b3.onclick=()=>{const tok=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,"0")).join("");save("approved","موافقة مدير المبيعات",{token:tok,mgrBy:S.uid,mgrAt:nowIso(),mgrNote:""})};
+  const b4=app.querySelector("#ano");if(b4)b4.onclick=()=>{const t=prompt("ملاحظة الرفض للمديرة:");if(t===null)return;save("mgr_no","رفض مدير المبيعات: "+t,{mgrBy:S.uid,mgrAt:nowIso(),mgrNote:t})};
+  const b5=app.querySelector("#acopy");if(b5)b5.onclick=async()=>{try{await navigator.clipboard.writeText(link);toast("تم نسخ الرابط")}catch(e){prompt("انسخ الرابط:",link)}};
+  const b6=app.querySelector("#apdf");if(b6)b6.onclick=e=>{keep();const w=app.querySelector("#adocWrap");w.innerHTML=agrDoc(a);pagesPdf([...w.querySelectorAll(".qpage")],"اتفاقية "+a.year+" - "+a.cname,e.currentTarget)};
+}
+/*AGR_DOC_START*/
+const AR_DAYS=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const agrMoney=v=>Number(v||0).toLocaleString("en-US");
+const agrDate=d=>d?d.split("-").reverse().join(" / "):"";
+function agrDoc(a){
+  const day=a.date?AR_DAYS[new Date(a.date+"T12:00:00").getDay()]:"";const T=(a.tiers||[]).filter(t=>+t.amt>0).sort((x,y)=>+y.amt-+x.amt);
+  const typ=t=>t.type==="cash"?"نقداً":"بضاعة";
+  const pg='class="qpage" dir="rtl" style="position:relative;box-sizing:border-box;width:794px;height:1123px;background:#fff;color:#000;padding:30px 56px 50px;font-family:\'Times New Roman\',Arial,sans-serif;font-size:16.5px;line-height:1.75;overflow:hidden"';
+  const head=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px" dir="ltr"><div style="font-size:11px;line-height:1.3;text-align:center"><b style="font-size:13px">United Electrical Supplies Factory Co.</b><br>P.O. Box 56751, Riyadh 11564<br>Kingdom of Saudi Arabia</div><img src="img/logo.png" style="height:50px"><div style="font-size:12px;line-height:1.4;text-align:center" dir="rtl"><b style="font-size:14px">شركة المصنع المتحد للمستلزمات الكهربائية</b><br>ص.ب ٥٦٧٥١ الرياض ١١٥٦٤<br>المملكة العربية السعودية</div></div>`;
+  const disc=AGR_FAM.filter(([k])=>a.disc&&a.disc[k]).map(([k,l],i)=>`<div style="margin-right:28px">${"أبتثجح"[i]}. خصم مباشر على ${l.replace(/\s*\(.*\)/,"")} مقداره ${a.disc[k]}٪ .</div>`).join("");
+  const tierTxt=(t,i)=>i===0?`يلتزم الطرف الثاني بتحقيق الهدف المتفق عليه وهو مبلغ وقدره <b>${agrMoney(t.amt)} ريال</b> غير شامل الضريبة المضافة بونص ${t.pct}% ${typ(t)} في التحقيق، وبشرط سداد كامل الرصيد، وفي حالة أخذ خصم نقدي (خصم سداد) لا يضاف في بونص نهاية العام.`
+    :`في حال تحقيق مبلغ <b>${agrMoney(t.amt)} ريال</b> بونص بمقدار ${t.pct}% ${typ(t)} غير شامل الضريبة المضافة، وبشرط سداد كامل الرصيد، وفي حالة أخذ خصم نقدي (خصم سداد) لا يضاف في بونص نهاية العام.`;
+  const li=(n,t)=>`<div style="display:flex;gap:8px;margin-bottom:8px"><span>${n}.</span><div style="flex:1;text-align:justify">${t}</div></div>`;
+  return `<div><div ${pg}>${head}
+   <div style="text-align:center;font-weight:700;text-decoration:underline;font-size:19px">(( إتفاقيـــة لعـام ${esc(a.year)} م ))</div>
+   <div>بتوفيق من الله أنه في <b>${day}</b> الموافق : ${agrDate(a.date)} م تمّ الاتفاق بين كلٍ من :</div>
+   <div style="margin-right:18px">• <b>شركة المصنع المتحد للمستلزمات الكهربائية</b> وعنوانها <b>الرياض - طريق الخرج القديم - هاتف 4993249</b> .</div>
+   <div style="margin-right:18px">• <b>${esc(a.p2&&a.p2.name)}</b> وعنوانها ${esc(a.p2&&a.p2.city)}. <b>${esc(a.p2&&a.p2.title)}</b> كطرف ثانــي.</div>
+   <div><b>مقدمـــة :</b></div><div>بمـا أن لـدى الطـرف الثـاني الرغبـة فـي شـراء منتجـات الطـرف الأول فقـد أتفـق الطرفـان علـى مـا يلـي :-</div>
+   <div style="margin-right:18px">• <u>مايخص الطرف الثاني :</u></div>
+   ${li(1,"يقوم الطرف الثاني بشراء كميات من منتجات الطرف الأول بموجب طلبات شراء يصدرها الطرف الثاني بالكميات والمقاسات المطلوبة من المنتج .")}
+   ${li(2,"يقوم الطرف الثاني بتزويد الطرف الأول بخطاب يحدد فيه الشخص المفوض بإصدار طلبات الشراء واستلام البضاعة والقيام بالإتصال والتنسيق مع إدارة الإنتاج والمبيعات بمصنع الطرف الأول .")}
+   ${li(3,"يقوم الطرف الثاني بشراء البضاعة وفق لائحة الأسعار المقدمة من الطرف الأول والتي يتفق عليها <b><u>آخذين في الإعتبار امكانية زيادة الاسعار حسب زيادة اسعار المواد الخام ، مع اشعار الطرف الاول قبل شهر من الزيادة</u></b> ..")}
+   ${T.map((t,i)=>li(4+i,tierTxt(t,i))).join("")}
+   </div><div ${pg}>${head}
+   <div style="margin-right:18px">• <u>مايخص الطرف الاول :</u></div>
+   ${li(1,`يعطى الطرف الثاني فترة سداد من الطرف الأول مدتها ( ${esc(a.payDays)} ) يوم من تاريخ إصدار فاتورة الشراء .`)}
+   ${li(2,`يعطى الطرف الثاني من قبل الطرف الأول حد إئتماني لا يزيد عن ${agrMoney(a.credit)} ريال${a.creditWords?`<br>[ ${esc(a.creditWords)} ]`:""}`)}
+   ${li(3,"يحق للطرف الأول إيقاف توريد البضاعة في حالة عدم إلتزام الطرف الثاني بالتسديد أو بلوغه الحد الإئتماني فإذا لم تحل هذه المشكلات في خلال شهرين من تاريخ بدايتها يحق للطرف الأول إلغاء الإتفاقية .")}
+   ${disc?li(4,"يصرف الطرف الاول بوانص للطرف الثاني على النحو التالي :<br>"+disc):""}
+   ${li(disc?5:4,`يصرف البونص في مدة أقصاها ${agrDate(a.bonusBy)}م ولا يحق له المطالبة بذلك بعد هذه المدة .`)}
+   ${li(disc?6:5,`بداية سريان العقد من تاريخ : <b>${agrDate(a.from)}م حتى ${agrDate(a.to)} م</b> وقابل للتجديد مالم يبدى أحد الطرفين بعدم رغبته في الاستمرار أو في حالة عدم التزام أحد الطرفين بواحد من بنوده وفي تلك الحالة يتم إبلاغ الطرف الآخر خطياً وقبل سريان العقد الجديد بمدة لا تقل عن ( <b>${esc(a.notice)}</b> ) يوماً من تاريخ انتهاء الاتفاقية .`)}
+   <div style="text-align:center;font-weight:700;margin:40px 0 24px">وعلى هذا جرى التوقيع والله خير الشاهدين ..</div>
+   <div style="display:flex;justify-content:space-around;text-align:right"><div><u>الطرف الأول /</u><br><b>شركة المصنع المتحد للمستلزمات الكهربائية</b><br>التوقيع :</div><div><u>الطرف الثاني /</u><br><b>${esc(a.p2&&a.p2.name)}</b><br>التوقيع :${a.custAt&&a.status==="accepted"?`<br><span style="color:#1E7B3E;font-size:13px">✔ وافق إلكترونياً ${esc(a.custName||"")} بتاريخ ${esc(new Date(a.custAt).toLocaleDateString("en-GB"))}</span>`:""}</div></div>
+   </div></div>`;
+}
+/*AGR_DOC_END*/
+
 function homeView(app){
   const role=myRole();
   if(role==="sales_mgr")return mainMenuView(app);
@@ -970,7 +1085,11 @@ function rFollow(box,{sc,ids,who}){
       ${canWrite?`<div class="row" style="align-items:flex-end"><label class="f">الرقم<input id="cfph" class="ltr" value="${esc(x.phone||i.ph||"")}" style="width:130px"></label><label class="f">المسؤول<input id="cfct" value="${esc(x.contact||i.ct||"")}"></label><label class="f">المنطقة<input id="cfrg" value="${esc(x.region||i.city||"")}"></label><label class="f">الحي<input id="cfds" value="${esc(x.dist||i.dist||"")}"></label><button class="btn sm" id="cfsv">حفظ البيانات</button><button class="btn sm" id="cfst">📄 كشف حساب</button><button class="btn sm pri" id="cfnt">📝 ملاحظة جديدة</button></div>`:""}
       <div class="small"><b>أول تعامل:</b> ${fd(i.first)} · <b>الرقم:</b> <span class="ltr">${esc(x.phone||i.ph||"—")}</span>${i.ref?` · <b>الكود:</b> ${esc(i.ref)}`:""} · <b>آخر شراء:</b> ${fd(c[14])} · <b>آخر سداد:</b> ${fd(c[15])}</div>
       <div class="small"><b>أكثر الأصناف اللي ياخذها:</b> ${(i.top||[]).map(t=>`${esc(t[0])} (${fmt(t[1])})`).join("، ")||"—"}</div>
+      <div class="row" style="align-items:center"><h3 style="margin:0;margin-inline-end:auto">اتفاقيات العميل</h3>${canWrite&&canAgr(myRole())?`<button class="btn sm pri" id="cfagr">📄 اتفاقية جديدة</button>`:""}</div>
+      ${agrList().filter(a=>String(a.cid)===String(id)).map(a=>`<button class="btn sm" data-agr="${esc(a.id)}">${esc(agrNo(a))} · ${esc(a.year)} · ${AGR_ST[a.status]?AGR_ST[a.status][0]:""}</button>`).join(" ")||'<div class="small muted">لا توجد اتفاقيات</div>'}
       <h3>سجل الملاحظات (${ns.length})</h3>${ns.length?ns.map(n=>`<div style="border:1px solid var(--line);border-radius:8px;padding:8px 10px"><div class="small muted">🕒 ${esc(tsOf(n))} — ${esc(pname(n.by))}${n.kind&&n.kind!=="note"?` · <b>${({col:"متابعة تحصيل",call:"اتصال",visit:"زيارة"})[n.kind]||""}</b>`:""}${n.amt?` · وعد بسداد ${fmt(n.amt)}${n.due?" بتاريخ "+fd(n.due):""}`:""}</div><div style="white-space:pre-wrap">${esc(n.note)}</div></div>`).join(""):'<div class="empty">لا توجد ملاحظات بعد.</div>'}`;
+    {const ag=fb.querySelector("#cfagr");if(ag)ag.onclick=()=>{fb.closest("dialog").close();S.adraft=null;go({t:"agr",id:"new",cid:String(id),cname:c[1],rep:String(c[c.length-1])})};
+     fb.querySelectorAll("[data-agr]").forEach(b=>b.onclick=()=>{fb.closest("dialog").close();go({t:"agr",id:b.dataset.agr})})}
     if(canWrite){fb.querySelector("#cfsv").onclick=async()=>{const nv={phone:fb.querySelector("#cfph").value.trim(),contact:fb.querySelector("#cfct").value.trim(),region:fb.querySelector("#cfrg").value.trim(),dist:fb.querySelector("#cfds").value.trim()};
       const L={phone:"الرقم",contact:"المسؤول",region:"المنطقة",dist:"الحي"};const ov={phone:x.phone||i.ph||"",contact:x.contact||i.ct||"",region:x.region||i.city||"",dist:x.dist||i.dist||""};
       const ch=Object.keys(nv).filter(k=>nv[k]!==ov[k]);if(!ch.length){toast("ما فيه تغيير");return}

@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>اتفاقية — شركة المصنع المتحد للمستلزمات الكهربائية</title><meta name="theme-color" content="#1F4E79">
+<style>body{margin:0;background:#EEF1F5;font-family:system-ui,Tahoma,sans-serif;color:#1d2733}.wrap{max-width:860px;margin:auto;padding:14px}
+#doc{overflow:auto}#doc .qpage{margin:0 auto 14px;box-shadow:0 2px 12px rgba(0,0,0,.12);transform-origin:top right}
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin:14px 0}
+button{padding:12px 18px;border:0;border-radius:10px;font-size:16px;cursor:pointer;font-weight:700}.ok{background:#1E7B3E;color:#fff}.no{background:#B42318;color:#fff}
+textarea,input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #cfd8e3;border-radius:10px;font-size:15px;margin:6px 0}.row{display:flex;gap:10px;flex-wrap:wrap}.muted{color:#6b7785;font-size:14px}
+.res{padding:16px;border-radius:12px;font-weight:700;font-size:17px}</style></head>
+<body><div class="wrap"><div id="msg" class="card">جاري تحميل الاتفاقية…</div><div id="doc"></div><div id="act"></div></div>
+<script src="api.js"></script>
+<script>
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const AGR_FAM=[["tab","الطبلون (لوحات التوزيع)",[5,10]],["steel","المراوح الحديدية",[5,10]],["plastic","المراوح البلاستيكية",[5,10,15]],["new","البضائع الجديدة (ستائر هوائية، مضخات، مراوح أسقف وتوربين)",[5,10]]];
+
+/*AGR_DOC_START*/
+const AR_DAYS=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const agrMoney=v=>Number(v||0).toLocaleString("en-US");
+const agrDate=d=>d?d.split("-").reverse().join(" / "):"";
+function agrDoc(a){
+  const day=a.date?AR_DAYS[new Date(a.date+"T12:00:00").getDay()]:"";const T=(a.tiers||[]).filter(t=>+t.amt>0).sort((x,y)=>+y.amt-+x.amt);
+  const typ=t=>t.type==="cash"?"نقداً":"بضاعة";
+  const pg='class="qpage" dir="rtl" style="position:relative;box-sizing:border-box;width:794px;height:1123px;background:#fff;color:#000;padding:30px 56px 50px;font-family:\'Times New Roman\',Arial,sans-serif;font-size:16.5px;line-height:1.75;overflow:hidden"';
+  const head=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px" dir="ltr"><div style="font-size:11px;line-height:1.3;text-align:center"><b style="font-size:13px">United Electrical Supplies Factory Co.</b><br>P.O. Box 56751, Riyadh 11564<br>Kingdom of Saudi Arabia</div><img src="img/logo.png" style="height:50px"><div style="font-size:12px;line-height:1.4;text-align:center" dir="rtl"><b style="font-size:14px">شركة المصنع المتحد للمستلزمات الكهربائية</b><br>ص.ب ٥٦٧٥١ الرياض ١١٥٦٤<br>المملكة العربية السعودية</div></div>`;
+  const disc=AGR_FAM.filter(([k])=>a.disc&&a.disc[k]).map(([k,l],i)=>`<div style="margin-right:28px">${"أبتثجح"[i]}. خصم مباشر على ${l.replace(/\s*\(.*\)/,"")} مقداره ${a.disc[k]}٪ .</div>`).join("");
+  const tierTxt=(t,i)=>i===0?`يلتزم الطرف الثاني بتحقيق الهدف المتفق عليه وهو مبلغ وقدره <b>${agrMoney(t.amt)} ريال</b> غير شامل الضريبة المضافة بونص ${t.pct}% ${typ(t)} في التحقيق، وبشرط سداد كامل الرصيد، وفي حالة أخذ خصم نقدي (خصم سداد) لا يضاف في بونص نهاية العام.`
+    :`في حال تحقيق مبلغ <b>${agrMoney(t.amt)} ريال</b> بونص بمقدار ${t.pct}% ${typ(t)} غير شامل الضريبة المضافة، وبشرط سداد كامل الرصيد، وفي حالة أخذ خصم نقدي (خصم سداد) لا يضاف في بونص نهاية العام.`;
+  const li=(n,t)=>`<div style="display:flex;gap:8px;margin-bottom:8px"><span>${n}.</span><div style="flex:1;text-align:justify">${t}</div></div>`;
+  return `<div><div ${pg}>${head}
+   <div style="text-align:center;font-weight:700;text-decoration:underline;font-size:19px">(( إتفاقيـــة لعـام ${esc(a.year)} م ))</div>
+   <div>بتوفيق من الله أنه في <b>${day}</b> الموافق : ${agrDate(a.date)} م تمّ الاتفاق بين كلٍ من :</div>
+   <div style="margin-right:18px">• <b>شركة المصنع المتحد للمستلزمات الكهربائية</b> وعنوانها <b>الرياض - طريق الخرج القديم - هاتف 4993249</b> .</div>
+   <div style="margin-right:18px">• <b>${esc(a.p2&&a.p2.name)}</b> وعنوانها ${esc(a.p2&&a.p2.city)}. <b>${esc(a.p2&&a.p2.title)}</b> كطرف ثانــي.</div>
+   <div><b>مقدمـــة :</b></div><div>بمـا أن لـدى الطـرف الثـاني الرغبـة فـي شـراء منتجـات الطـرف الأول فقـد أتفـق الطرفـان علـى مـا يلـي :-</div>
+   <div style="margin-right:18px">• <u>مايخص الطرف الثاني :</u></div>
+   ${li(1,"يقوم الطرف الثاني بشراء كميات من منتجات الطرف الأول بموجب طلبات شراء يصدرها الطرف الثاني بالكميات والمقاسات المطلوبة من المنتج .")}
+   ${li(2,"يقوم الطرف الثاني بتزويد الطرف الأول بخطاب يحدد فيه الشخص المفوض بإصدار طلبات الشراء واستلام البضاعة والقيام بالإتصال والتنسيق مع إدارة الإنتاج والمبيعات بمصنع الطرف الأول .")}
+   ${li(3,"يقوم الطرف الثاني بشراء البضاعة وفق لائحة الأسعار المقدمة من الطرف الأول والتي يتفق عليها <b><u>آخذين في الإعتبار امكانية زيادة الاسعار حسب زيادة اسعار المواد الخام ، مع اشعار الطرف الاول قبل شهر من الزيادة</u></b> ..")}
+   ${T.map((t,i)=>li(4+i,tierTxt(t,i))).join("")}
+   </div><div ${pg}>${head}
+   <div style="margin-right:18px">• <u>مايخص الطرف الاول :</u></div>
+   ${li(1,`يعطى الطرف الثاني فترة سداد من الطرف الأول مدتها ( ${esc(a.payDays)} ) يوم من تاريخ إصدار فاتورة الشراء .`)}
+   ${li(2,`يعطى الطرف الثاني من قبل الطرف الأول حد إئتماني لا يزيد عن ${agrMoney(a.credit)} ريال${a.creditWords?`<br>[ ${esc(a.creditWords)} ]`:""}`)}
+   ${li(3,"يحق للطرف الأول إيقاف توريد البضاعة في حالة عدم إلتزام الطرف الثاني بالتسديد أو بلوغه الحد الإئتماني فإذا لم تحل هذه المشكلات في خلال شهرين من تاريخ بدايتها يحق للطرف الأول إلغاء الإتفاقية .")}
+   ${disc?li(4,"يصرف الطرف الاول بوانص للطرف الثاني على النحو التالي :<br>"+disc):""}
+   ${li(disc?5:4,`يصرف البونص في مدة أقصاها ${agrDate(a.bonusBy)}م ولا يحق له المطالبة بذلك بعد هذه المدة .`)}
+   ${li(disc?6:5,`بداية سريان العقد من تاريخ : <b>${agrDate(a.from)}م حتى ${agrDate(a.to)} م</b> وقابل للتجديد مالم يبدى أحد الطرفين بعدم رغبته في الاستمرار أو في حالة عدم التزام أحد الطرفين بواحد من بنوده وفي تلك الحالة يتم إبلاغ الطرف الآخر خطياً وقبل سريان العقد الجديد بمدة لا تقل عن ( <b>${esc(a.notice)}</b> ) يوماً من تاريخ انتهاء الاتفاقية .`)}
+   <div style="text-align:center;font-weight:700;margin:40px 0 24px">وعلى هذا جرى التوقيع والله خير الشاهدين ..</div>
+   <div style="display:flex;justify-content:space-around;text-align:right"><div><u>الطرف الأول /</u><br><b>شركة المصنع المتحد للمستلزمات الكهربائية</b><br>التوقيع :</div><div><u>الطرف الثاني /</u><br><b>${esc(a.p2&&a.p2.name)}</b><br>التوقيع :${a.custAt&&a.status==="accepted"?`<br><span style="color:#1E7B3E;font-size:13px">✔ وافق إلكترونياً ${esc(a.custName||"")} بتاريخ ${esc(new Date(a.custAt).toLocaleDateString("en-GB"))}</span>`:""}</div></div>
+   </div></div>`;
+}
+
+const t=new URLSearchParams(location.search).get("t")||"";const $=s=>document.querySelector(s);
+function fit(){const w=$("#doc").clientWidth;document.querySelectorAll("#doc .qpage").forEach(p=>{const k=Math.min(1,w/794);p.style.transform=`scale(${k})`;p.style.marginBottom=(14-1123*(1-k))+"px"})}
+async function load(){
+  const r=await fetch("api/pub/agr?t="+encodeURIComponent(t));
+  if(!r.ok){$("#msg").innerHTML="<b>الرابط غير صالح أو انتهت صلاحيته.</b>";return}
+  const {agr:a}=await r.json();$("#doc").innerHTML=agrDoc(a);fit();addEventListener("resize",fit);
+  $("#msg").innerHTML=`<b>اتفاقية ${esc(a.year)} — ${esc(a.p2&&a.p2.name)}</b><div class="muted">من شركة المصنع المتحد للمستلزمات الكهربائية. اطّلع على الاتفاقية ثم وافق عليها أو اكتب ملاحظاتك.</div>`;
+  if(a.status!=="approved"){$("#act").innerHTML=`<div class="card res" style="background:${a.status==="accepted"?"#E7F4EC":"#FCEBEA"}">${a.status==="accepted"?"✅ تمت الموافقة على الاتفاقية":"تم تسجيل ملاحظاتكم"}${a.custNote?`<div class="muted" style="margin-top:6px;white-space:pre-wrap">${esc(a.custNote)}</div>`:""}</div>`;return}
+  $("#act").innerHTML=`<div class="card"><label>الاسم<input id="nm" placeholder="اسم الشخص اللي يرد"></label><label>ملاحظات (مطلوبة إذا ما وافقت)<textarea id="nt" rows="3"></textarea></label>
+    <div class="row"><button class="ok" id="ok">✅ موافق على الاتفاقية</button><button class="no" id="no">❌ غير موافق — إرسال الملاحظة</button></div><div id="er" class="muted"></div></div>`;
+  const send=async d=>{const note=$("#nt").value.trim();if(d==="decline"&&!note){$("#er").textContent="اكتب ملاحظاتك قبل الإرسال";return}
+    const r=await fetch("api/pub/agr",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({t,decision:d,note,name:$("#nm").value.trim()})});
+    if(r.ok)load();else $("#er").textContent="تعذّر الإرسال، حاول مرة ثانية"};
+  $("#ok").onclick=()=>send("accept");$("#no").onclick=()=>send("decline");
+}
+load();
+</script></body></html>
