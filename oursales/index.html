@@ -709,7 +709,7 @@ const agrNo=a=>"A"+String(a.year||"").slice(2)+"-"+String(a.no||0).padStart(4,"0
 function agrView(app,n){
   const role=myRole();if(!canAgr(role)){S.nav=[{t:"home"}];return render()}
   const isNew=n.id==="new";const y=new Date(Date.now()+3*3600e3).getUTCFullYear();
-  const a=isNew?(S.adraft&&S.adraft._for===n.cid?S.adraft:(S.adraft={_for:n.cid,id:newId("a"),cid:n.cid,cname:n.cname||"",rep:n.rep||"",status:"draft",year:y,date:todayR(),p2:{name:n.cname||"",city:"",title:"المدير العام"},
+  const a=isNew?(S.adraft&&S.adraft._for===n.cid?S.adraft:(S.adraft={_for:n.cid,id:newId("a"),cid:n.cid,cname:n.cname||"",rep:n.rep||"",status:"draft",year:y,date:todayR(),p2:{name:n.cname||"",city:((S.cust[String(n.cid)]||{}).region)||((S.D.cinfo||{})[n.cid]||{}).city||"",title:"المدير العام"},
       tiers:[{amt:"",pct:5,type:"goods"},{amt:"",pct:4,type:"goods"},{amt:"",pct:3,type:"goods"},{amt:"",pct:2,type:"goods"}],payDays:60,credit:"",creditWords:"",disc:{tab:10,steel:10,plastic:15,new:""},bonusBy:(y+1)+"-01-29",from:y+"-01-01",to:y+"-12-31",notice:90,hist:[]}))
     :(S.agr||{})[n.id];
   if(!a){app.innerHTML='<div class="empty">الاتفاقية غير موجودة</div>';return}
