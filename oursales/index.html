@@ -472,7 +472,62 @@ function projView(app,n){
 
 /* ----- quotations (layout of the company's quotation, e.g. Q26-5108) ----- */
 const qNo=x=>"Q"+String((x.date||todayR()).slice(2,4))+"-"+String(x.no||0).padStart(4,"0");
-const Q_SRC=[["stock","البضائع الموجودة"],["mdb","MDB"],["hvac","HVAC"]];
+const Q_SRC=[["stock","بضائع المتحد"],["mdb","MDB"],["hvac","HVAC"]];
+/* United products picked like the production app: family → type → brand → items (ucat.json from the production catalog) */
+const QIC={
+  db:'<rect x="5" y="3" width="22" height="26" rx="2"/><path d="M9 9h14M9 15h14M9 21h14M13 6v20M19 6v20"/>',
+  fan:'<circle cx="16" cy="16" r="12"/><circle cx="16" cy="16" r="2"/><path d="M16 14c-1-5 1-8 4-8-1 3-2 6-4 8zM18 17c5 0 7 3 6 6-3-1-5-3-6-6zM14 17c-3 4-6 5-8 3 2-2 5-3 8-3z"/>',
+  aircurtain:'<rect x="3" y="6" width="26" height="7" rx="2"/><path d="M8 17v8M13 17v10M18 17v8M23 17v10"/>',
+  duct:'<ellipse cx="9" cy="16" rx="4" ry="8"/><path d="M9 8h14M9 24h14"/><ellipse cx="23" cy="16" rx="4" ry="8"/>',
+  pump:'<path d="M16 4c5 7 8 11 8 15a8 8 0 0 1-16 0c0-4 3-8 8-15z"/>',
+  shutter:'<rect x="5" y="5" width="22" height="22" rx="2"/><path d="M5 10h22M5 15h22M5 20h22"/>',
+  other:'<path d="M5 10l11-6 11 6v12l-11 6-11-6z"/><path d="M5 10l11 6 11-6M16 16v12"/>',
+  breaker:'<rect x="9" y="3" width="14" height="26" rx="2"/><rect x="13" y="9" width="6" height="9" rx="1"/><path d="M16 21v4"/>',
+  busbar:'<rect x="4" y="4" width="24" height="24" rx="2"/><path d="M10 8v16M16 8v16M22 8v16"/>',
+  euro:'<rect x="4" y="5" width="24" height="22" rx="2"/><path d="M4 16h24"/><path d="M8 12v8M12 12v8M16 12v8M20 12v8M24 12v8"/>',
+  us:'<rect x="6" y="3" width="20" height="26" rx="2"/><path d="M16 6v20"/><path d="M10 9h4M10 13h4M10 17h4M10 21h4M18 9h4M18 13h4M18 17h4M18 21h4"/>',
+  metal:'<rect x="5" y="4" width="22" height="24" rx="2"/><path d="M5 10h22M5 16h22M5 22h22"/>',
+  mdb:'<rect x="7" y="2" width="18" height="28" rx="2"/><rect x="11" y="6" width="10" height="6" rx="1"/><path d="M11 16h3M18 16h3M11 20h3M18 20h3M11 24h3M18 24h3"/>',
+  project:'<path d="M4 15L16 5l12 10"/><path d="M8 13v14h16V13"/><path d="M13 27v-7h6v7"/>',
+  sub:'<rect x="6" y="5" width="6" height="22" rx="1"/><rect x="13" y="5" width="6" height="22" rx="1"/><rect x="20" y="5" width="6" height="22" rx="1"/><path d="M8 13h2M15 13h2M22 13h2"/>',
+  main:'<rect x="7" y="3" width="18" height="26" rx="2"/><rect x="12" y="9" width="8" height="10" rx="1"/><path d="M16 11v6M10 24h12"/>',
+  relay:'<rect x="5" y="7" width="22" height="18" rx="2"/><path d="M9 16h3l2-4 4 8 2-4h3"/>',
+  contactor:'<rect x="6" y="5" width="20" height="22" rx="2"/><circle cx="11" cy="11" r="1.5"/><circle cx="16" cy="11" r="1.5"/><circle cx="21" cy="11" r="1.5"/><path d="M10 19h12M10 23h12"/>'
+};
+
+const qfIcon=f=>({db:"db",aircurtain:"aircurtain",duct:"duct",duct_mixed:"duct",duct_circ:"duct",pump:"pump",shutter:"shutter",other:"other"})[f]||"fan";
+const qsvg=k=>`<svg viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${QIC[k]||QIC.other||""}</svg>`;
+const QFAM={db:"لوحات توزيع",exhaust_local:"شفاطات محلية",exhaust:"شفاطات",aircurtain:"ستائر هوائية",shutter:"شتر",duct_mixed:"مراوح دكت مختلطة التدفق",duct_circ:"مراوح دكت دائرية",duct:"مراوح الدكت",pump:"مضخات مياه",roof:"مراوح أسطح",centrifugal:"مراوح طرد مركزي",other:"منتجات أخرى"};
+const QTY={breaker:"قواطع بالعلبة",busbar:"باسبارات",euro:"أوروبي (دين ريل)",us:"أمريكي (بلق إن)",metal:"صناديق معدنية",mdb:"لوحات رئيسية MDB",project:"مشاريع",plastic_sq:"بلاستيك مربع",ceiling:"شفاط سقف",steel:"حديد",turbine:"توربين",round:"دائري",conflo:"كونفلو",sub:"قواطع فرعية",main:"قواطع رئيسية",contactor:"كونتاكتر",relay:"ثيرمال ريلي",_:"أخرى"};
+const QDB_TY=["breaker","busbar","euro","us","metal","mdb","project","sub","main","contactor","relay"];
+const QHASAR=/[\u0600-\u06FF]/;
+const ubdL=b=>b==="_none"?"ايزوليتر":b==="_unk"?"ماركة غير مذكورة":b;
+const ucName=p=>QHASAR.test(p[2])?p[2]:(p[11]||p[2]);
+const ucPrice=p=>{if(p[12])return p[12];const c=(S.D.qcat||[]).find(x=>x[1]===p[1]);return c?c[3]:0};
+async function loadUcat(){if(S._ucl||S.ucat)return;S._ucl=1;try{const r=await fetch("ucat.json",{cache:"no-store"});if(r.ok){S.ucat=await r.json();render()}}catch(e){}S._ucl=0}
+function ucPicker(){
+  if(!S.ucat){loadUcat();return '<div class="small muted" style="margin-top:8px">جاري تحميل بضائع المتحد…</div>'}
+  const o=S.opt;const fin=S.ucat.fin;const q=(o.pq2||"").trim().toLowerCase();
+  const fc={};fin.forEach(p=>fc[p[3]]=(fc[p[3]]||0)+1);const fams=Object.keys(fc).sort((a,b)=>a==="db"?-1:b==="db"?1:fc[b]-fc[a]);
+  let pool=fin.filter(p=>!o.ufam||p[3]===o.ufam);const isDb=o.ufam==="db";
+  const tc={};pool.forEach(p=>{const t=p[4]||"_";tc[t]=(tc[t]||0)+1});const tys=(isDb?QDB_TY:Object.keys(tc).sort((a,b)=>tc[b]-tc[a])).filter(t=>tc[t]);
+  if(o.uty)pool=pool.filter(p=>(p[4]||"_")===o.uty);
+  const bc={};if(isDb)pool.forEach(p=>{if(p[8])bc[p[8]]=(bc[p[8]]||0)+1});const bds=Object.keys(bc).sort((a,b)=>bc[b]-bc[a]);
+  if(o.ubd)pool=pool.filter(p=>p[8]===o.ubd);
+  const ac={};if(isDb)pool.forEach(p=>{if(p[10])ac[p[10]]=(ac[p[10]]||0)+1});if(isDb&&o.uamp)pool=pool.filter(p=>p[10]===o.uamp);
+  const step=q?"items":!o.ufam?"fam":tys.length>1&&!o.uty?"ty":isDb&&o.uty&&bds.length>1&&!o.ubd?"bd":"items";
+  if(q)pool=fin.filter(p=>(p[1]+" "+p[2]+" "+p[11]).toLowerCase().includes(q));
+  pool=[...pool].sort((a,b)=>(a[9]||999)-(b[9]||999)||(a[10]||9999)-(b[10]||9999)||String(a[1]).localeCompare(String(b[1]),"en",{numeric:true}));
+  const tile=(k,v,l,n,ic)=>`<button class="tile" data-u${k}="${esc(v)}" style="align-items:center;text-align:center;padding:12px 8px;gap:6px">${ic?qsvg(ic):""}<b style="font-size:14px">${esc(l)}</b><span class="small muted">${n}</span></button>`;
+  const cr=[["كل العوائل","root"]];if(o.ufam)cr.push([QFAM[o.ufam]||o.ufam,"fam"]);if(o.uty)cr.push([QTY[o.uty]||o.uty,"ty"]);if(o.ubd)cr.push([ubdL(o.ubd),"bd"]);
+  let body;
+  if(step==="fam")body=`<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${fams.map(f=>tile("fam",f,QFAM[f]||f,fc[f],qfIcon(f))).join("")}</div>`;
+  else if(step==="ty")body=`<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${tys.map(t=>tile("ty",t,QTY[t]||t,tc[t],isDb?(QIC[t]?t:"fan"):qfIcon(o.ufam))).join("")}</div>`;
+  else if(step==="bd")body=`<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${bds.map(b=>tile("bd",b,ubdL(b),bc[b],"")).join("")}</div>`;
+  else body=`${isDb&&!q&&Object.keys(ac).length>1?`<div class="seg" style="margin:6px 0"><button data-uamp="" aria-pressed="${!o.uamp}">كل الأمبيرات</button>${Object.keys(ac).map(Number).sort((a,b)=>a-b).map(a=>`<button data-uamp="${a}" aria-pressed="${o.uamp===a}">${a}A</button>`).join("")}</div>`:""}
+    <div class="tbl" style="max-height:360px"><table><tbody>${pool.slice(0,150).map(p=>`<tr><td><b>${esc(ucName(p))}</b><div class="small muted"><span class="ltr">${esc(p[1])}</span>${p[11]&&p[11]!==ucName(p)?" · "+esc(p[11]):""}</div></td><td>${ucPrice(p)?fmt(ucPrice(p),2):'<span class="small muted">بدون سعر</span>'}</td><td><input type="number" min="1" value="1" data-uq="${p[0]}" style="width:70px"></td><td><button class="btn sm pri" data-uadd="${p[0]}">＋ إضافة</button></td></tr>`).join("")||'<tr><td class="muted">لا توجد أصناف</td></tr>'}</tbody></table></div>${pool.length>150?`<p class="small muted" style="margin:0">أول 150 من ${pool.length} — استخدم البحث</p>`:""}`;
+  return `<div class="row" style="margin-top:8px"><nav class="crumbs" style="margin-inline-end:auto">${cr.map(([t,k],i)=>i<cr.length-1?`<button data-ucr="${k}">${esc(t)}</button><span class="sep">‹</span>`:`<b>${esc(t)}</b>`).join("")}</nav><input type="search" id="pq2" placeholder="ابحث بالاسم أو الكود" value="${esc(o.pq2||"")}" style="min-width:200px"></div>${body}`;
+}
 const COMP={en:"United Electrical Supplies Factory Co",ar:"شركة المصنع المتحد للمستلزمات الكهربائية",addr1:"2584 Al-Kharj Rd - 2nd Industrial",addr2:"City: Riyadh (SA) - Saudi Arabia",vat:"VAT Number: 300046582500003",
   footAr:"المملكة العربية السعودية - الرياض - طريق الخرج - الصناعة الثانية - هاتف: 00966114993249",footEn:"Kingdom of Saudi Arabia - Riyadh - Al-Kharj Road - 2nd Industrial Area - Tel: 00966114993249"};
 const Q_TERMS=[["A. TERMS & CONDITIONS","الشروط والأحكام",[
@@ -510,20 +565,18 @@ function quoteView(app,n){
   app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin-inline-end:auto">${isNew?"عرض سعر جديد":"عرض سعر "+esc(qNo(q))}</h1>
      <button class="btn pri" id="qsave">💾 حفظ</button>${!isNew?`<button class="btn" id="qpdf">🖨️ PDF</button>`:""}</div>
    <div class="card"><h2 style="margin-top:0">بيانات العميل / CUSTOMER INFO.</h2><div class="grid2">
-     <label class="f">المشروع<select id="qproj"><option value="">— بدون مشروع —</option>${projList().map(p=>`<option value="${esc(p.id)}" ${q.projId===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
+     <label class="f">اسم المشروع / Project Name<input id="qproj" list="qpl" value="${esc(q.projName||"")}" placeholder="اكتب اسم المشروع"><datalist id="qpl">${projList().map(p=>`<option value="${esc(p.name)}">`).join("")}</datalist></label>
      ${I("qcust","اسم العميل / Company Name",q.customer)}${I("qcity","المدينة / City",q.city)}${I("qcountry","الدولة / Country",q.country)}
      ${I("qcontact","الشخص الذي يمكن الاتصال به / Contact Person",q.contact)}${I("qphone","رقم الجوال / Cellphone",q.phone,"tel")}${I("qemail","البريد الإلكتروني / Email",q.email,"email")}${I("qcode","كود العميل / Customer Code",q.custCode)}</div></div>
    <div class="card"><h2 style="margin-top:0">بيانات العرض</h2><div class="grid2">
      ${I("qdate","تاريخ عرض السعر / Quotation Date",q.date,"date")}${I("qvalid","مدة الصلاحية (يوم) / Validity",q.valid||7,"number")}
      ${I("qsales","مندوب المبيعات / Salesperson",q.sales)}${I("qpay","شروط الدفع / Payment Terms",q.pay)}
-     <label class="f">الحالة<select id="qst">${P_STATUS.map(s=>`<option value="${s[0]}" ${q.status===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select></label>
      ${I("qdisc","خصم إضافي على الإجمالي %",q.disc||0,"number",'step="0.1"')}</div>
      <label class="f">ملاحظات إضافية تطلع في العرض<textarea id="qnotes" rows="2">${esc(q.notes||"")}</textarea></label>
      <p class="small muted" style="margin:0">صالح حتى: ${fd(addDays(q.date,q.valid))} · الشروط والأحكام والضمان تنضاف تلقائياً في الصفحة الثانية.</p></div>
    <div class="card"><h2 style="margin-top:0">إضافة مواد</h2>
      <div class="seg">${Q_SRC.map(([k,l])=>`<button data-qsrc="${k}" aria-pressed="${src===k}">${l}</button>`).join("")}</div>
-     ${src==="stock"?`<input type="search" id="qs" placeholder="ابحث باسم الصنف أو الكود (من أودو بالسعر)" value="${esc(S.opt.qs||"")}" style="margin-top:8px;width:100%">
-       ${hits.length?`<div class="tbl" style="margin-top:6px;max-height:300px"><table><thead><tr><th>الكود</th><th>الصنف</th><th>السعر</th><th></th></tr></thead><tbody>${hits.map(c=>`<tr><td class="ltr small">${esc(c[1])}</td><td>${esc(c[2])}</td><td>${fmt(c[3],2)}</td><td><button class="btn sm" data-add="${c[0]}">＋ إضافة</button></td></tr>`).join("")}</tbody></table></div>`:qs?'<div class="small muted">لا توجد نتائج</div>':""}`
+     ${src==="stock"?ucPicker()
      :`<form id="qfree" class="row" style="margin-top:8px"><input name="code" placeholder="الكود" style="width:110px"><input name="name" placeholder="وصف الصنف (${src==="mdb"?"لوحة MDB …":"وحدة HVAC …"})" style="flex:2;min-width:200px" required><input name="spec" placeholder="المواصفات (مثال: Size: 10&quot;)" style="flex:1;min-width:140px"><input name="qty" type="number" step="any" placeholder="الكمية" style="width:90px" required><input name="price" type="number" step="any" placeholder="سعر الوحدة" style="width:110px" required><button class="btn">＋ إضافة</button></form>`}</div>
    <div class="card"><h2 style="margin-top:0">الأصناف (${q.items.length})</h2>
      ${q.items.length?`<div class="tbl"><table><thead><tr><th>#</th><th>الصنف / DESCRIPTION</th><th>المواصفات</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>خصم %</th><th>المبلغ</th><th></th></tr></thead><tbody>
@@ -533,13 +586,21 @@ function quoteView(app,n){
       <div class="kpis" style="margin-top:10px"><div class="kpi"><span>Gross Amount</span><b>${fmt(T.gross,2)}</b></div><div class="kpi"><span>الخصم</span><b>${fmt(T.disc,2)}</b></div><div class="kpi"><span>Untaxed Amount</span><b>${fmt(T.net,2)}</b></div><div class="kpi"><span>VAT 15%</span><b>${fmt(T.vat,2)}</b></div><div class="kpi"><span>Total</span><b>${fmt(T.total,2)}</b></div></div>`:'<div class="small muted">ما أضفت أصناف للحين</div>'}</div>
    <div id="qdocWrap" style="position:absolute;left:-10000px;top:0"></div></div>`;
   const v=s=>app.querySelector(s).value;
-  const keep=()=>{q.projId=v("#qproj");const pj=(S.proj||{})[q.projId];q.projName=pj?pj.name:"";q.customer=v("#qcust").trim();q.city=v("#qcity").trim();q.country=v("#qcountry").trim();q.contact=v("#qcontact").trim();q.phone=v("#qphone").trim();q.email=v("#qemail").trim();q.custCode=v("#qcode").trim();
-    q.date=v("#qdate");q.valid=+v("#qvalid")||7;q.sales=v("#qsales").trim();q.pay=v("#qpay").trim();q.status=v("#qst");q.disc=+v("#qdisc")||0;q.notes=v("#qnotes")};
-  app.querySelector("#qproj").onchange=()=>{keep();const pj=(S.proj||{})[q.projId];if(pj){if(!q.customer)q.customer=pj.contractor||"";const ct=pj.poles&&pj.poles.contractor||{};if(!q.contact)q.contact=ct.name||"";if(!q.phone)q.phone=ct.phone||""}render()};
+  const keep=()=>{q.projName=v("#qproj").trim();const pj=projList().find(p=>p.name===q.projName);q.projId=pj?pj.id:"";q.customer=v("#qcust").trim();q.city=v("#qcity").trim();q.country=v("#qcountry").trim();q.contact=v("#qcontact").trim();q.phone=v("#qphone").trim();q.email=v("#qemail").trim();q.custCode=v("#qcode").trim();
+    q.date=v("#qdate");q.valid=+v("#qvalid")||7;q.sales=v("#qsales").trim();q.pay=v("#qpay").trim();q.disc=+v("#qdisc")||0;q.notes=v("#qnotes")};
+  app.querySelector("#qproj").onchange=()=>{keep();const pj=(S.proj||{})[q.projId];if(pj&&!q.status)q.status=pj.status;if(pj){if(!q.customer)q.customer=pj.contractor||"";const ct=pj.poles&&pj.poles.contractor||{};if(!q.contact)q.contact=ct.name||"";if(!q.phone)q.phone=ct.phone||""}render()};
   ["#qdisc","#qdate","#qvalid"].forEach(s=>app.querySelector(s).onchange=()=>{keep();render()});
   app.querySelectorAll("[data-qsrc]").forEach(b=>b.onclick=()=>{keep();S.opt.qsrc=b.dataset.qsrc;render()});
   const qsI=app.querySelector("#qs");if(qsI){qsI.oninput=()=>{clearTimeout(S._qt);S._qt=setTimeout(()=>{keep();S.opt.qs=qsI.value;render();const x=document.querySelector("#qs");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}},350)}}
-  app.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{keep();const c=cat.find(c=>String(c[0])===b.dataset.add);q.items.push({src:"stock",pid:c[0],code:c[1],name:c[2],spec:"",unit:"Units",qty:1,price:c[3],disc:0});render()});
+  const U=S.opt;const ure=l=>{if(l<=0)U.ufam="";if(l<=1)U.uty="";if(l<=2)U.ubd="";U.uamp=0};
+  app.querySelectorAll("[data-ucr]").forEach(b=>b.onclick=()=>{keep();ure({root:0,fam:1,ty:2}[b.dataset.ucr]);U.pq2="";render()});
+  app.querySelectorAll("[data-ufam]").forEach(b=>b.onclick=()=>{keep();ure(0);U.ufam=b.dataset.ufam;render()});
+  app.querySelectorAll("[data-uty]").forEach(b=>b.onclick=()=>{keep();ure(1);U.uty=b.dataset.uty;render()});
+  app.querySelectorAll("[data-ubd]").forEach(b=>b.onclick=()=>{keep();ure(2);U.ubd=b.dataset.ubd;render()});
+  app.querySelectorAll("[data-uamp]").forEach(b=>b.onclick=()=>{keep();U.uamp=+b.dataset.uamp||0;render()});
+  const pq2=app.querySelector("#pq2");if(pq2)pq2.oninput=()=>{clearTimeout(S._qt);S._qt=setTimeout(()=>{keep();U.pq2=pq2.value;render();const x=document.querySelector("#pq2");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}},300)};
+  app.querySelectorAll("[data-uadd]").forEach(b=>b.onclick=()=>{keep();const p=S.ucat.fin.find(x=>String(x[0])===b.dataset.uadd);const qn=+app.querySelector(`[data-uq="${b.dataset.uadd}"]`).value||1;
+    q.items.push({src:"stock",pid:p[0],code:p[1],name:p[11]||ucName(p),spec:"",unit:"Units",qty:qn,price:ucPrice(p),disc:0});toast("تمت الإضافة");render()});
   const ff=app.querySelector("#qfree");if(ff)ff.onsubmit=e=>{e.preventDefault();keep();const F=new FormData(ff);q.items.push({src,code:F.get("code").trim(),name:F.get("name").trim(),spec:F.get("spec").trim(),unit:"Units",qty:+F.get("qty"),price:+F.get("price"),disc:0});render()};
   app.querySelectorAll("[data-f]").forEach(i=>i.onchange=()=>{keep();const it=q.items[+i.dataset.i],f=i.dataset.f;it[f]=["qty","price","disc"].includes(f)?+i.value:i.value;render()});
   app.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{keep();q.items.splice(+b.dataset.rm,1);render()});
