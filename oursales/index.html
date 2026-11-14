@@ -605,10 +605,37 @@ function quoteReportHtml(){
      <div class="kpi"><span>فزنا</span><b>${fmt(byS[3][2])}</b><small>${byS[3][1]} عرض · ${pct(tot?byS[3][2]/tot:0)}</small></div><div class="kpi"><span>ما فزنا</span><b>${fmt(byS[4][2])}</b><small>${byS[4][1]} عرض</small></div></div>
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px">${byS.map(([s,n,v])=>`<tr><td style="border:1px solid #ccc;padding:5px">${pill(s[0])}</td><td style="border:1px solid #ccc;padding:5px">${n} عرض</td><td style="border:1px solid #ccc;padding:5px"><b>${fmt(v)}</b></td><td style="border:1px solid #ccc;padding:5px;width:40%"><div style="background:#1D5C8F;height:10px;width:${tot?v/tot*100:0}%"></div></td></tr>`).join("")}</table>
     ${L.length?`<table style="width:100%;border-collapse:collapse"><tr>${["رقم العرض","التاريخ","المشروع / العميل","أعدّه","الحالة","الإجمالي شامل الضريبة"].map(h=>`<th style="border:1px solid #999;padding:5px;background:#D9E1F2">${h}</th>`).join("")}</tr>
-     ${L.map(x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td style="border:1px solid #ccc;padding:5px" class="ltr">${esc(qNo(x))}</td><td style="border:1px solid #ccc;padding:5px">${fd(x.date)}</td><td style="border:1px solid #ccc;padding:5px">${esc(x.projName||x.customer||"")}</td><td style="border:1px solid #ccc;padding:5px">${esc(pname(x.by))}</td><td style="border:1px solid #ccc;padding:5px">${pill(x.status)}</td><td style="border:1px solid #ccc;padding:5px"><b>${fmt(qTotal(x).total)}</b></td></tr>`).join("")}</table>`:'<div class="empty">لا توجد عروض بهذا الفلتر</div>'}
+     ${L.map(x=>`<tr data-qst="${esc(x.id)}" style="cursor:pointer" title="اضغط لتحديث المرحلة"><td style="border:1px solid #ccc;padding:5px" class="ltr">${esc(qNo(x))}</td><td style="border:1px solid #ccc;padding:5px">${fd(x.date)}</td><td style="border:1px solid #ccc;padding:5px">${esc(x.projName||x.customer||"")}</td><td style="border:1px solid #ccc;padding:5px">${esc(pname(x.by))}</td><td style="border:1px solid #ccc;padding:5px">${pill(x.status)}</td><td style="border:1px solid #ccc;padding:5px"><b>${fmt(qTotal(x).total)}</b></td></tr>`).join("")}</table>`:'<div class="empty">لا توجد عروض بهذا الفلتر</div>'}
    </div>`;
 }
+function stageDialog(q){
+  const d=document.createElement("dialog");d.style.cssText="max-width:640px;width:calc(100% - 24px)";const g=q.stg||{};let st=q.status||"s1";
+  const card=(k,t,sub)=>`<button type="button" class="tile" data-sv="${k}" style="padding:10px 12px;${st===k?"border:2px solid var(--accent);background:var(--info-bg)":""}"><b>${t}</b><span class="small muted">${sub}</span></button>`;
+  const draw=()=>{d.innerHTML=`<form method="dialog" class="stack"><div class="row"><h2 style="margin:0;margin-inline-end:auto">${esc(qNo(q))} — ${esc(q.projName||q.customer||"")}</h2><span class="small muted">${fmt(qTotal(q).total)} ريال</span></div>
+   <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">${card("s1","١ التحقيق","جمع معلومات المشروع والأطراف")}${card("s2","٢ التقييم","تقييم المقاول: جيد")}${card("left","٢ التقييم — سيء","نتركه")}${card("s3","٣ المتابعة","متابعة حسب حاجته للمواد")}${card("won","٤ فزنا","أخذنا المشروع")}${card("lost","٤ ما فزنا","راح لمنافس")}</div>
+   ${st==="s3"?`<label class="f">المتابعة<select name="follow"><option value="">—</option>${Object.entries(P_FOLLOW).map(([k,v])=>`<option value="${k}" ${g.follow===k?"selected":""}>${v}</option>`).join("")}</select></label><label class="f">موعد المتابعة الجاية<input type="date" name="nextDate" value="${esc(g.nextDate||"")}"></label>`:""}
+   ${st==="won"?`<div class="small muted">نستمر نتابعهم على المشاريع الجديدة ونزورهم كأصدقاء.</div>`:""}
+   ${st==="lost"?`<div class="grid2"><label class="f">مين أخذ المشروع؟<input name="who" value="${esc(g.who||"")}"></label><label class="f">سعرهم الإجمالي<input type="number" name="price" value="${esc(g.price||"")}"></label></div>
+     <label class="f">سعرهم مقارنة بنا<select name="cmp"><option value="">—</option><option value="higher" ${g.cmp==="higher"?"selected":""}>أعلى منا</option><option value="lower" ${g.cmp==="lower"?"selected":""}>أقل منا</option></select></label>
+     <label class="f">ليش خسرنا؟</label>${chk("why",P_WHY,g.why)}
+     <label class="f">الإجراء<select name="act"><option value="">—</option><option value="want" ${g.act==="want"?"selected":""}>يبغوننا — نتابعهم يومياً</option><option value="dont" ${g.act==="dont"?"selected":""}>ما يبغوننا — نروح لشخص أو منصب ثاني</option></select></label>`:""}
+   <label class="f">ملاحظة<textarea name="note" rows="2"></textarea></label>
+   ${(q.hist||[]).length?`<div class="small" style="max-height:140px;overflow:auto;border-top:1px solid var(--line);padding-top:6px">${q.hist.slice().reverse().map(h=>`<div>${esc(tmFmt(h.at))} — ${esc(pname(h.by))}: ${esc(h.t)}</div>`).join("")}</div>`:""}
+   <div class="row"><button class="btn pri" value="ok">💾 حفظ المرحلة</button><button type="button" class="btn" id="sdOpen">فتح العرض</button><button class="btn" value="cancel" formnovalidate>إلغاء</button></div></form>`;
+   d.querySelectorAll("[data-sv]").forEach(b=>b.onclick=()=>{st=b.dataset.sv;draw()});
+   d.querySelector("#sdOpen").onclick=()=>{d.close();go({t:"quote",id:q.id})};
+   d.querySelector("form").onsubmit=async e=>{if(e.submitter&&e.submitter.value!=="ok")return;e.preventDefault();const F=new FormData(e.target);
+     const ng={...g,follow:F.get("follow")??g.follow,nextDate:F.get("nextDate")??g.nextDate,who:F.get("who")??g.who,price:F.get("price")??g.price,cmp:F.get("cmp")??g.cmp,why:st==="lost"?F.getAll("why"):g.why,act:F.get("act")??g.act};
+     const note=(F.get("note")||"").trim();const t=(q.status!==st?`المرحلة: ${P_ST[q.status]?P_ST[q.status][1]:""} ← ${P_ST[st][1]}`:"تحديث "+P_ST[st][1])+(note?" — "+note:"");
+     const nq={...q,status:st,stg:ng,updatedAt:nowIso(),updBy:S.uid,hist:[...(q.hist||[]),{at:nowIso(),by:S.uid,t}]};
+     try{await S.db.doc("quote/"+q.id).set(nq);const pj=q.projId&&(S.proj||{})[q.projId];
+       if(pj&&pj.status!==st)await S.db.doc("proj/"+pj.id).set({...pj,status:st,updatedAt:nowIso(),updBy:S.uid,notes:[...(pj.notes||[]),{at:nowIso(),by:S.uid,text:"من عرض "+qNo(q)+": "+t}]});
+       logAct("quote_edit",qNo(q)+" — "+(q.projName||q.customer||"")+" — "+t);toast("تم تحديث المرحلة");d.close()}catch(err){toast("تعذّر الحفظ")}};
+  };
+  draw();document.body.append(d);d.addEventListener("close",()=>d.remove());d.showModal();
+}
 function wireQuoteReport(app){
+  app.querySelectorAll("[data-qst]").forEach(r=>r.onclick=()=>{const q=(S.quote||{})[r.dataset.qst];if(q)stageDialog(q)});
   [["#rf","rf"],["#rt","rt"],["#rw","rw"],["#rs","pst"]].forEach(([s,k])=>{const e=app.querySelector(s);if(e)e.onchange=()=>{S.opt[k]=e.value;render()}});
   const b=app.querySelector("#rpdf");if(b)b.onclick=e=>chartPdf(app.querySelector("#qrep"),"تقرير عروض الأسعار - "+todayR(),e.currentTarget);
 }
