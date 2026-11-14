@@ -191,7 +191,7 @@ const custAlertCount=ids=>sum(ids.map(i=>R(i).alerts.length));
 /* ---------- activity log: every action a user does, for the daily report ---------- */
 async function logAct(kind,text,extra){try{if(!S.db||S.offline||!S.uid)return;const now=new Date();const id=S.uid.slice(-8)+"_"+now.getTime().toString(36)+Math.random().toString(36).slice(2,5);
   await S.db.doc("log/"+id).set({by:S.uid,at:now.toISOString(),d:new Date(now.getTime()+3*3600e3).toISOString().slice(0,10),kind,text:String(text||"").slice(0,500),...(extra||{})})}catch(e){}}
-const LOGK={cust_note:"ملاحظة عميل",cust_col:"متابعة تحصيل",cust_data:"تحديث بيانات عميل",cust_target:"هدف عميل",el_add:"إضافة كهربائي",el_call:"مكالمة كهربائي",el_edit:"تعديل كهربائي",el_draft:"تعديل كهربائي (مسودة)",el_ok:"اعتماد تعديل كهربائي",el_rej:"رفض تعديل كهربائي",el_move:"نقل كهربائي",rep_move:"نقل مندوب",user:"صلاحيات المستخدمين",daily:"إضافات التقرير اليومي",proj_add:"مشروع جديد",proj_edit:"تحديث مشروع",proj_note:"ملاحظة مشروع",quote_add:"عرض سعر جديد",quote_edit:"تعديل عرض سعر",tgt_set:"تحديد أهداف الشهر",task_add:"مهمة جديدة",task_done:"إنجاز مهمة",task_undo:"إلغاء إنجاز مهمة",agr:"اتفاقية عميل"};
+const LOGK={cust_note:"ملاحظة عميل",cust_col:"متابعة تحصيل",cust_data:"تحديث بيانات عميل",cust_target:"هدف عميل",el_add:"إضافة كهربائي",el_call:"مكالمة كهربائي",el_edit:"تعديل كهربائي",el_draft:"تعديل كهربائي (مسودة)",el_ok:"اعتماد تعديل كهربائي",el_rej:"رفض تعديل كهربائي",el_move:"نقل كهربائي",rep_move:"نقل مندوب",user:"صلاحيات المستخدمين",daily:"إضافات التقرير اليومي",proj_add:"مشروع جديد",proj_edit:"تحديث مشروع",proj_note:"ملاحظة مشروع",quote_add:"عرض سعر جديد",quote_edit:"تعديل عرض سعر",tgt_set:"تحديد أهداف الشهر",task_add:"مهمة جديدة",task_done:"إنجاز مهمة",task_undo:"إلغاء إنجاز مهمة",agr:"اتفاقية عميل",quote_day:"تقرير عروض الأسعار اليومي"};
 /* ---------- electricians: imported list (elec.json) + changes and new ones in the shared db ---------- */
 function mergeElec(){
   const M=new Map();((S.elecBase&&S.elecBase.items)||[]).forEach(e=>M.set(e.id,e));
@@ -387,6 +387,46 @@ const P_WHY=["وقت التسليم","وقت عرض السعر","مواصفات 
 const P_FOLLOW={daily:"يومي — يحتاج المواد خلال 1-20 يوم",weekly:"أسبوعي — خلال شهر إلى 4 أشهر",monthly:"شهري — خلال 4 إلى 7 أشهر"};
 const projList=()=>Object.values(S.proj||{}).sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||""));
 const quoteList=()=>Object.values(S.quote||{}).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.no||0)-(a.no||0));
+/* ----- daily quotations report as an image (layout of the projects team's daily report), shared to WhatsApp ----- */
+const QFAM_EN={db:"Distribution Boards",exhaust_local:"Exhaust Fans",exhaust:"Exhaust Fans",aircurtain:"Air Curtains",shutter:"Shutters",duct_mixed:"Duct Fans",duct_circ:"Duct Fans",duct:"Duct Fans",pump:"Water Pumps",roof:"Roof Fans",centrifugal:"Centrifugal Fans",other:"Other Products"};
+function qDesc(q){if(q.desc)return q.desc;const s=[];(q.items||[]).forEach(it=>{let f=it.fam;if(!f&&it.pid&&S.ucat){const p=S.ucat.fin.find(x=>x[0]===it.pid);if(p)f=p[3]}
+  const d=it.src==="mdb"?"MDB":it.src==="hvac"?"HVAC":f?QFAM_EN[f]||"":"";if(d&&!s.includes(d))s.push(d)});return s.join(", ")||((q.items||[])[0]||{}).name||""}
+function nextInq(uid){const L=quoteList().filter(x=>x.by===uid&&/^[A-Za-z]+\d+$/.test(x.inq||"")).sort((a,b)=>(b.createdAt||b.date||"").localeCompare(a.createdAt||a.date||""));
+  if(!L.length)return "";const m=L[0].inq.match(/^([A-Za-z]+)(\d+)$/);return m[1]+String(+m[2]+1).padStart(m[2].length,"0")}
+const enDate=d=>{const t=new Date(d+"T12:00:00");return t.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})};
+const usDate=d=>d?d.slice(5,7)+"/"+d.slice(8,10)+"/"+d.slice(0,4):"";
+function qDayHtml(date,uids){
+  const b="border:1px solid #000;padding:4px 8px;",H=`background:#BDD7EE;font-weight:700;${b}`;
+  const blocks=uids.map(u=>{const L=quoteList().filter(x=>x.by===u&&x.date===date).sort((a,c)=>(a.createdAt||"").localeCompare(c.createdAt||"")||(a.no||0)-(c.no||0));
+    const tot=sum(L.map(x=>qTotal(x).total));const empty=Math.max(0,3-L.length);
+    return `<div style="text-align:center;font-weight:700;font-size:16px;padding:6px 0 3px">${esc(pname(u))}</div>
+     <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;table-layout:fixed"><colgroup>${[5,10,10,14,26,11,13,11].map(w=>`<col style="width:${w}%">`).join("")}</colgroup><thead><tr><th style="${H}width:44px">S/No</th><th style="${H}">Inquiry No</th><th style="${H}">Date</th><th style="${H}">Description</th><th style="${H}">Customer</th><th style="${H}">Quotation No</th><th style="${H}">Costing with VAT</th><th style="${H}">Status</th></tr></thead><tbody>
+     ${L.map((x,i)=>`<tr><td style="${b}">${i+1}</td><td style="${b}">${esc(x.inq||"")}</td><td style="${b}">${usDate(x.date)}</td><td style="${b}">${esc(qDesc(x))}</td><td style="${b}">${esc(x.customer||x.projName||"")}${x.projName&&x.customer&&x.projName!==x.customer?`<div style="font-size:11px;color:#555">${esc(x.projName)}</div>`:""}</td><td style="${b}" dir="ltr">${esc(qNo(x))}</td><td style="${b}">${fmt(qTotal(x).total,2)}</td><td style="${b}font-size:12px">${esc(P_ST[x.status]?P_ST[x.status][1]:"")}</td></tr>`).join("")}
+     ${L.length?"":`<tr><td colspan="8" style="${b}color:#777">No quotations — لا توجد عروض أسعار بهذا اليوم</td></tr>`}
+     ${Array.from({length:L.length?empty:0},()=>`<tr>${`<td style="${b}height:22px"></td>`.repeat(8)}</tr>`).join("")}
+     <tr><td colspan="5" style="border:none"></td><td style="${b}background:#FFC000;font-weight:700;font-size:15px">Total</td><td style="${b}background:#FFC000;font-weight:700;font-size:15px">${tot.toFixed(2)}</td><td style="border:none"></td></tr></tbody></table>`}).join("");
+  const all=sum(uids.flatMap(u=>quoteList().filter(x=>x.by===u&&x.date===date).map(x=>qTotal(x).total)));
+  return `<div id="qday" dir="ltr" style="background:#fff;color:#000;width:1040px;padding:10px;font-family:Calibri,Arial,sans-serif">
+    <div style="background:#C6E0B4;font-weight:700;text-align:center;padding:5px;border:1px solid #000;font-size:15px">Daily Report: ${esc(enDate(date))}</div>${blocks}
+    ${uids.length>1?`<div style="text-align:end;margin-top:10px;font-weight:700;font-size:15px"><span style="background:#FFC000;border:1px solid #000;padding:5px 14px">Grand Total: ${all.toFixed(2)}</span></div>`:""}</div>`}
+async function qDayShare(date,uids,btn){
+  const old=btn&&btn.textContent;if(btn){btn.disabled=true;btn.textContent="⏳ جاري التجهيز…"}
+  try{if(S.ucat===undefined||!S.ucat)await loadUcat();await loadLibs();
+    const w=document.createElement("div");w.style.cssText="position:fixed;left:-12000px;top:0";w.innerHTML=qDayHtml(date,uids);document.body.append(w);
+    const c=await html2canvas(w.firstElementChild,{scale:2,backgroundColor:"#ffffff"});w.remove();
+    const blob=await new Promise(r=>c.toBlob(r,"image/png"));const nm=(uids.length===1?pname(uids[0]):"Projects")+" - Daily Report "+date+".png";const file=new File([blob],nm,{type:"image/png"});const url=URL.createObjectURL(blob);
+    const d=document.createElement("dialog");d.style.cssText="max-width:1100px;width:calc(100% - 24px)";
+    d.innerHTML=`<div class="stack"><div class="row"><h2 style="margin:0;margin-inline-end:auto">تقرير اليوم — ${fd(date)}</h2><button class="btn pri" id="qsh">📲 إرسال واتساب</button><button class="btn" id="qdl">⬇️ تحميل الصورة</button><button class="btn sm" id="qx">إغلاق</button></div>
+      <p class="small muted" style="margin:0">في الجوال: «إرسال واتساب» يفتح المشاركة وتختار واتساب والمحادثة. في الكمبيوتر: تنزل الصورة وينفتح واتساب ويب، وتسحب الصورة للمحادثة.</p>
+      <div style="overflow:auto;border:1px solid var(--line)"><img src="${url}" style="width:100%;min-width:700px;display:block"></div></div>`;
+    document.body.append(d);d.addEventListener("close",()=>{d.remove();URL.revokeObjectURL(url)});d.showModal();
+    const dl=()=>{const a=document.createElement("a");a.href=url;a.download=nm;document.body.append(a);a.click();a.remove()};
+    d.querySelector("#qx").onclick=()=>d.close();d.querySelector("#qdl").onclick=dl;
+    d.querySelector("#qsh").onclick=async()=>{const txt="Daily Report: "+enDate(date)+(uids.length===1?" — "+pname(uids[0]):"");
+      if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],text:txt});return}catch(e){if(e&&e.name==="AbortError")return}}
+      dl();window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank")};
+    logAct("quote_day","تقرير عروض الأسعار اليومي "+fd(date)+" — "+uids.map(pname).join("، "));
+  }catch(e){toast("تعذّر تجهيز الصورة")}finally{if(btn){btn.disabled=false;btn.textContent=old}}}
 /* ----- projects team overview: head of projects and sales manager see the total and each member ----- */
 const teamIds=()=>{const ids=Object.entries(S.members).filter(([u,m])=>isProj(m.role)).map(([u])=>u);if(isProj(myRole())&&S.uid&&!ids.includes(S.uid))ids.push(S.uid);
   return ids.sort((a,b)=>((S.members[a]||{}).role==="proj_head"?0:1)-((S.members[b]||{}).role==="proj_head"?0:1)||pname(a).localeCompare(pname(b),"ar"))};
@@ -413,7 +453,7 @@ function teamHtml(){
       <span>تحديثات (${esc(lbl)})</span><b>${s.acts.length}</b><span>آخر نشاط</span><b>${s.last?esc(tmFmt(s.last)):"—"}</b></div></button>`};
   let det="";
   if(sel){const s=teamStats(sel,f,t);const nm=sel==="all"?"الفريق كامل":pname(sel);const today=todayR();
-    det=`<div class="card"><div class="row"><h2 style="margin:0;margin-inline-end:auto">${esc(nm)} — ${esc(lbl)}</h2>${sel!=="all"?`<button class="btn sm pri" id="tdaily">📝 تقريره اليومي</button>`:""}<button class="btn sm" id="tclose">إغلاق</button></div>
+    det=`<div class="card"><div class="row"><h2 style="margin:0;margin-inline-end:auto">${esc(nm)} — ${esc(lbl)}</h2><button class="btn sm pri" id="qday1">📸 تقرير اليوم</button>${sel!=="all"?`<button class="btn sm pri" id="tdaily">📝 تقريره اليومي</button>`:""}<button class="btn sm" id="tclose">إغلاق</button></div>
      <div class="kpis" style="margin:10px 0"><div class="kpi"><span>كل المشاريع</span><b>${s.P.length}</b></div><div class="kpi"><span>قيد العمل</span><b>${s.open}</b></div><div class="kpi"><span>فزنا</span><b>${s.won}</b></div><div class="kpi"><span>ما فزنا</span><b>${s.lost}</b></div><div class="kpi"><span>عروض الأسعار</span><b>${s.Q.length}</b></div><div class="kpi"><span>قيمة العروض</span><b>${fmt(s.qv)}</b></div><div class="kpi"><span>عروض فزنا فيها</span><b>${fmt(s.qwon)}</b></div></div>
      <h3>المشاريع</h3>${s.P.length?`<div class="tbl"><table><thead><tr><th>المشروع</th><th>المقاول</th><th>الحالة</th><th>المتابعة الجاية</th><th>عروض الأسعار</th>${sel==="all"?"<th>المسؤول</th>":""}<th>آخر تحديث</th></tr></thead><tbody>
       ${s.P.map(p=>{const qs=quoteList().filter(x=>x.projId===p.id);const lt=p.nextDate&&p.nextDate<today&&["s1","s2","s3"].includes(p.status);return `<tr data-pid="${esc(p.id)}" style="cursor:pointer"><td><b>${esc(p.name)}</b></td><td>${esc(p.contractor||"")}</td><td>${pill(p.status)}</td><td style="${lt?"color:#B42318;font-weight:700":""}">${p.nextDate?fd(p.nextDate)+(lt?" (متأخرة)":""):"—"}</td><td>${qs.length?`${qs.length} · ${fmt(sum(qs.map(x=>qTotal(x).total)))}`:"—"}</td>${sel==="all"?`<td>${esc(pname(p.by))}</td>`:""}<td class="small">${esc(tmFmt(p.updatedAt))}</td></tr>`}).join("")}</tbody></table></div>`:'<div class="small muted">لا توجد مشاريع</div>'}
@@ -423,6 +463,7 @@ function teamHtml(){
     </div>`}
   return `<div class="row"><div class="seg">${[["w","هذا الأسبوع"],["m","هذا الشهر"],["all","الكل"],["c","فترة محددة"]].map(([k,l])=>`<button data-tper="${k}" aria-pressed="${per===k}">${l}</button>`).join("")}</div>
      ${per==="c"?`<label class="f">من<input type="date" id="tf" value="${esc(f)}"></label><label class="f">إلى<input type="date" id="tt" value="${esc(t)}" max="${todayR()}"></label>`:""}</div>
+    <div class="row"><label class="f">تقرير يوم<input type="date" id="qdd" value="${esc(S.opt.qdd||todayR())}" max="${todayR()}"></label><button class="btn pri" id="qdayall" style="align-self:flex-end">📸 تقرير اليوم للفريق (صورة للواتساب)</button></div>
     <p class="small muted" style="margin:0">اضغط على الاسم عشان تشوف كل شغله: مشاريعه وعروض أسعاره وسجل تحديثاته وتقريره اليومي.</p>
     <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))">${card("all","📊 الإجمالي","الفريق كامل")}${ids.map(u=>card(u,"👤 "+esc(pname(u))+(u===S.uid?" (أنا)":""),esc(ROLES[(S.members[u]||{}).role]||ROLES[myRole()]||""))).join("")}</div>
     ${ids.length?"":'<div class="empty">ما فيه أعضاء في قسم المشاريع</div>'}${det}`;
@@ -431,6 +472,9 @@ function wireTeam(app){
   app.querySelectorAll("[data-tper]").forEach(b=>b.onclick=()=>{S.opt.tper=b.dataset.tper;render()});
   app.querySelectorAll("[data-tm]").forEach(b=>b.onclick=()=>{S.opt.tm=S.opt.tm===b.dataset.tm?"":b.dataset.tm;render()});
   const tf=app.querySelector("#tf");if(tf)tf.onchange=()=>{S.opt.tf=tf.value;render()};const tt=app.querySelector("#tt");if(tt)tt.onchange=()=>{S.opt.tt=tt.value;render()};
+  const qdd=app.querySelector("#qdd");if(qdd)qdd.onchange=()=>{S.opt.qdd=qdd.value};
+  const qa=app.querySelector("#qdayall");if(qa)qa.onclick=e=>qDayShare(S.opt.qdd||todayR(),teamIds(),e.currentTarget);
+  const q1=app.querySelector("#qday1");if(q1)q1.onclick=e=>qDayShare(S.opt.qdd||todayR(),S.opt.tm==="all"?teamIds():[S.opt.tm],e.currentTarget);
   const tc=app.querySelector("#tclose");if(tc)tc.onclick=()=>{S.opt.tm="";render()};
   const td=app.querySelector("#tdaily");if(td)td.onclick=()=>{const u=S.opt.tm;S.nav.push({t:"daily"});S.opt={du:u};render();scrollTo(0,0)};
 }
@@ -453,7 +497,7 @@ function projectsView(app){
       ${L.map(x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td><b class="ltr">${esc(qNo(x))}</b></td><td>${fd(x.date)}</td><td>${esc(x.projName||x.customer||"")}</td><td>${(x.items||[]).length}</td><td><b>${fmt(qTotal(x).total,2)}</b></td><td>${pill(x.status)}</td><td>${esc(pname(x.by))}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">لا توجد عروض أسعار</div>`}`;
   }else if(tab==="team"&&canTeam(role))body=teamHtml();
   else body=quoteReportHtml();
-  app.innerHTML=`<div class="stack"><h1>المشاريع</h1>
+  app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin:0;margin-inline-end:auto">المشاريع</h1>${isProj(role)?`<label class="f">اليوم<input type="date" id="qdd0" value="${esc(S.opt.qdd||todayR())}" max="${todayR()}"></label><button class="btn pri" id="qday0" style="align-self:flex-end">📸 تقرير اليوم</button>`:""}</div>
     <div class="seg" role="tablist">${canTeam(role)?`<button data-tab="team" aria-pressed="${tab==="team"}">👥 الفريق</button>`:""}<button data-tab="proj" aria-pressed="${tab==="proj"}">🏗️ المشاريع</button><button data-tab="quote" aria-pressed="${tab==="quote"}">🧾 عروض الأسعار</button><button data-tab="rep" aria-pressed="${tab==="rep"}">📑 تقارير عروض الأسعار</button></div>
     ${body}</div>`;
   app.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{S.opt.ptab=b.dataset.tab;S.opt.pst="";S.opt.pq="";render()});
@@ -465,6 +509,8 @@ function projectsView(app){
   const qn=app.querySelector("#qnew");if(qn)qn.onclick=()=>go({t:"quote",id:"new"});
   if(tab==="rep")wireQuoteReport(app);
   if(tab==="team"&&canTeam(role))wireTeam(app);
+  const qd0=app.querySelector("#qdd0");if(qd0)qd0.onchange=()=>{S.opt.qdd=qd0.value};
+  const qb0=app.querySelector("#qday0");if(qb0)qb0.onclick=e=>qDayShare(S.opt.qdd||todayR(),[S.uid],e.currentTarget);
 }
 const chk=(name,list,sel)=>`<div class="row" style="gap:6px 14px">${list.map(v=>`<label style="display:flex;gap:4px;align-items:center;font-size:14px"><input type="checkbox" name="${name}" value="${esc(v)}" ${(sel||[]).includes(v)?"checked":""}>${esc(v)}</label>`).join("")}</div>`;
 const rad=(name,list,v)=>`<div class="row" style="gap:6px 14px">${list.map(([k,l])=>`<label style="display:flex;gap:4px;align-items:center;font-size:14px"><input type="radio" name="${name}" value="${esc(k)}" ${v===k?"checked":""}>${esc(l)}</label>`).join("")}</div>`;
@@ -606,7 +652,7 @@ function quoteView(app,n){
     if(n.id!=="new"&&!src){app.innerHTML='<div class="empty">العرض غير موجود</div>';return}
     const pj=n.proj&&(S.proj||{})[n.proj];const ct=pj&&pj.poles&&pj.poles.contractor||{};
     S.qdraft=src?JSON.parse(JSON.stringify(src)):{id:newId("q"),date:todayR(),valid:7,status:pj?pj.status:"s1",projId:pj?pj.id:"",projName:pj?pj.name:"",customer:pj?pj.contractor||"":"",city:pj?(pj.location||"").split(/[-–،,]/)[0].trim():"",country:"Saudi Arabia",contact:ct.name||"",phone:ct.phone||"",email:"",custCode:"",pay:"100% Advance",sales:myName().split("—")[0].trim(),items:[],disc:0,notes:""};
-    S.qdraft._for=n.id;
+    S.qdraft._for=n.id;if(!src&&!S.qdraft.inq)S.qdraft.inq=nextInq(S.uid);
   }
   const q=S.qdraft;const T=qTotal(q);const isNew=n.id==="new";const src=S.opt.qsrc||"stock";const qs=(S.opt.qs||"").trim().toLowerCase();
   const cat=(S.D.qcat||[]);const hits=src==="stock"&&qs?cat.filter(c=>(c[1]+" "+c[2]).toLowerCase().includes(qs)).slice(0,30):[];
@@ -620,7 +666,7 @@ function quoteView(app,n){
    <div class="card"><h2 style="margin-top:0">بيانات العرض</h2><div class="grid2">
      ${I("qdate","تاريخ عرض السعر / Quotation Date",q.date,"date")}${I("qvalid","مدة الصلاحية (يوم) / Validity",q.valid||7,"number")}
      ${I("qsales","مندوب المبيعات / Salesperson",q.sales)}${I("qpay","شروط الدفع / Payment Terms",q.pay)}
-     ${I("qdisc","خصم إضافي على الإجمالي %",q.disc||0,"number",'step="0.1"')}</div>
+     ${I("qdisc","خصم إضافي على الإجمالي %",q.disc||0,"number",'step="0.1"')}${I("qinq","رقم الاستفسار / Inquiry No",q.inq,"text",'dir="ltr" placeholder="مثال: SN366"')}${I("qdesc","الوصف في التقرير اليومي / Description",q.desc,"text",`dir="ltr" placeholder="${esc(qDesc({...q,desc:""})||"Exhaust Fans")}"`)}</div>
      <label class="f">ملاحظات إضافية تطلع في العرض<textarea id="qnotes" rows="2">${esc(q.notes||"")}</textarea></label>
      <p class="small muted" style="margin:0">صالح حتى: ${fd(addDays(q.date,q.valid))} · الشروط والأحكام والضمان تنضاف تلقائياً في الصفحة الثانية.</p></div>
    <div class="card"><h2 style="margin-top:0">إضافة مواد</h2>
@@ -636,7 +682,7 @@ function quoteView(app,n){
    <div id="qdocWrap" style="position:absolute;left:-10000px;top:0"></div></div>`;
   const v=s=>app.querySelector(s).value;
   const keep=()=>{q.projName=v("#qproj").trim();const pj=projList().find(p=>p.name===q.projName);q.projId=pj?pj.id:"";q.customer=v("#qcust").trim();q.city=v("#qcity").trim();q.country=v("#qcountry").trim();q.contact=v("#qcontact").trim();q.phone=v("#qphone").trim();q.email=v("#qemail").trim();q.custCode=v("#qcode").trim();
-    q.date=v("#qdate");q.valid=+v("#qvalid")||7;q.sales=v("#qsales").trim();q.pay=v("#qpay").trim();q.disc=+v("#qdisc")||0;q.notes=v("#qnotes")};
+    q.date=v("#qdate");q.valid=+v("#qvalid")||7;q.sales=v("#qsales").trim();q.pay=v("#qpay").trim();q.disc=+v("#qdisc")||0;q.notes=v("#qnotes");q.inq=v("#qinq").trim();q.desc=v("#qdesc").trim()};
   app.querySelector("#qproj").onchange=()=>{keep();const pj=(S.proj||{})[q.projId];if(pj&&!q.status)q.status=pj.status;if(pj){if(!q.customer)q.customer=pj.contractor||"";const ct=pj.poles&&pj.poles.contractor||{};if(!q.contact)q.contact=ct.name||"";if(!q.phone)q.phone=ct.phone||""}render()};
   ["#qdisc","#qdate","#qvalid"].forEach(s=>app.querySelector(s).onchange=()=>{keep();render()});
   app.querySelectorAll("[data-qsrc]").forEach(b=>b.onclick=()=>{keep();S.opt.qsrc=b.dataset.qsrc;render()});
@@ -649,7 +695,7 @@ function quoteView(app,n){
   app.querySelectorAll("[data-uamp]").forEach(b=>b.onclick=()=>{keep();U.uamp=+b.dataset.uamp||0;render()});
   const pq2=app.querySelector("#pq2");if(pq2)pq2.oninput=()=>{clearTimeout(S._qt);S._qt=setTimeout(()=>{keep();U.pq2=pq2.value;render();const x=document.querySelector("#pq2");if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}},300)};
   app.querySelectorAll("[data-uadd]").forEach(b=>b.onclick=()=>{keep();const p=S.ucat.fin.find(x=>String(x[0])===b.dataset.uadd);const qn=+app.querySelector(`[data-uq="${b.dataset.uadd}"]`).value||1;
-    q.items.push({src:"stock",pid:p[0],code:p[1],name:p[11]||ucName(p),spec:"",unit:"Units",qty:qn,price:ucPrice(p),disc:0});toast("تمت الإضافة");render()});
+    q.items.push({src:"stock",pid:p[0],fam:p[3],code:p[1],name:p[11]||ucName(p),spec:"",unit:"Units",qty:qn,price:ucPrice(p),disc:0});toast("تمت الإضافة");render()});
   const ff=app.querySelector("#qfree");if(ff)ff.onsubmit=e=>{e.preventDefault();keep();const F=new FormData(ff);q.items.push({src,code:F.get("code").trim(),name:F.get("name").trim(),spec:F.get("spec").trim(),unit:"Units",qty:+F.get("qty"),price:+F.get("price"),disc:0});render()};
   app.querySelectorAll("[data-f]").forEach(i=>i.onchange=()=>{keep();const it=q.items[+i.dataset.i],f=i.dataset.f;it[f]=["qty","price","disc"].includes(f)?+i.value:i.value;render()});
   app.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{keep();q.items.splice(+b.dataset.rm,1);render()});
