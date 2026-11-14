@@ -437,8 +437,9 @@ const LAT_REP={"azher ali khan":"أزهر علي","azhar ali khan":"أزهر ع�
 function repKey(n){n=String(n||"").replace(/^(Mr\.|Ms\.|Mrs\.|Engr?\.)\s*/i,"").trim();const ar=LAT_REP[n.toLowerCase()]||n;return Object.keys(S.D.reps||{}).find(k=>S.D.reps[k].name===ar)}
 function cityLetter(q){const k=repKey(q.sales);if(k)return BR_L[brOf(k)]||"R";   // letter from the salesperson's branch
   const c=String(q.city||"")+" "+String(q.projName||"");for(const [re,l] of CITY_L)if(re.test(c))return l;return "R"}
+function repLetter(q){const n=String(q.sales||"").replace(/^(Mr\.|Ms\.|Mrs\.|Engr?\.|م\.|أ\.)\s*/i,"").trim();if(!n)return "X";const c=personCode(n);return (c&&c!=="XX"?c[0]:"X")}
 const qType=q=>q.qtype||(q.projName||q.projId?"P":"R");
-const qRef=q=>(q.ref&&/^Q\d\d-[A-Z][PR]-\d+$/.test(q.ref)?q.ref:"")||"Q"+String((q.date||todayR()).slice(2,4))+"-"+cityLetter(q)+qType(q)+"-"+String(q.no||0).padStart(4,"0");
+const qRef=q=>(q.ref&&/^Q\d\d-[A-Z]{2}[PR]-\d+$/.test(q.ref)?q.ref:"")||"Q"+String((q.date||todayR()).slice(2,4))+"-"+cityLetter(q)+repLetter(q)+qType(q)+"-"+String(q.no||0).padStart(4,"0");
 const QPM=["م. محمد العطاس","أ. ندى الحازمي","م. سيد نجف"];
 const repNames=()=>[...new Set(Object.values(S.D.reps||{}).map(r=>r.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar"));
 const QFAM_EN={db:"Distribution Boards",exhaust_local:"Exhaust Fans",exhaust:"Exhaust Fans",aircurtain:"Air Curtains",shutter:"Shutters",duct_mixed:"Duct Fans",duct_circ:"Duct Fans",duct:"Duct Fans",pump:"Water Pumps",roof:"Roof Fans",centrifugal:"Centrifugal Fans",other:"Other Products"};
