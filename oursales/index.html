@@ -360,16 +360,18 @@ function kpiRow(k,ids,extra=""){
   const growth=k.lySale?k.ytdSale/k.lySale-1:null;
   const old=sum(k.b8.slice(2));
   const ec=elecCounts(ids);
-  const ck=(kd,cls="")=>`class="kpi kpi-btn ${cls}" role="button" tabindex="0" data-kd="${kd}" data-kids="${esc(ids.join(","))}" title="اضغط للتفاصيل"`;
-  const sc=ids.length>1?grpScore(ids):null;
+  /* score card and click-through drill-downs: sales manager only */
+  const mgr=myRole()==="sales_mgr";
+  const ck=(kd,cls="")=>mgr?`class="kpi kpi-btn ${cls}" role="button" tabindex="0" data-kd="${kd}" data-kids="${esc(ids.join(","))}" title="اضغط للتفاصيل"`:`class="kpi ${cls}"`;
+  const sc=mgr&&ids.length>1?grpScore(ids):null;
   return `<div class="kpis">
    ${sc!=null?`<div ${ck("score",sc>=60?"ok":sc<40?"bad":"")}><span>${kdScopeName(ids)==="الشركة"?"تقييم الشركة":"تقييم الأداء"} ▸</span><b>${sc}/100</b><small>${esc(scoreRating(sc))} · اضغط لتقييم ${new Set(ids.map(brOf)).size>1?"الفروع":"المناديب"}</small></div>`:""}
-   <div ${ck("msale")}><span>صافي مبيعات الشهر ▸</span><b>${fmt(k.mtdSale)}</b><small>بعد المرتجعات، بدون ضريبة · من ${fd(S.D.asof.slice(0,8)+"01")}</small></div>
-   <div ${ck("mcol")}><span>تحصيل الشهر ▸</span><b>${fmt(k.mtdCol)}</b></div>
-   <div ${ck("ysale")}><span>صافي مبيعات السنة ▸</span><b>${fmt(k.ytdSale)}</b><small>نمو ${growth==null?"—":`<span class="${growth<0?"neg":""}">${pct(growth)}</span>`} عن نفس الفترة</small></div>
-   <div ${ck("ycol")}><span>صافي التحصيل للسنة ▸</span><b>${fmt(k.ytdCol)}</b></div>
-   <div ${ck("debt")}><span>المديونية ▸</span><b>${fmt(k.debt)}</b><small>أكثر من 90 يوم: ${fmt(old)} (${pct(k.debt?old/k.debt:0)})</small></div>
-   <div ${ck("elec")}><span>الكهربائيين ▸</span><b>${fmt(ec.all)}</b><small>تمت متابعة ${ec.month} هذا الشهر</small></div>${extra}</div>`;
+   <div ${ck("msale")}><span>صافي مبيعات الشهر${mgr?" ▸":""}</span><b>${fmt(k.mtdSale)}</b><small>بعد المرتجعات، بدون ضريبة · من ${fd(S.D.asof.slice(0,8)+"01")}</small></div>
+   <div ${ck("mcol")}><span>تحصيل الشهر${mgr?" ▸":""}</span><b>${fmt(k.mtdCol)}</b></div>
+   <div ${ck("ysale")}><span>صافي مبيعات السنة${mgr?" ▸":""}</span><b>${fmt(k.ytdSale)}</b><small>نمو ${growth==null?"—":`<span class="${growth<0?"neg":""}">${pct(growth)}</span>`} عن نفس الفترة</small></div>
+   <div ${ck("ycol")}><span>صافي التحصيل للسنة${mgr?" ▸":""}</span><b>${fmt(k.ytdCol)}</b></div>
+   <div ${ck("debt")}><span>المديونية${mgr?" ▸":""}</span><b>${fmt(k.debt)}</b><small>أكثر من 90 يوم: ${fmt(old)} (${pct(k.debt?old/k.debt:0)})</small></div>
+   <div ${ck("elec")}><span>الكهربائيين${mgr?" ▸":""}</span><b>${fmt(ec.all)}</b><small>تمت متابعة ${ec.month} هذا الشهر</small></div>${extra}</div>`;
 }
 /* ----- drill-down from the KPI cards: company → branches → reps ----- */
 const KD_ORDER=["RI","JE","KH","DA","SA","TA","MA","QA","DP"];
@@ -412,7 +414,7 @@ function kdDialog(kind,ids,br){
   d.querySelectorAll("[data-kdr]").forEach(r=>r.onclick=()=>{d.close();go({t:"rep",id:r.dataset.kdr})});
   if(kind==="debt"){wirePdf(d,{kdAging:"أعمار الديون - "+scope});wireWaImg(d,{kdAging:"أعمار الديون - "+scope})}}
 if(!window._kdL){window._kdL=1;const h=e=>{const c=e.target.closest&&e.target.closest("[data-kd]");if(!c)return;if(e.type==="keydown"&&e.key!=="Enter"&&e.key!==" ")return;e.preventDefault();
-  const ids=(c.dataset.kids||"").split(",").filter(Boolean);if(ids.length)(c.dataset.kd==="elec"?elecKd(ids):kdDialog(c.dataset.kd,ids))};document.addEventListener("click",h);document.addEventListener("keydown",h)}
+  if(myRole()!=="sales_mgr")return;const ids=(c.dataset.kids||"").split(",").filter(Boolean);if(ids.length)(c.dataset.kd==="elec"?elecKd(ids):kdDialog(c.dataset.kd,ids))};document.addEventListener("click",h);document.addEventListener("keydown",h)}
 /* electricians card: regions → electricians ranked best to worst */
 function elecKd(ids,reg){
   const old=document.getElementById("kdDlg");if(old)old.remove();
