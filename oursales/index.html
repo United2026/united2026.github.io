@@ -381,21 +381,23 @@ function kdScopeName(ids){const bs=[...new Set(ids.map(brOf))];const all=Object.
 const KD={score:["تقييم الأداء من 100",i=>R(i).perf?R(i).perf.score:0],msale:["صافي مبيعات الشهر",i=>R(i).kpi.mtdSale],mcol:["تحصيل الشهر",i=>R(i).kpi.mtdCol],ysale:["صافي مبيعات السنة",i=>R(i).kpi.ytdSale],ycol:["صافي التحصيل للسنة",i=>R(i).kpi.ytdCol],debt:["المديونية",i=>R(i).kpi.debt]};
 function kdDialog(kind,ids,br){
   const old=document.getElementById("kdDlg");if(old)old.remove();
-  const bsAll=KD_ORDER.filter(b=>ids.some(i=>brOf(i)===b)).concat([...new Set(ids.map(brOf))].filter(b=>!KD_ORDER.includes(b)));
+  /* reps of «باقي المناديب» are counted under the branch they actually invoice through */
+  const kb=i=>brOf(i)==="DP"?(R(i).jb||"RI"):brOf(i);
+  const bsAll=KD_ORDER.filter(b=>ids.some(i=>kb(i)===b)).concat([...new Set(ids.map(kb))].filter(b=>!KD_ORDER.includes(b)));
   if(!br&&bsAll.length===1)br=bsAll[0];
-  const [title,val]=KD[kind];const L=br?ids.filter(i=>brOf(i)===br):ids;const scope=br?brLabel(br):kdScopeName(ids);
+  const [title,val]=KD[kind];const L=br?ids.filter(i=>kb(i)===br):ids;const scope=br?brLabel(br):kdScopeName(ids);
   const isScore=kind==="score";const tot=isScore?grpScore(L):sum(L.map(val));
   const bar=(v,m,col)=>`<div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden;min-width:80px"><i style="display:block;height:100%;width:${m?Math.max(0,Math.min(100,v/m*100)):0}%;background:${col||"var(--accent)"}"></i></div>`;
   const scCol=s=>s>=60?"#2E8B57":s>=40?"#E0A100":"#C0392B";
   let rows;
-  if(!br){const B=bsAll.map(b=>{const bi=ids.filter(i=>brOf(i)===b);return {b,n:bi.length,v:isScore?grpScore(bi):sum(bi.map(val)),old:kind==="debt"?sum(bi.map(i=>sum(R(i).kpi.b8.slice(2)))):0}}).sort((a,b)=>(b.v||0)-(a.v||0));
+  if(!br){const B=bsAll.map(b=>{const bi=ids.filter(i=>kb(i)===b);return {b,n:bi.length,v:isScore?grpScore(bi):sum(bi.map(val)),old:kind==="debt"?sum(bi.map(i=>sum(R(i).kpi.b8.slice(2)))):0}}).sort((a,b)=>(b.v||0)-(a.v||0));
     const mx=Math.max(1,...B.map(x=>Math.abs(x.v||0)));
     rows=`<table><thead><tr><th>الفرع</th><th class="n">المناديب</th><th class="n">${isScore?"التقييم /100":title}</th>${isScore?"<th>التصنيف</th>":kind==="debt"?'<th class="n">أكثر من 90 يوم</th><th class="n">النسبة</th>':'<th class="n">النسبة</th>'}<th></th></tr></thead><tbody>
       ${B.map(x=>`<tr data-kdb="${x.b}" style="cursor:pointer"><td><b>${esc(brLabel(x.b))}</b> <span class="small muted">◂ المناديب</span></td><td class="n">${x.n}</td><td class="n"><b>${isScore?(x.v??"—"):fmt(x.v)}</b></td>${isScore?`<td><span class="pill ${RPILL[scoreRating(x.v||0)]}">${scoreRating(x.v||0)}</span></td>`:kind==="debt"?`<td class="n">${fmt(x.old)}</td><td class="n">${pct(x.v?x.old/x.v:0)}</td>`:`<td class="n">${pct(tot?x.v/tot:0)}</td>`}<td style="width:22%">${bar(Math.abs(x.v||0),isScore?100:mx,isScore?scCol(x.v||0):null)}</td></tr>`).join("")}
       ${isScore?"":`<tr class="tot"><td>الإجمالي</td><td class="n">${ids.length}</td><td class="n">${fmt(tot)}</td>${kind==="debt"?`<td class="n">${fmt(sum(B.map(x=>x.old)))}</td><td class="n">${pct(tot?sum(B.map(x=>x.old))/tot:0)}</td>`:'<td class="n">100%</td>'}<td></td></tr>`}</tbody></table>`}
   else{const RS=L.slice().sort((a,b)=>val(b)-val(a));const mx=Math.max(1,...RS.map(i=>Math.abs(val(i))));
     rows=`<table><thead><tr><th>المندوب</th><th class="n">${isScore?"التقييم /100":title}</th>${isScore?"<th>التصنيف</th>":kind==="debt"?'<th class="n">أكثر من 90 يوم</th>':'<th class="n">النسبة</th>'}<th></th></tr></thead><tbody>
-      ${RS.map(i=>{const v=val(i);const o=sum(R(i).kpi.b8.slice(2));return `<tr data-kdr="${i}" style="cursor:pointer"><td><b>${esc(R(i).name)}</b> <span class="small muted">◂ صفحته</span></td><td class="n"><b>${isScore?v:fmt(v)}</b></td>${isScore?`<td><span class="pill ${RPILL[R(i).perf.rating]||""}">${esc(R(i).perf.rating||"")}</span></td>`:kind==="debt"?`<td class="n">${fmt(o)}</td>`:`<td class="n">${pct(tot?v/tot:0)}</td>`}<td style="width:24%">${bar(Math.abs(v),isScore?100:mx,isScore?scCol(v):null)}</td></tr>`}).join("")}
+      ${RS.map(i=>{const v=val(i);const o=sum(R(i).kpi.b8.slice(2));return `<tr data-kdr="${i}" style="cursor:pointer"><td><b>${esc(R(i).name)}</b>${kb(i)!==brOf(i)?` <span class="small muted">(${esc(brLabel(brOf(i)))})</span>`:""} <span class="small muted">◂ صفحته</span></td><td class="n"><b>${isScore?v:fmt(v)}</b></td>${isScore?`<td><span class="pill ${RPILL[R(i).perf.rating]||""}">${esc(R(i).perf.rating||"")}</span></td>`:kind==="debt"?`<td class="n">${fmt(o)}</td>`:`<td class="n">${pct(tot?v/tot:0)}</td>`}<td style="width:24%">${bar(Math.abs(v),isScore?100:mx,isScore?scCol(v):null)}</td></tr>`}).join("")}
       ${isScore?"":`<tr class="tot"><td>الإجمالي</td><td class="n">${fmt(tot)}</td>${kind==="debt"?`<td class="n">${fmt(sum(L.map(i=>sum(R(i).kpi.b8.slice(2)))))}</td>`:'<td class="n">100%</td>'}<td></td></tr>`}</tbody></table>`}
   const b8=[0,1,2,3,4,5,6,7].map(j=>sum(L.map(i=>R(i).kpi.b8[j])));
   const d=document.createElement("dialog");d.id="kdDlg";d.style.cssText="max-width:980px;width:calc(100% - 20px)";
