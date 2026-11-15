@@ -946,11 +946,9 @@ function projectsView(app){
   [["#dq1","dq1"],["#dq2","dq2"],["#dqs","dqs"]].forEach(([q,k])=>{const e=app.querySelector(q);if(e)e.onchange=()=>{S.opt[k]=e.value;if(k==="dq1"&&(!S.opt.dq2||S.opt.dq2<e.value))S.opt.dq2=e.value;render()}});
   app.querySelectorAll("[data-dqd]").forEach(b=>b.onclick=()=>{const n=+b.dataset.dqd,t=todayR();if(n===0){S.opt.dq1=S.opt.dq2=t}else if(n===1){S.opt.dq1=S.opt.dq2=addDays(t,-1)}else{S.opt.dq1=addDays(t,-6);S.opt.dq2=t}render()});
   const dqPages=()=>{const w=app.querySelector("#dqrWrap");w.innerHTML=dqrDoc();return [...w.querySelectorAll(".qpage")]};const dqName=()=>{const {d1,d2}=dqrData();return "Daily Quotation Report "+(d1===d2?d1:d1+" to "+d2)};
-  const dqp=app.querySelector("#dqpdf");if(dqp)dqp.onclick=e=>pagesPdf(dqPages(),dqName(),e.currentTarget);
+  const dqp=app.querySelector("#dqpdf");if(dqp)dqp.onclick=e=>vecSave(dqrPdfBlob,dqName(),e.currentTarget);
   const dqr=app.querySelector("#dqprn");if(dqr)dqr.onclick=e=>pagesPrint(dqPages(),dqName(),e.currentTarget);
-  const dqw=app.querySelector("#dqwa");if(dqw)dqw.onclick=e=>busy(e.currentTarget,async()=>{const pg=dqPages();await loadLibs();const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:"p",unit:"mm",format:"a4",compress:true});const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight();
-    for(let i=0;i<pg.length;i++){const c=await html2canvas(pg[i],{scale:Math.min(4,hqScale(pg[i])),backgroundColor:"#ffffff",useCORS:true});if(i)pdf.addPage();pdf.addImage(c.toDataURL("image/png"),"PNG",0,0,W,H,undefined,"SLOW")}
-    const {L,tot}=dqrData();await shareFile(new File([pdf.output("blob")],fname(dqName())+".pdf",{type:"application/pdf"}),dqName()+" — "+L.length+" quotations, "+fmtN(tot)+" SAR")});
+  const dqw=app.querySelector("#dqwa");if(dqw)dqw.onclick=e=>{const {L,tot}=dqrData();vecSave(dqrPdfBlob,dqName(),e.currentTarget,true,dqName()+" — "+L.length+" quotations, "+fmtN(tot)+" SAR")};
   app.querySelectorAll("[data-qyear]").forEach(b=>b.onclick=()=>{S.opt={ptab:"quote",qyear:b.dataset.qyear};S.lastPtab="quote";render();window.scrollTo(0,0)});
   [["#qfsp","qfsp"],["#qfcu","qfcu"],["#qsort","qsort"],["#qd1","qd1"],["#qd2","qd2"]].forEach(([q,k])=>{const e=app.querySelector(q);if(e)e.onchange=()=>{S.opt[k]=e.value;S.opt.qmore=0;render()}});
   const qdr=app.querySelector("#qdir");if(qdr)qdr.onclick=()=>{S.opt.qdir=S.opt.qdir==="asc"?"":"asc";render()};const qdc=app.querySelector("#qdclr");if(qdc)qdc.onclick=()=>{S.opt.qd1=S.opt.qd2="";render()};
@@ -1199,7 +1197,7 @@ function quoteView(app,n){pwCss();
     if(!d.no){const yy=String(d.date||todayR()).slice(2,4);d.no=Math.max(0,...Object.values(S.quote||{}).filter(x=>!x.imp||(/^Q\d\d-\d{4}$/.test(x.qno||"")&&x.qno.slice(1,3)===yy)).map(x=>x.no||0))+1}
     if(!old){d.by=S.uid;d.createdAt=nowIso()}if(!d.prep)d.prep=pname(d.by)||myName();if(!d.imp){d.ref="";d.ref=qRef(d)}d.updatedAt=nowIso();d.updBy=S.uid;
     try{await S.db.doc("quote/"+d.id).set(d);try{localStorage.removeItem("qdraft:"+(S.qdraft&&S.qdraft._for||d.id))}catch(e){}S.qdraft=null;toast("تم حفظ العرض "+qNo(d));logAct(old?"quote_edit":"quote_add",qNo(d)+" — "+(d.projName||d.customer||"")+" — "+Math.round(qTotal(d).total)+" ريال"+(old&&old.status!==d.status?` (الحالة: ${P_ST[old.status][1]} ← ${P_ST[d.status][1]})`:""));S.nav[S.nav.length-1]={t:"quote",id:d.id};render()}catch(e){toast("تعذّر الحفظ")}};
-  const pdf=app.querySelector("#qpdf");if(pdf)pdf.onclick=e=>{keep();const w=app.querySelector("#qdocWrap");w.innerHTML=quoteDoc(q);pagesPdf([...w.querySelectorAll(".qpage")],qNo(q),e.currentTarget)};
+  const pdf=app.querySelector("#qpdf");if(pdf)pdf.onclick=e=>{keep();vecSave(()=>quotePdfBlob(q),qNo(q),e.currentTarget)};
   const prn=app.querySelector("#qprint");if(prn)prn.onclick=e=>{keep();const w=app.querySelector("#qdocWrap");w.innerHTML=quoteDoc(q);pagesPrint([...w.querySelectorAll(".qpage")],qNo(q),e.currentTarget)};
   const qv=app.querySelector("#qver");if(qv)qv.onclick=async()=>{keep();const cur=(S.quote||{})[q.id]||q;let t=cur.vtok;
     if(!t){const a=new Uint8Array(12);crypto.getRandomValues(a);t=[...a].map(x=>x.toString(16).padStart(2,"0")).join("");try{await S.db.doc("quote/"+q.id).set({...cur,vtok:t});q.vtok=t;logAct("quote_edit",qRef(q)+" — رابط تحقق")}catch(e){toast("تعذّر إنشاء الرابط");return}}
@@ -1302,6 +1300,85 @@ function a4Preview(html,title){const d=document.createElement("dialog");d.style.
   box.querySelectorAll(".qpage").forEach(p=>{const w=document.createElement("div");w.style.cssText=`width:${794*sc}px;height:${1123*sc}px;flex:none;box-shadow:0 4px 18px rgba(0,0,0,.18)`;p.parentNode.insertBefore(w,p);w.append(p);p.style.transform=`scale(${sc})`;p.style.transformOrigin="top left"});
   d.querySelector("#a4x").onclick=()=>d.close();d.addEventListener("close",()=>d.remove());d.showModal()}
 
+
+/* ===== vector PDFs (real text, embedded DejaVu Sans with Arabic) — jsPDF + autoTable ===== */
+let _vec=null;
+function vecLibs(){if(_vec)return _vec;_vec=(async()=>{await loadLibs();
+  if(!window.jspdf.jsPDF.API.autoTable)await new Promise((ok,no)=>{const x=document.createElement("script");x.src="vendor/jspdf.plugin.autotable.min.js";x.onload=ok;x.onerror=no;document.head.append(x)});
+  const b64=async u=>{const r=await fetch(u);if(!r.ok)throw new Error(u);const a=new Uint8Array(await r.arrayBuffer());let s="";for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)};
+  const [r,b]=await Promise.all([b64("fonts/DejaVuSans.ttf"),b64("fonts/DejaVuSans-Bold.ttf")]);
+  const logo=await new Promise((ok,no)=>{const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{const c=document.createElement("canvas");c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext("2d").drawImage(im,0,0);ok({d:c.toDataURL("image/png"),w:im.naturalWidth,h:im.naturalHeight})};im.onerror=no;im.src="img/logo.png"});
+  return {r,b,logo}})().catch(e=>{_vec=null;throw e});return _vec}
+const VC={red:[123,13,13],dark:[34,34,34],gray:[110,110,110],line:[51,51,51],light:[250,245,245],soft:[242,230,230]};
+const VPW=595.28,VPH=841.89,VM=30;
+function vecNew(L){const {jsPDF}=window.jspdf;const d=new jsPDF({unit:"pt",format:"a4",compress:true});
+  d.addFileToVFS("DV.ttf",L.r);d.addFont("DV.ttf","DV","normal");d.addFileToVFS("DVB.ttf",L.b);d.addFont("DVB.ttf","DV","bold");d.setFont("DV","normal");d.setTextColor(...VC.dark);d.setLineHeightFactor(1.25);return d}
+const vfont=(d,sz,st="normal",col=VC.dark)=>{d.setFont("DV",st);d.setFontSize(sz);d.setTextColor(...col)};
+const vmoney=v=>"SR "+Number(v||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const vnum=v=>Number(v||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+function vecHead(d,L){const h=46,w=L.logo.w/L.logo.h*h;d.addImage(L.logo.d,"PNG",VM,26,w,h);
+  vfont(d,8,"bold",[139,26,26]);d.text(COMP.ar,VM,26+h+11);vfont(d,7);d.text(COMP.en,VM,26+h+20);
+  vfont(d,8.5,"bold");d.text(COMP.en,VPW-VM,34,{align:"right"});vfont(d,7.5);[COMP.addr1,COMP.addr2,COMP.vat].forEach((t,i)=>d.text(t,VPW-VM,46+i*11,{align:"right"}));return 26+h+44}
+function vecFoot(d){const n=d.getNumberOfPages();for(let p=1;p<=n;p++){d.setPage(p);d.setDrawColor(153,153,153);d.setLineWidth(.6);d.line(VM,VPH-46,VPW-VM,VPH-46);
+  vfont(d,7,"normal",VC.dark);d.text(COMP.footAr,VPW/2,VPH-35,{align:"center"});d.text(COMP.footEn,VPW/2,VPH-25,{align:"center"});vfont(d,7,"normal",VC.gray);d.text(`Page ${p} / ${n}`,VPW-VM,VPH-25,{align:"right"})}}
+const vAT=(d,o)=>d.autoTable(Object.assign({theme:"grid",rowPageBreak:"avoid",margin:{left:VM,right:VM,top:134,bottom:60},styles:{font:"DV",fontSize:8.5,cellPadding:4,lineColor:VC.line,lineWidth:.5,textColor:VC.dark,valign:"middle",overflow:"linebreak"},headStyles:{font:"DV",fontStyle:"bold",fillColor:[255,255,255],textColor:VC.dark,lineColor:VC.line,lineWidth:.5},footStyles:{font:"DV",fontStyle:"bold",fillColor:VC.soft,textColor:VC.dark}},o));
+function vecMetaRow(d,y,cells){const gap=16,w=(VPW-2*VM-3*gap)/4;cells.forEach((c,i)=>{if(!c)return;const x=VM+i*(w+gap);vfont(d,6.8,"bold");d.text(c[0],x,y);vfont(d,6.8);d.text(c[1],x+w,y,{align:"right"});
+  vfont(d,9);const v=d.splitTextToSize(String(c[2]||"—"),w)[0];d.text(v,x,y+13);d.setDrawColor(...VC.line);d.setLineWidth(.6);d.line(x,y+17,x+w,y+17)});return y+30}
+
+async function quotePdfBlob(q){const L=await vecLibs();const d=vecNew(L);const T=qTotal(q),v=q.valid||7,pay=q.pay||"100% Advance",ref=qRef(q);
+  let y=vecHead(d,L);vfont(d,17,"normal",[150,150,150]);d.text("Quotation # "+ref,VM,y+4);y+=14;
+  const tw=(VPW-2*VM)*.56;const ci=[["COMPANY NAME","اسم العميل",q.customer],["CITY","المدينة",q.city],["COUNTRY","الدولة",q.country],["CONTACT PERSON","الشخص الذي يمكن الاتصال به",q.contact],["CELLPHONE NUMBER","رقم الجوال",q.phone],["EMAIL","البريد الإلكتروني",q.email]];
+  vAT(d,{startY:y,margin:{left:VPW-VM-tw,right:VM},tableWidth:tw,styles:{font:"DV",fontSize:8,cellPadding:3.5,lineColor:VC.line,lineWidth:.5,textColor:VC.dark},
+    head:[[{content:"CUSTOMER INFO.  /  بيانات العميل",colSpan:2,styles:{halign:"center"}}]],
+    body:ci.map(([e,a,val])=>[{content:val||"—",styles:{halign:"center"}},{content:e+"  /  "+a,styles:{fontStyle:"bold",halign:"right",fontSize:7.2}}]),columnStyles:{0:{cellWidth:tw*.46}}});
+  y=d.lastAutoTable.finalY+16;
+  y=vecMetaRow(d,y,[["Quotation Date","تاريخ عرض السعر",q.date],["Valid Until","صالح حتى",addDays(q.date,v)],["Salesperson","مندوب المبيعات",q.sales]]);
+  y=vecMetaRow(d,y,[["Project Name","اسم المشروع",q.projName],["Payment Terms","شروط الدفع",pay],["Validity","مدة الصلاحية",v+" days"],["Customer Code","كود العميل",q.custCode]]);
+  y=vecMetaRow(d,y,[["Project Management","إدارة المشاريع",q.pm],["Prepared By","أعدّه",q.prep||pname(q.by)]]);
+  const items=q.items||[];
+  vAT(d,{startY:y+4,showHead:"everyPage",
+    head:[[{content:"#",styles:{halign:"center"}},"DESCRIPTION",{content:"QUANTITY",styles:{halign:"center"}},"UNIT PRICE",{content:"DISC.",styles:{halign:"center"}},{content:"AMOUNT",styles:{halign:"right"}}]],
+    body:items.map((it,i)=>[{content:String(i+1),styles:{halign:"center"}},{content:(it.code?it.code+"\n":"")+(it.name||"")+(it.spec?"\n"+it.spec:"")},{content:Number(it.qty||0).toFixed(3)+" "+(it.unit||"Units"),styles:{halign:"center"}},vmoney(it.price),{content:it.disc?it.disc+"%":"—",styles:{halign:"center"}},{content:vmoney(lineAmt(it)),styles:{halign:"right"}}]),
+    columnStyles:{0:{cellWidth:26},2:{cellWidth:70},3:{cellWidth:72},4:{cellWidth:38},5:{cellWidth:80}},
+    didParseCell:h=>{if(h.section==="body"&&h.column.index===1&&items[h.row.index]&&items[h.row.index].code)h.cell.styles.textColor=[55,65,81]},
+    didDrawPage:h=>{if(h.pageNumber>1){vecHead(d,L);vfont(d,12,"bold",VC.red);d.text("Quotation # "+ref,VM,124);vfont(d,9,"normal",[75,85,99]);d.text("(Continued)",VM+d.getTextWidth("Quotation # "+ref)*12/9+6,124)}}});
+  y=d.lastAutoTable.finalY+10;const tw2=(VPW-2*VM)*.44;const rows=[["Gross Amount",vmoney(T.gross)],...(T.disc?[["Discount",vmoney(T.disc)]]:[]),["Untaxed Amount",vmoney(T.net)],["VAT Taxes (15%)",vmoney(T.vat)],["Total",vmoney(T.total)]];
+  if(y+rows.length*20>VPH-70){d.addPage();y=vecHead(d,L)}
+  vAT(d,{startY:y,margin:{left:VPW-VM-tw2,right:VM,top:134,bottom:60},tableWidth:tw2,styles:{font:"DV",fontSize:9,fontStyle:"bold",cellPadding:5,lineColor:VC.line,lineWidth:.5},
+    body:rows.map((r,i)=>[r[0],{content:r[1],styles:{halign:"right"}}]),didParseCell:h=>{if(h.row.index===rows.length-1){h.cell.styles.fillColor=VC.red;h.cell.styles.textColor=[255,255,255]}}});
+  y=d.lastAutoTable.finalY+14;
+  if(q.notes){vfont(d,8.5);const lines=d.splitTextToSize("Notes / ملاحظات: "+q.notes,VPW-2*VM);if(y+lines.length*11>VPH-60){d.addPage();y=vecHead(d,L)}d.text(lines,VM,y);y+=lines.length*11}
+  // terms & conditions
+  const terms=qTermsOf(q);if(terms.length){d.addPage();y=vecHead(d,L);vfont(d,17,"normal",[150,150,150]);d.text("Quotation # "+ref,VM,y+4);y+=18;vfont(d,10,"bold");d.text("Terms & Conditions  /  الشروط والأحكام",VM,y);
+    const body=[];let sec="",n=0;terms.forEach(t=>{if(t.sec!==sec){sec=t.sec;n=0;const en=sec==="B"?"B. WARRANTY & SERVICE CONDITIONS":sec==="A"?"A. TERMS & CONDITIONS":sec,ar=sec==="B"?"شروط الضمان والخدمة":sec==="A"?"الشروط والأحكام":"";
+      body.push([{content:en,styles:{fontStyle:"bold",fillColor:VC.soft}},{content:ar,styles:{fontStyle:"bold",halign:"right",fillColor:VC.soft}}])}n++;body.push([n+". "+t.en,{content:t.ar,styles:{halign:"right"}}])});
+    vAT(d,{startY:y+8,theme:"plain",styles:{font:"DV",fontSize:7.6,cellPadding:{top:2.5,bottom:2.5,left:3,right:3},textColor:VC.dark,valign:"top"},body,
+      didDrawPage:h=>{if(h.pageNumber>1&&h.pageCount!==undefined){}}})}
+  vecFoot(d);return d.output("blob")}
+
+async function dqrPdfBlob(){const L=await vecLibs();const d=vecNew(L);const {d1,d2,sp,L:Q,tot,BY,val}=dqrData();const per=d1===d2?enDate(d1):enDate(d1)+" — "+enDate(d2);
+  let y=vecHead(d,L);vfont(d,16,"bold",VC.red);d.text("Daily Quotation Report",VM,y+4);vfont(d,12,"normal",VC.red);d.text("التقرير اليومي لعروض الأسعار",VPW-VM,y+4,{align:"right"});y+=20;
+  vfont(d,8.5);d.text(`Period: ${per}${sp?"    Salesperson: "+(sp==="-"?"—":sp):""}    Printed: ${enDate(todayR())}`,VM,y);y+=12;
+  const bw=(VPW-2*VM-20)/3;[["Total Quotations","عدد العروض",String(Q.length)],["Total Value (SAR, incl. VAT)","إجمالي القيمة",vnum(tot)],["Salespersons","المناديب",String(BY.length)]].forEach(([e,a,v],i)=>{const x=VM+i*(bw+10);
+    d.setDrawColor(...VC.red);d.setLineWidth(.8);d.roundedRect(x,y,bw,44,4,4);vfont(d,7,"normal",VC.gray);d.text(e,x+8,y+13);d.text(a,x+bw-8,y+13,{align:"right"});vfont(d,15,"bold",VC.red);d.text(v,x+8,y+34)});y+=58;
+  const hs={fillColor:VC.red,textColor:[255,255,255],fontStyle:"bold",lineColor:VC.red};
+  vAT(d,{startY:y,showHead:"everyPage",headStyles:hs,alternateRowStyles:{fillColor:VC.light},styles:{font:"DV",fontSize:8,cellPadding:3.5,lineColor:[204,204,204],lineWidth:.5,textColor:VC.dark},
+    head:[["#","Date","Quotation No.","Customer","Project",{content:"Value (SAR)",styles:{halign:"right"}},"Salesperson"]],
+    body:Q.map((x,i)=>[String(i+1),usDate(x.date),{content:qRef(x),styles:{fontStyle:"bold"}},x.customer||x.contact||"—",x.projName||"",{content:vnum(val(x)),styles:{halign:"right"}},x.sales||"—"]),
+    foot:Q.length?[[{content:`TOTAL — ${Q.length} quotations`,colSpan:5},{content:vnum(tot),styles:{halign:"right"}},""]]:undefined,showFoot:"lastPage",
+    columnStyles:{0:{cellWidth:22},1:{cellWidth:54},2:{cellWidth:76},5:{cellWidth:68},6:{cellWidth:84}},
+    didDrawPage:h=>{if(h.pageNumber>1){vecHead(d,L);vfont(d,10,"bold",VC.red);d.text("Daily Quotation Report — "+per+" (continued)",VM,124)}}});
+  if(!Q.length){vfont(d,10,"normal",VC.gray);d.text("No quotations for this period  /  لا توجد عروض أسعار",VPW/2,d.lastAutoTable.finalY+24,{align:"center"})}
+  y=d.lastAutoTable.finalY+(Q.length?22:44);if(y+40+BY.length*18>VPH-60){d.addPage();y=vecHead(d,L)}
+  vfont(d,11,"bold",VC.red);d.text("Breakdown by Salesperson",VM,y);vfont(d,10,"normal",VC.red);d.text("حسب المندوب",VPW-VM,y,{align:"right"});
+  vAT(d,{startY:y+8,headStyles:hs,alternateRowStyles:{fillColor:VC.light},styles:{font:"DV",fontSize:8.5,cellPadding:4,lineColor:[204,204,204],lineWidth:.5,textColor:VC.dark},
+    head:[["Salesperson",{content:"Quotations",styles:{halign:"right"}},{content:"Total Value (SAR)",styles:{halign:"right"}},{content:"Share",styles:{halign:"right"}}]],
+    body:BY.map(([n,o])=>[{content:n,styles:{fontStyle:"bold"}},{content:String(o.n),styles:{halign:"right"}},{content:vnum(o.v),styles:{halign:"right"}},{content:(tot?o.v/tot*100:0).toFixed(1)+"%",styles:{halign:"right"}}]),
+    foot:[["TOTAL",{content:String(Q.length),styles:{halign:"right"}},{content:vnum(tot),styles:{halign:"right"}},{content:"100%",styles:{halign:"right"}}]],
+    didDrawPage:h=>{if(h.pageNumber>1&&d.getCurrentPageInfo().pageNumber>1){}}});
+  vecFoot(d);return d.output("blob")}
+async function vecSave(blobP,name,btn,share,txt,phone){await busy(btn,async()=>{const blob=await blobP();const fn=fname(String(name))+".pdf";
+  if(share)await shareFile(new File([blob],fn,{type:"application/pdf"}),txt||name,phone);else{await saveBlob(blob,fn);toast("تم تنزيل ملف PDF")}})}
 
 /* ----- Daily Quotation Report: one day (or a range), list + totals + by salesperson, A4 PDF with company letterhead ----- */
 function dqrData(){const o=S.opt;const d1=o.dq1||todayR(),d2=o.dq2||d1,sp=o.dqs||"";
