@@ -1,0 +1,69 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>الخطة الأسبوعية — Weekly PLAN</title><meta name="theme-color" content="#7B0D0D">
+<style>
+body{margin:0;background:#F4F1F1;font-family:system-ui,Tahoma,sans-serif;color:#1d2733}.wrap{max-width:1100px;margin:auto;padding:12px 12px 90px}
+.top{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 10px rgba(0,0,0,.06)}.top img{height:40px}.muted{color:#6b7785;font-size:13px}
+.card{background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin:12px 0}
+.tabs{display:flex;gap:6px;overflow:auto;padding-bottom:2px}.tabs button{flex:1;min-width:92px;border:1px solid #d5dbe2;background:#fff;border-radius:10px;padding:9px 6px;font-weight:700;cursor:pointer;font-size:14px}
+.tabs button small{display:block;font-weight:400;font-size:11.5px;color:#6b7785}.tabs button[aria-pressed=true]{background:#7B0D0D;color:#fff;border-color:#7B0D0D}.tabs button[aria-pressed=true] small{color:#f3d6d6}
+.hd{background:#C6E0B4;border:1px solid #000;text-align:center;font-weight:700;padding:6px;font-size:15px}.sub{background:#D9E1F2;border:1px solid #000;border-top:0;text-align:center;font-weight:700;padding:5px}
+.tw{overflow:auto}table{border-collapse:collapse;width:100%;min-width:720px}th,td{border:1px solid #999;padding:0}th{background:#F2F2F2;padding:6px;font-size:13px}
+td.no{width:36px;text-align:center;background:#FAFAFA;font-size:13px}td input{width:100%;box-sizing:border-box;border:0;padding:8px 6px;font-size:14px;background:transparent;font-family:inherit}
+td input:focus{outline:2px solid #2F6FB7;background:#F3F8FF}td.c{min-width:220px}td.n{width:120px}td.n input{direction:ltr;text-align:left}td.mk{width:150px}
+tr.tot td{background:#FFF2CC;font-weight:700;padding:7px 6px}tr.tot td.v{direction:ltr;text-align:left}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.sum div{background:#F7F7F8;border-radius:10px;padding:10px}.sum span{display:block;font-size:12px;color:#6b7785}.sum b{font-size:20px}
+.bar{position:fixed;bottom:0;left:0;right:0;background:#fff;box-shadow:0 -2px 12px rgba(0,0,0,.12);padding:10px 14px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+.bar button{background:linear-gradient(90deg,#7B0D0D,#B3261E);color:#fff;border:0;border-radius:12px;padding:12px 26px;font-size:16px;font-weight:700;cursor:pointer}.bar .st{font-size:13px;color:#6b7785}
+.dirty{color:#B42318!important;font-weight:700}
+</style></head>
+<body><div class="wrap">
+<div class="top"><img src="img/logo.png" alt="United"><div><b style="font-size:17px">الخطة الأسبوعية / Weekly PLAN</b><div class="muted" id="who">جاري التحميل…</div></div></div>
+<div id="app"></div></div>
+<div class="bar" id="bar" hidden><button id="save">💾 حفظ الخطة / Save</button><span class="st" id="st"></span></div>
+<datalist id="cl"></datalist>
+<script src="api.js"></script>
+<script>
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const T=new URLSearchParams(location.search).get("t")||"";
+const DAYS=[["sun","الأحد","Sunday"],["mon","الاثنين","Monday"],["tue","الثلاثاء","Tuesday"],["wed","الأربعاء","Wednesday"],["thu","الخميس","Thursday"]];
+const fx=v=>Number(v||0).toLocaleString("en-US",{maximumFractionDigits:2});
+let P=null,D={},tab="total",dirty=false;
+const dt=n=>{const t=new Date(P.week.slice(1)+"T12:00:00");t.setDate(t.getDate()+n);return t};
+const dfmt=t=>String(t.getDate()).padStart(2,"0")+"/"+String(t.getMonth()+1).padStart(2,"0")+"/"+t.getFullYear();
+const rows=(dk,h)=>{const d=D[dk]=D[dk]||{};const L=d[h]=d[h]||[];while(L.length<10)L.push({c:"",col:"",sale:"",mk:"",note:""});return L};
+const tot=(dk,h)=>{const L=h?rows(dk,h):[...rows(dk,"m"),...rows(dk,"e")];return {col:L.reduce((a,r)=>a+(+r.col||0),0),sale:L.reduce((a,r)=>a+(+r.sale||0),0)}};
+const week=()=>DAYS.reduce((a,[dk])=>{const t=tot(dk);a.col+=t.col;a.sale+=t.sale;return a},{col:0,sale:0});
+function table(dk,h,label){const L=rows(dk,h);const t=tot(dk,h);
+  return `<div class="sub">${label}</div><div class="tw"><table><tr><th>NO</th><th>Customer Name / اسم العميل</th><th>Collection / التحصيل</th><th>Sales / البيع</th><th>Market Name / السوق</th><th>Note / ملاحظة</th></tr>
+  ${L.map((r,i)=>`<tr><td class="no">${i+1}</td><td class="c"><input list="cl" data-k="${dk}.${h}.${i}.c" value="${esc(r.c)}"></td><td class="n"><input type="number" inputmode="decimal" min="0" step="any" data-k="${dk}.${h}.${i}.col" value="${esc(r.col)}"></td><td class="n"><input type="number" inputmode="decimal" min="0" step="any" data-k="${dk}.${h}.${i}.sale" value="${esc(r.sale)}"></td><td class="mk"><input data-k="${dk}.${h}.${i}.mk" value="${esc(r.mk)}"></td><td><input data-k="${dk}.${h}.${i}.note" value="${esc(r.note)}"></td></tr>`).join("")}
+  <tr class="tot"><td colspan="2">Total / الإجمالي</td><td class="v" id="t-${dk}-${h}-col">${fx(t.col)}</td><td class="v" id="t-${dk}-${h}-sale">${fx(t.sale)}</td><td colspan="2"></td></tr></table></div>`}
+function totalTab(){const w=week();
+  return `<div class="card"><div class="hd">Total weekly Collection and Sales — إجمالي التحصيل والبيع للأسبوع</div>
+   <div class="sum" style="margin-top:10px"><div><span>TOTAL COLLECTION / إجمالي التحصيل</span><b dir="ltr">${fx(w.col)}</b></div><div><span>TOTAL SALES / إجمالي البيع</span><b dir="ltr">${fx(w.sale)}</b></div>
+   ${P.tgt?`<div><span>هدف التحصيل من المديرة</span><b dir="ltr">${fx(P.tgt.col)}</b></div><div><span>هدف البيع من المديرة</span><b dir="ltr">${fx(P.tgt.sale)}</b></div>`:""}</div>
+   <div class="tw" style="margin-top:12px"><table><tr><th>اليوم / Day</th><th>صباحي تحصيل</th><th>صباحي بيع</th><th>مسائي تحصيل</th><th>مسائي بيع</th><th>تحصيل اليوم</th><th>بيع اليوم</th></tr>
+   ${DAYS.map(([dk,ar,en],n)=>{const m=tot(dk,"m"),e=tot(dk,"e");return `<tr style="cursor:pointer" data-go="${dk}"><td style="padding:7px"><b>${ar}</b> ${en} <span class="muted">${dfmt(dt(n))}</span></td>${[m.col,m.sale,e.col,e.sale,m.col+e.col,m.sale+e.sale].map((v,j)=>`<td style="padding:7px;direction:ltr;text-align:left;${j>3?"font-weight:700":""}">${v?fx(v):""}</td>`).join("")}</tr>`}).join("")}
+   <tr class="tot"><td>TOTAL</td><td colspan="4"></td><td class="v">${fx(w.col)}</td><td class="v">${fx(w.sale)}</td></tr></table></div>
+   <p class="muted" style="margin:8px 0 0">اضغط على أي يوم فوق أو من التبويبات وعبّي عملاء الفترة الصباحية والمسائية (10 لكل فترة): اسم العميل، التحصيل، البيع، السوق، ملاحظة. الإجماليات تنحسب تلقائياً. لا تنسى «حفظ الخطة».</p></div>`}
+function draw(){const a=document.querySelector("#app");
+  a.innerHTML=`<div class="card"><div class="tabs">${[["total","TOTAL","الإجمالي"],...DAYS.map(([dk,ar,en],n)=>[dk,ar,en.slice(0,3).toUpperCase()+" · "+dfmt(dt(n)).slice(0,5)])].map(([k,l,s])=>`<button data-tab="${k}" aria-pressed="${tab===k}">${l}<small>${s}</small></button>`).join("")}</div></div>
+   ${tab==="total"?totalTab():(()=>{const n=DAYS.findIndex(d=>d[0]===tab);const [dk,ar,en]=DAYS[n];const t=tot(dk);
+     return `<div class="card"><div class="hd">${en} — ${ar} · ${dfmt(dt(n))} &nbsp;|&nbsp; تحصيل اليوم <span dir="ltr" id="td-col">${fx(t.col)}</span> · بيع اليوم <span dir="ltr" id="td-sale">${fx(t.sale)}</span></div>
+      <div style="margin-top:10px">${table(dk,"m",en+" Morning — صباحي")}</div><div style="margin-top:14px">${table(dk,"e",en+" Evening — مسائي")}</div></div>`})()}`;
+  a.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;draw();scrollTo(0,0)});
+  a.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{tab=b.dataset.go;draw();scrollTo(0,0)});
+  a.querySelectorAll("[data-k]").forEach(inp=>inp.oninput=()=>{const [dk,h,i,f]=inp.dataset.k.split(".");rows(dk,h)[+i][f]=inp.value;setDirty(true);
+    const t=tot(dk,h);["col","sale"].forEach(x=>{const e=document.getElementById(`t-${dk}-${h}-${x}`);if(e)e.textContent=fx(t[x])});const td=tot(dk);["col","sale"].forEach(x=>{const e=document.getElementById("td-"+x);if(e)e.textContent=fx(td[x])})})}
+function setDirty(v){dirty=v;const s=document.querySelector("#st");s.className="st"+(v?" dirty":"");s.textContent=v?"فيه تعديلات ما انحفظت":(P.savedAt?"آخر حفظ: "+new Date(P.savedAt).toLocaleString("ar-SA-u-nu-latn",{timeZone:"Asia/Riyadh",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"ما انحفظت للحين")}
+addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue=""}});
+document.querySelector("#save").onclick=async()=>{const b=document.querySelector("#save");b.disabled=true;b.textContent="جاري الحفظ…";
+  const days={};DAYS.forEach(([dk])=>{days[dk]={};["m","e"].forEach(h=>days[dk][h]=rows(dk,h).map(r=>({c:r.c.trim(),col:+r.col||0,sale:+r.sale||0,mk:r.mk.trim(),note:r.note.trim()})))});
+  try{const r=await fetch("api/pub/wp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({t:T,days})});if(!r.ok)throw 0;const j=await r.json();P.savedAt=j.savedAt;setDirty(false);alert("✓ تم حفظ الخطة — تقدر ترجع تعدّلها من نفس الرابط")}
+  catch(e){alert("تعذّر الحفظ، حاول مرة ثانية")}finally{b.disabled=false;b.textContent="💾 حفظ الخطة / Save"}};
+(async()=>{try{const r=await fetch("api/pub/wp?t="+encodeURIComponent(T));if(!r.ok)throw 0;P=(await r.json()).p;
+  D=JSON.parse(JSON.stringify(P.days||{}));DAYS.forEach(([dk])=>["m","e"].forEach(h=>rows(dk,h).forEach(r=>{["col","sale"].forEach(f=>{if(!+r[f])r[f]=""});["c","mk","note"].forEach(f=>r[f]=r[f]||"")})));
+  document.querySelector("#who").innerHTML=`<b>${esc(P.repName)}</b> · ${esc(P.br)} · أسبوع ${dfmt(dt(0))} — ${dfmt(dt(4))}`;
+  document.querySelector("#cl").innerHTML=(P.custs||[]).map(c=>`<option value="${esc(c)}">`).join("");
+  document.querySelector("#bar").hidden=false;setDirty(false);draw()}
+ catch(e){document.querySelector("#who").textContent="الرابط غير صحيح أو انتهت صلاحيته"}})();
+</script></body></html>
