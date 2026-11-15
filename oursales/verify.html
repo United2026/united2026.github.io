@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تحقق عرض السعر — United</title><meta name="theme-color" content="#7B0D0D">
+<style>
+body{margin:0;background:#F4F1F1;font-family:system-ui,Tahoma,sans-serif;color:#1d2733}.wrap{max-width:900px;margin:auto;padding:14px}
+.top{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.top img{height:40px}.top b{font-size:17px}.muted{color:#6b7785;font-size:13px}
+.card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin:14px 0}
+h2{margin:0 0 10px;font-size:18px}.stars{display:flex;gap:6px}.stars button{font-size:34px;background:none;border:0;cursor:pointer;color:#D0D5DB;padding:0 2px}.stars button.on{color:#F5A700}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.tab{border:2px solid transparent;border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer;font-weight:700;font-size:14px}
+.tab small{display:block;font-weight:400;font-size:12px;margin-top:2px}.tab[aria-pressed=true]{border-color:#1d2733;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.s1{background:#C9C2C4}.s2{background:#FBDF9A}.s3{background:#B7C3E3}.s4{background:#A9C98A}
+.pane{border-radius:12px;padding:14px;margin-top:10px}.pane.s1{background:#EFEBEC}.pane.s2{background:#FFF6DC}.pane.s3{background:#E8EDF8}.pane.s4{background:#EEF6E7}
+label{display:block;font-size:14px;margin:8px 0 4px;font-weight:600}input,select,textarea{width:100%;box-sizing:border-box;padding:9px;border:1px solid #cfd8e3;border-radius:9px;font-size:15px;background:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}@media(max-width:620px){.grid{grid-template-columns:1fr}.tabs{grid-template-columns:1fr 1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips label{display:flex;align-items:center;gap:5px;font-weight:400;background:#fff;border:1px solid #d5dbe2;border-radius:999px;padding:5px 10px;margin:0;cursor:pointer}.chips input{width:auto}
+.opt{display:grid;gap:8px}.opt label{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #d5dbe2;border-radius:10px;padding:10px;margin:0;font-weight:600;cursor:pointer}.opt input{width:auto}
+.good{color:#1E7B3E}.bad{color:#B42318}
+button.send{background:linear-gradient(90deg,#7B0D0D,#B3261E);color:#fff;border:0;border-radius:12px;padding:14px 22px;font-size:17px;font-weight:700;cursor:pointer;width:100%}
+.res{padding:16px;border-radius:12px;font-weight:700;font-size:17px;background:#E7F5EC;color:#1E7B3E}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.sum div{background:#F7F7F8;border-radius:10px;padding:8px 10px}.sum span{display:block;font-size:12px;color:#6b7785}
+</style></head>
+<body><div class="wrap">
+<div class="top"><img src="img/logo.png" alt="United"><div><b>تحقق عرض السعر / Quotation Verification</b><div class="muted">شركة المصنع المتحد للمستلزمات الكهربائية</div></div></div>
+<div id="msg" class="card">جاري التحميل…</div><div id="app"></div></div>
+<script src="api.js"></script>
+<script>
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const T=new URLSearchParams(location.search).get("t")||"";
+const MAT=["لوحات Load Center","مراوح شفط","أنظمة تهوية","MDB","HVAC","قواطع","أخرى"],KIND=["مول","فلل","شقق","برج","مطعم","مستشفى/مدرسة","أخرى"],WHY=["وقت التسليم","وقت عرض السعر","مواصفات وماركات مختلفة","أسعار أعلى منا","سوء تفاهم بيننا وبينه","أخرى"];
+let Q=null,stars=0,tab=1;const G={};
+const chk=(n,L,sel)=>`<div class="chips">${L.map(v=>`<label><input type="checkbox" name="${n}" value="${esc(v)}" ${(sel||[]).includes(v)?"checked":""}>${esc(v)}</label>`).join("")}</div>`;
+const rad=(n,L,sel)=>`<div class="opt">${L.map(([v,l])=>`<label><input type="radio" name="${n}" value="${v}" ${sel===v?"checked":""}>${l}</label>`).join("")}</div>`;
+const inp=(n,l,v,t="text")=>`<div><label>${l}</label><input name="${n}" type="${t}" value="${esc(v||"")}"></div>`;
+function pane(){const g=Q.stg||{};const p=g.poles||{};
+ if(tab===1)return `<div class="pane s1"><b>المرحلة ١ — التحقيق / Investigation</b><div class="grid">
+   ${inp("s1_proj","a. اسم المشروع / Project Name",Q.projName||g.s1_proj)}${inp("s1_contr","b. اسم المقاول / Contractor Name",g.s1_contr||Q.customer)}${inp("s1_loc","c. موقع المشروع / Project Location",g.s1_loc||Q.city)}${inp("s1_qty","كمية وحجم المشروع / Quantity and Volume",g.s1_qty)}
+   <div><label>قطاع المشروع / Sector</label><select name="s1_sector"><option value="">—</option><option ${g.s1_sector==="خاص"?"selected":""}>خاص</option><option ${g.s1_sector==="حكومي"?"selected":""}>حكومي</option></select></div>${inp("s1_when","متى يحتاج المواد؟ / When they need the material",g.s1_when)}</div>
+   <label>المواد المطلوبة / Materials they want</label>${chk("s1_mat",MAT,g.s1_mat)}
+   <label>أطراف المشروع الثلاثة (الاسم والرقم) / 3 poles of the project</label><div class="grid">
+   ${inp("pc_n","١ المقاول — الاسم",(p.contractor||{}).name)}${inp("pc_p","المقاول — الرقم",(p.contractor||{}).phone,"tel")}${inp("ps_n","٢ الاستشاري — الاسم",(p.consultant||{}).name)}${inp("ps_p","الاستشاري — الرقم",(p.consultant||{}).phone,"tel")}${inp("po_n","٣ المالك — الاسم",(p.owner||{}).name)}${inp("po_p","المالك — الرقم",(p.owner||{}).phone,"tel")}</div></div>`;
+ if(tab===2)return `<div class="pane s2"><b>المرحلة ٢ — تقييم المقاول / Evaluation Contractor</b>
+   ${rad("s2_eval",[["good",'<span class="good">جيد — نكمل التحقيق / Good: continue investigation</span>'],["bad",'<span class="bad">سيء — نتركه / Bad: Leave it</span>']],g.s2_eval)}
+   <div class="grid">${inp("s2_count","كم مشروع عنده؟ / How many projects they have?",g.s2_count,"number")}<div><label>المتابعة / Follow type</label><select name="s2_follow"><option value="">—</option><option value="daily" ${g.s2_follow==="daily"?"selected":""}>يومي (أخضر غامق) / Daily</option><option value="weekly" ${g.s2_follow==="weekly"?"selected":""}>أسبوعي / Weekly</option><option value="monthly" ${g.s2_follow==="monthly"?"selected":""}>شهري / Monthly</option></select></div></div>
+   <label>نوع المشاريع / Kind of projects</label>${chk("s2_kind",KIND,g.s2_kind)}
+   <div class="grid">${inp("s2_elec","قسم الكهرباء — الاسم والرقم / Electrical Department",g.s2_elec)}${inp("s2_elecmat","المواد اللي يعتمدها قسم الكهرباء",g.s2_elecmat)}${inp("s2_pur","قسم المشتريات — الاسم والرقم / Purchase Department",g.s2_pur)}${inp("s2_purmat","المواد اللي يعتمدها قسم المشتريات",g.s2_purmat)}
+   <div><label>قابلنا المكتب الرئيسي وجهاً لوجه؟ / Know Head Office face to face</label><select name="s2_ho"><option value="">—</option><option ${g.s2_ho==="نعم"?"selected":""}>نعم</option><option ${g.s2_ho==="لا"?"selected":""}>لا</option></select></div></div></div>`;
+ if(tab===3)return `<div class="pane s3"><b>المرحلة ٣ — المتابعة / Following</b>
+   ${rad("follow",[["daily","يومي — يحتاج المواد خلال 1-20 يوم / Daily: need the material urgently from 1-20 days"],["weekly","أسبوعي — خلال شهر إلى 4 أشهر / Weekly: during 1 month to 4 months"],["monthly","شهري — خلال 4 إلى 7 أشهر / Monthly: from 4 months to 7 months"]],g.follow)}
+   ${inp("nextDate","موعد المتابعة الجاية / Next follow-up",g.nextDate,"date")}</div>`;
+ return `<div class="pane s4"><b>المرحلة ٤ — النتيجة / Results</b>
+   ${rad("s4_res",[["won",'<span class="good">أخذنا المشروع / Get the project — نستمر نتابعهم على المشاريع الجديدة ونزورهم كأصدقاء</span>'],["lost",'<span class="bad">ما أخذنا المشروع / Not get the project</span>']],g.s4_res||(Q.status==="won"?"won":Q.status==="lost"?"lost":""))}
+   <div id="lostbox"><div class="grid">${inp("who","مين أخذ المشروع؟ (المنافس) / Who takes this project?",g.who)}${inp("price","كم السعر الإجمالي اللي أخذوه فيه؟ / Total price",g.price,"number")}
+   <div><label>سعرهم مقارنة بنا</label><select name="cmp"><option value="">—</option><option value="higher" ${g.cmp==="higher"?"selected":""}>أعلى منا / Higher price than us — ليش؟ ونسجل معلومات أكثر</option><option value="lower" ${g.cmp==="lower"?"selected":""}>أقل منا / Less price than us — نبلغهم ونحاول نقنعهم</option></select></div></div>
+   <label>ليش خسرنا المشروع؟ / Why I am losing this project?</label>${chk("why",WHY,g.why)}
+   <label>الإجراء / Take an action</label>${rad("act",[["want",'<span class="good">يبغوننا — نتابعهم يومياً / Want me: keep following them daily</span>'],["dont",'<span class="bad">ما يبغوننا — ليش؟ نروح لشخص أو منصب ثاني / Don\'t want me: go to another person or position</span>']],g.act)}</div></div>`}
+function collect(){const f=document.querySelector("#f");const fd=new FormData(f);const g={};
+ for(const [k,v] of fd.entries()){if(["s1_mat","s2_kind","why"].includes(k))(g[k]=g[k]||[]).push(v);else if(!/^(pc|ps|po)_/.test(k))g[k]=v}
+ ["s1_mat","s2_kind","why"].forEach(k=>{if(f.querySelector(`[name=${k}]`)&&!g[k])g[k]=[]});
+ if(f.querySelector("[name=pc_n]"))g.poles={contractor:{name:fd.get("pc_n"),phone:fd.get("pc_p")},consultant:{name:fd.get("ps_n"),phone:fd.get("ps_p")},owner:{name:fd.get("po_n"),phone:fd.get("po_p")}};
+ Object.assign(G,g);Q.stg=Object.assign({},Q.stg||{},g)}
+function statusOf(){const g=Q.stg||{};if(g.s4_res==="won")return "won";if(g.s4_res==="lost")return "lost";if(g.s2_eval==="bad")return "left";if(g.follow)return "s3";if(g.s2_eval==="good")return "s2";return Q.status||"s1"}
+function draw(){const a=document.querySelector("#app");const fx=v=>Number(v||0).toLocaleString("en-US",{maximumFractionDigits:2});
+ a.innerHTML=`<div class="card"><h2>عرض السعر <span dir="ltr">${esc(Q.ref)}</span></h2><div class="sum"><div><span>العميل</span><b>${esc(Q.customer||"—")}</b></div><div><span>المشروع</span><b>${esc(Q.projName||"—")}</b></div><div><span>المندوب</span><b>${esc(Q.sales||"—")}</b></div><div><span>التاريخ</span><b>${esc(Q.date||"")}</b></div><div><span>الإجمالي شامل الضريبة</span><b dir="ltr">SR ${fx(Q.total)}</b></div></div></div>
+ <form id="f"><div class="card"><h2>١. تقييم العميل / Customer rating</h2><div class="stars">${[1,2,3,4,5].map(n=>`<button type="button" data-st="${n}" class="${n<=stars?"on":""}" aria-label="${n}">★</button>`).join("")}</div><div class="muted">${stars?stars+" / 5":"اضغط على النجوم"}</div></div>
+ <div class="card"><h2>٢. مراحل المشروع الأربع / Projects Standard Stages</h2><div class="tabs">${[[1,"Stage 1","التحقيق"],[2,"Stage 2","التقييم"],[3,"Stage 3","المتابعة"],[4,"Stage 4","النتيجة"]].map(([n,e,l])=>`<div class="tab s${n}" role="button" tabindex="0" data-tab="${n}" aria-pressed="${tab===n}">${e}<small>${l}</small></div>`).join("")}</div>${pane()}</div>
+ <div class="card"><h2>٣. الملاحظة / Note</h2><textarea name="note" rows="4" placeholder="اكتب ملاحظتك عن العرض والعميل">${esc(G.note||"")}</textarea><label>اسمك / Your name</label><input name="name" value="${esc(G.name||Q.sales||"")}"></div>
+ <button type="submit" class="send">إرسال التحقق / Submit</button></form>`;
+ a.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{collect();stars=+b.dataset.st;draw()});
+ a.querySelectorAll("[data-tab]").forEach(b=>b.onclick=b.onkeydown=e=>{if(e.type==="keydown"&&e.key!=="Enter")return;collect();tab=+b.dataset.tab;draw()});
+ const f=a.querySelector("#f");f.onsubmit=async e=>{e.preventDefault();collect();const fd=new FormData(f);G.note=fd.get("note");G.name=fd.get("name");
+  const stg={...Q.stg};delete stg.note;delete stg.name;const btn=f.querySelector(".send");btn.disabled=true;btn.textContent="جاري الإرسال…";
+  try{const r=await fetch("api/pub/qv",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({t:T,stars,status:statusOf(),stg,note:G.note,name:G.name})});
+   if(!r.ok)throw 0;a.innerHTML=`<div class="card res">✓ تم إرسال التحقق — شكراً لك. انحفظ في عرض السعر ${esc(Q.ref)}.</div>`;scrollTo(0,0)}
+  catch(e){btn.disabled=false;btn.textContent="إرسال التحقق / Submit";alert("تعذّر الإرسال، حاول مرة ثانية")}}}
+(async()=>{const m=document.querySelector("#msg");try{const r=await fetch("api/pub/qv?t="+encodeURIComponent(T));if(!r.ok)throw 0;Q=(await r.json()).q;stars=Q.stars||0;
+  const st=Q.status;tab=st==="won"||st==="lost"?4:st==="s3"?3:st==="s2"||st==="left"?2:1;m.remove();draw()}catch(e){m.textContent="الرابط غير صحيح أو انتهت صلاحيته"}})();
+</script></body></html>
