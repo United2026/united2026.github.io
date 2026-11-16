@@ -508,8 +508,9 @@ const P_MAT=["لوحات Load Center","مراوح شفط","أنظمة تهوية
 const P_KIND=["مول","فلل","شقق","برج","مطعم","مستشفى/مدرسة","أخرى"];
 const P_WHY=["وقت التسليم","وقت عرض السعر","مواصفات وماركات مختلفة","أسعار أعلى منا","سوء تفاهم بيننا وبينه","أخرى"];
 const P_FOLLOW={daily:"يومي — يحتاج المواد خلال 1-20 يوم",weekly:"أسبوعي — خلال شهر إلى 4 أشهر",monthly:"شهري — خلال 4 إلى 7 أشهر"};
-const projList=()=>Object.values(S.proj||{}).filter(p=>{const sc=projScope();if(!sc)return true;return p.by===S.uid||quoteList().some(x=>x.projId===p.id)}).sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||""));
-const quoteList=()=>{const sc=projScope();return Object.values(S.quote||{}).filter(x=>!sc||sc.re.test(x.sales||"")).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.no||0)-(a.no||0))};
+const projList=()=>Object.values(S.proj||{}).filter(p=>{const sc=projScope();if(!sc&&!ownOnly())return true;return p.by===meId()||quoteList().some(x=>x.projId===p.id)}).sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||""));
+const ownOnly=()=>myRole()==="proj_member"&&isIrfan();const meId=()=>S.preview&&S.pvu?S.pvu:S.uid;
+const quoteList=()=>{const sc=projScope(),oo=ownOnly(),me=meId();return Object.values(S.quote||{}).filter(x=>(!sc||sc.re.test(x.sales||""))&&(!oo||x.by===me)).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.no||0)-(a.no||0))};
 /* ----- daily quotations report as an image (layout of the projects team's daily report), shared to WhatsApp ----- */
 /* ----- professional quotation reference: Q26-5120-RUH-AZH-HKH = number - region - salesperson - prepared by ----- */
 const REP_CODE={"صابر علي":"SAB","أزهر علي":"AZH","أحمد باجبير":"ABJ","ثروت عاقوله":"THR","خالد تقلو":"KHT","محمد أحمد":"MAH","زياد البرامي":"ZYB","أحمد الخولي":"AKH","علي صلاح":"ALS","سيد نجف":"SNA","محمود عوني":"MAW","محمد ياسين":"MYS","سالم العويني":"SLW","وليد عاصي":"WAS","رامي العبدلي":"RAB","وليد ماطر":"WMT","عبدالله شولان":"ASH","أحمد عوني":"AAW","محمد فايز":"MFZ","محمد الغالي":"MGH","أحمد أبو السعود":"ASD","حمزة خان":"HKH","رامي إبراهيم":"RIB","أمجد هماس":"AMH","هشام حسين":"HHS","شهاب الدين":"SHB","محمد صلاح":"MSL","أكرم مردس":"AKM","هاشم":"HSH","ندى الحازمي":"NHZ","محمد العطاس":"MAT","مدير المبيعات":"SMG","عرفان":"IRF","Irfan":"IRF","نائب مدير المبيعات":"DSM","Azher Ali Khan":"AZH","Azhar Ali Khan":"AZH","Syed Najaf Abbas":"SNA","Syed Najaf":"SNA","Hamza Khan":"HKH","Shabuddin Mohammed":"SHB","Ziyad Barami":"ZYB","Sabir Khan":"SAB","Muhammad Khizer":"MKZ","Ramy Ibrahim Omran":"RIB","Ahmad Awny":"AAW","Hasham Hussain":"HHS","Muhammad Yaseen":"MYS","Khaled Taqlo":"KHT","Mahmoud Awny":"MAW","Waleed Assy":"WAS","Akram Mordos":"AKM","Nada Mualla Alhazmi":"NHZ","Ahmad Al-Khouly":"AKH","Salem Rezq":"SRZ","Abdullah":"ABD","Mohammed Adel":"MAD","Mahmood":"MAH","Eadh":"EAD"};
@@ -679,10 +680,10 @@ const DOCK={pf:{t:"بروفورما",title:"PROFORMA INVOICE",ar:"فاتورة �
 const SO_ST=[["open","مفتوح","s-info"],["delivered","تم التسليم","s-ok"],["cancelled","ملغي","s-bad"]];
 const PF_ST=[["draft","مسودة","s-info"],["sent","مرسلة","s-warn"],["accepted","مقبولة","s-ok"],["cancelled","ملغية","s-bad"]];
 const stPill=(L,k)=>{const x=L.find(s=>s[0]===k)||L[0];return `<span class="pill ${x[2]}">${x[1]}</span>`};
-const colList=c=>Object.values(S[c]||{}).sort((a,b)=>(b.date||b.createdAt||"").localeCompare(a.date||a.createdAt||""));
+const colList=c=>Object.values(S[c]||{}).filter(x=>!["pf","so","inv2","subm"].includes(c)||!ownOnly()||x.by===meId()).sort((a,b)=>(b.date||b.createdAt||"").localeCompare(a.date||a.createdAt||""));
 const pset=()=>(S.pset||{}).main||{company:{},banks:[],terms:[],cnt:{}};
 const canSet=r=>r==="sales_mgr"||r==="proj_head";
-const fupList=()=>{const sc=projScope();const L=colList("fup");if(!sc)return L;const ok=new Set(quoteList().map(x=>x.id));return L.filter(f=>ok.has(f.qid))};
+const fupList=()=>{const sc=projScope();const L=colList("fup");if(!sc&&!ownOnly())return L;const ok=new Set(quoteList().map(x=>x.id));return L.filter(f=>ok.has(f.qid))};
 const fupOpen=()=>fupList().filter(f=>f.status!=="done");
 const quoteValidTo=q=>addDays(q.date,q.valid||7);
 function pwCss(){if(document.getElementById("pwcss"))return;const st=document.createElement("style");st.id="pwcss";st.textContent=`.pillbtn{background:none;border:0;padding:0;cursor:pointer;font:inherit;white-space:nowrap}.pillbtn:hover .pill{outline:2px solid var(--accent)}a.cvl{color:inherit;text-decoration:underline dotted;text-underline-offset:3px}a.cvl:hover{color:var(--accent)}
@@ -755,7 +756,7 @@ function pwFupHtml(){
 async function addFup(qid,note,next){const id=newId("f");const d={id,qid,note,next:next||"",status:"open",by:S.uid,at:nowIso()};await S.db.doc("fup/"+id).set(d);const q=(S.quote||{})[qid];logAct("fup_add",(q?qRef(q):"")+" — "+note);return d}
 
 /* ---------- documents (proforma / sales order / invoice) ---------- */
-function nextDocNo(k){const D=DOCK[k];const nums=colList(D.col).map(x=>+(String(x.no||"").replace(/\D/g,""))||0);const c=+(pset().cnt||{})[k]||0;return D.pre+String(Math.max(c,...nums,0)+1).padStart(D.dig,"0")}
+function nextDocNo(k){const D=DOCK[k];const nums=Object.values(S[D.col]||{}).map(x=>+(String(x.no||"").replace(/\D/g,""))||0);const c=+(pset().cnt||{})[k]||0;return D.pre+String(Math.max(c,...nums,0)+1).padStart(D.dig,"0")}
 function docFrom(k,src,from){const b=(pset().banks||[]).find(x=>x.def)||(pset().banks||[])[0]||null;
   return {id:newId(k),no:"",k,qid:from==="quote"?src.id:(src.qid||""),qref:from==="quote"?qRef(src):(src.qref||""),srcNo:from!=="quote"?src.no:"",date:todayR(),valid:src.valid||7,customer:src.customer||"",city:src.city||"",country:src.country||"Saudi Arabia",contact:src.contact||"",phone:src.phone||"",email:src.email||"",custCode:src.custCode||"",projName:src.projName||"",address:src.address||"",vat:src.vat||"",cr:src.cr||"",
    items:JSON.parse(JSON.stringify(src.items||[])),disc:src.disc||0,pay:src.pay||"",sales:src.sales||"",notes:"",bank:b,status:k==="so"?"open":k==="pf"?"draft":"",paid:false,poNo:"",delivery:""}}
@@ -840,7 +841,7 @@ function submView(app,n){
   app.querySelectorAll("[data-sadd]").forEach(b=>b.onclick=()=>{keep();s.prods.push(b.dataset.sadd);render()});
   app.querySelectorAll("[data-srm]").forEach(b=>b.onclick=()=>{keep();s.prods.splice(+b.dataset.srm,1);render()});
   app.querySelector("#ssave").onclick=async()=>{keep();if(!s.prods.length){toast("أضف منتج واحد على الأقل");return}const x={...s};delete x._for;const old=(S.subm||{})[s.id];
-    if(!x.no){const n=Math.max(+(pset().cnt||{}).subm||0,...colList("subm").map(y=>+(String(y.no).replace(/\D/g,""))||0),0)+1;x.no="SUB-"+String(n).padStart(4,"0")}if(!old){x.by=S.uid;x.createdAt=nowIso()}x.updatedAt=nowIso();
+    if(!x.no){const n=Math.max(+(pset().cnt||{}).subm||0,...Object.values(S.subm||{}).map(y=>+(String(y.no).replace(/\D/g,""))||0),0)+1;x.no="SUB-"+String(n).padStart(4,"0")}if(!old){x.by=S.uid;x.createdAt=nowIso()}x.updatedAt=nowIso();
     try{await S.db.doc("subm/"+x.id).set(x);S.sdraft=null;toast("تم الحفظ "+x.no);logAct(old?"subm_edit":"subm_add","تقديم "+x.no+" — "+(x.projName||x.customer||""));S.nav[S.nav.length-1]={t:"subm",id:x.id};render()}catch(e){toast("تعذّر الحفظ")}};
   const pdf=app.querySelector("#spdf");if(pdf)pdf.onclick=e=>{keep();const w=app.querySelector("#sdocWrap");
     const pg='class="qpage" dir="ltr" style="position:relative;box-sizing:border-box;width:794px;height:1123px;background:#fff;color:#222;padding:34px 40px 70px;font-family:Helvetica,Arial,sans-serif;font-size:11px;overflow:hidden"';
@@ -911,7 +912,7 @@ function pwSetHtml(role){const ps=pset();const ed=canSet(role);const c=ps.compan
    ${ed?`<div class="row"><button class="btn pri" id="setsave">💾 حفظ الإعدادات</button></div>`:""}`}
 
 /* ---------- workspace shell ---------- */
-function pwCounts(){const t=todayR();return {fup:fupOpen().filter(f=>f.next&&f.next<=t).length,quote:quoteList().length,pf:Object.keys(S.pf||{}).length,so:Object.keys(S.so||{}).length,inv:Object.keys(S.inv2||{}).length,subm:Object.keys(S.subm||{}).length,calc:Object.keys(S.calc||{}).length,prod:Object.keys(S.pprod||{}).length,proj:projList().length}}
+function pwCounts(){const t=todayR();return {fup:fupOpen().filter(f=>f.next&&f.next<=t).length,quote:quoteList().length,pf:colList("pf").length,so:colList("so").length,inv:colList("inv2").length,subm:colList("subm").length,calc:calcList().length,prod:Object.keys(S.pprod||{}).length,proj:projList().length}}
 function pwWire(app,tab,role){
   app.querySelectorAll("[data-pwnav]").forEach(b=>b.onclick=()=>{S.opt={ptab:b.dataset.pwnav};render();window.scrollTo(0,0)});
   app.querySelectorAll("[data-pwgo]").forEach(b=>b.onclick=()=>{S.opt={ptab:b.dataset.pwgo};render()});
@@ -1468,7 +1469,7 @@ const C_HDR=[["to","To / العميل"],["project","Project / المشروع"],[
 const C_HDR_DEF={from:"",fmobile:"+966 55 041 6218",fphone:"+966 55 041 6218",femail:"",ffax:"",fvat:"300046582500003",delivery:"EX-Works, United Factory, Riyadh.",
   dtime:"(To be Agreed) after Final Drawing Approval and Down Payment Receipt.",validity:"2 Week",payment:"50% Advance Payment.\n50% Final Payment Before Delivery.",
   note:"Our scope is limited to supply of material. Installation, Testing & commissioning are not included.",smTitle:"Sales Manager:",smName:"Eng. Mohammed Ali Al-Attas",smMobile:"+966506693115",smEmail:"projects@unitedfactorysa.com"};
-const calcList=()=>Object.values(S.calc||{}).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+const calcList=()=>Object.values(S.calc||{}).filter(c=>!ownOnly()||c.by===meId()).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
 const p2=n=>String(n||0).padStart(2,"0");
 const cRef=c=>`${c.prefix||"RD02"}-${p2(c.series)}-R${p2(c.rev)}`;
 const cNum=v=>{const x=parseFloat(v);return isFinite(x)?x:0};
@@ -1569,7 +1570,7 @@ function calcView(app,n){pwCss();const role=myRole();if(!canCalc(role)){S.nav=[{
   const cp=app.querySelector("#cpdf");if(cp)cp.onclick=e=>vecSave(()=>calcPdfBlob(src),"Calculation Sheet "+src.csno,e.currentTarget);
   app.querySelector("#csave").onclick=async e=>{const btn=e.currentTarget;if(!S.db||S.offline){toast("الحفظ يعمل بعد تسجيل الدخول");return}
     if(!(c.panels||[]).length){toast("أضف لوحة واحدة على الأقل");return}if((c.panels||[]).some(p=>!String(p.name||"").trim())){toast("اكتب اسم كل لوحة (Panel Name)");return}
-    btn.disabled=true;try{const all=calcList(),yy=String(c.date||todayR()).slice(2,4),pre=String(c.prefix||"RD02").trim()||"RD02";
+    btn.disabled=true;try{const all=Object.values(S.calc||{}),yy=String(c.date||todayR()).slice(2,4),pre=String(c.prefix||"RD02").trim()||"RD02";
       let no=Math.max(0,...all.filter(x=>x.yy===yy).map(x=>x.no||0))+1;while(S.calc["cs"+yy+"_"+no])no++;
       let series=c.series,rev=0;const same=all.filter(x=>(x.prefix||"RD02")===pre);
       if(series&&same.some(x=>x.series===series))rev=Math.max(...same.filter(x=>x.series===series).map(x=>x.rev||0))+1;else series=Math.max(0,...same.map(x=>x.series||0))+1;
