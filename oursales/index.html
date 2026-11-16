@@ -1906,6 +1906,7 @@ function targetsDaily(uid,date,role){
 const AGR_FAM=[["tab","الطبلون (لوحات التوزيع)",[5,10]],["steel","المراوح الحديدية",[5,10]],["plastic","المراوح البلاستيكية",[5,10,15]],["new","البضائع الجديدة (ستائر هوائية، مضخات، مراوح أسقف وتوربين)",[5,10]]];
 const AGR_ST={draft:["مسودة","s-done"],pending:["بانتظار موافقة مدير المبيعات","s-warn"],mgr_no:["مرفوضة من المدير","s-bad"],approved:["معتمدة — جاهزة للإرسال للعميل","s-info"],accepted:["وافق العميل","s-ok"],declined:["العميل ما وافق","s-bad"]};
 const agrPill=s=>{const x=AGR_ST[s]||AGR_ST.draft;return `<span class="pill ${x[1]}">${x[0]}</span>`};
+const agrOdooTgt=cid=>+((S.D&&S.D.ctgt)||{})[String(cid)]||0;
 const agrList=()=>Object.values(S.agr||{}).sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||""));
 const VER_BASE="https://oursales-sak2.onrender.com/verify.html?t=";
 function verifyDialog(q,link){const d=document.createElement("dialog");d.style.cssText="max-width:560px;width:calc(100% - 24px)";const ph=String(q.phone||"").replace(/\D/g,"").replace(/^0/,"966");
@@ -1935,7 +1936,7 @@ function agrView(app,n){
   const role=myRole();if(!canAgr(role)){S.nav=[{t:"home"}];return render()}
   const isNew=n.id==="new";const y=new Date(Date.now()+3*3600e3).getUTCFullYear();
   const a=isNew?(S.adraft&&S.adraft._for===n.cid?S.adraft:(S.adraft={_for:n.cid,id:newId("a"),cid:n.cid,cname:n.cname||"",rep:n.rep||"",status:"draft",year:y,date:todayR(),p2:{name:n.cname||"",city:((S.cust[String(n.cid)]||{}).region)||((S.D.cinfo||{})[n.cid]||{}).city||"",title:"المدير العام"},
-      tiers:[{amt:"",pct:5,type:"goods"},{amt:"",pct:4,type:"goods"},{amt:"",pct:3,type:"goods"},{amt:"",pct:2,type:"goods"}],payDays:60,credit:"",creditWords:"",disc:{tab:10,steel:10,plastic:15,new:""},bonusBy:(y+1)+"-01-29",from:y+"-01-01",to:y+"-12-31",notice:90,hist:[]}))
+      tiers:[{amt:agrOdooTgt(n.cid)||"",pct:5,type:"goods",...(agrOdooTgt(n.cid)?{src:"odoo"}:{})},{amt:"",pct:4,type:"goods"},{amt:"",pct:3,type:"goods"},{amt:"",pct:2,type:"goods"}],payDays:60,credit:"",creditWords:"",disc:{tab:10,steel:10,plastic:15,new:""},bonusBy:(y+1)+"-01-29",from:y+"-01-01",to:y+"-12-31",notice:90,hist:[]}))
     :(S.agr||{})[n.id];
   if(!a){app.innerHTML='<div class="empty">الاتفاقية غير موجودة</div>';return}
   const mine=a.by===S.uid||isNew;const mgr=role==="sales_mgr";const editable=(isNew||(mine&&["draft","mgr_no"].includes(a.status))||mgr&&a.status==="pending");
@@ -1946,9 +1947,10 @@ function agrView(app,n){
    ${a.custAt?`<div class="card" style="border-color:${a.status==="accepted"?"var(--ok)":"var(--bad)"}"><b>رد العميل (${esc(tmFmt(a.custAt))}):</b> ${a.status==="accepted"?"✅ موافق":"❌ غير موافق"}${a.custName?` — ${esc(a.custName)}`:""}${a.custNote?`<div style="white-space:pre-wrap;margin-top:4px">${esc(a.custNote)}</div>`:""}</div>`:""}
    <div class="card"><h2 style="margin-top:0">الأطراف والتاريخ</h2><div class="grid2">${I("year","الاتفاقية لعام",a.year,"number")}${I("date","تاريخ الاتفاقية",a.date,"date")}
      ${I("p2.name","الطرف الثاني (اسم المؤسسة كما في السجل)",a.p2.name)}${I("p2.city","عنوان الطرف الثاني (المدينة)",a.p2.city)}${I("p2.title","صفة الموقّع من الطرف الثاني",a.p2.title)}</div></div>
-   <div class="card"><h2 style="margin-top:0">الأهداف والبونص (مايخص الطرف الثاني)</h2><p class="small muted" style="margin-top:0">المبالغ تُكتب يدوياً، غير شاملة الضريبة. البونص بشرط سداد كامل الرصيد.</p>
+   <div class="card"><h2 style="margin-top:0">الأهداف والبونص (مايخص الطرف الثاني)</h2><p class="small muted" style="margin-top:0">المبالغ غير شاملة الضريبة. البونص بشرط سداد كامل الرصيد.</p>
+     ${(()=>{const og=agrOdooTgt(a.cid);return `<div class="alertbar" style="margin-bottom:8px">🎯 هدف العميل المرسوم في النظام: <b>${og?fmt(og)+" ريال":"لا يوجد هدف مرسوم — اكتب الهدف يدوياً"}</b>${og&&editable?` <button class="btn sm" id="useodoo">↺ استخدم هدف النظام في المستوى 1</button>`:""}</div>`})()}
      <div class="tbl"><table><thead><tr><th>#</th><th>مبلغ الهدف (ريال)</th><th>نسبة البونص</th><th>نوع البونص</th><th></th></tr></thead><tbody>
-     ${a.tiers.map((t,i)=>`<tr><td>${i+1}</td><td><input type="number" data-t="${i}" data-tk="amt" value="${esc(t.amt)}" ${editable?"":"disabled"} style="width:140px"></td>
+     ${a.tiers.map((t,i)=>`<tr><td>${i+1}</td><td><input type="number" data-t="${i}" data-tk="amt" value="${esc(t.amt)}" ${editable?"":"disabled"} style="width:140px"> <span class="small muted" data-tsrc="${i}">${t.amt===""||t.amt==null?"":t.src==="odoo"&&+t.amt===agrOdooTgt(a.cid)?"🎯 من النظام":"✍️ يدوي"}</span></td>
       <td><select data-t="${i}" data-tk="pct" ${editable?"":"disabled"}>${[1,2,3,4,5].map(p=>`<option value="${p}" ${+t.pct===p?"selected":""}>${p}%</option>`).join("")}</select></td>
       <td><select data-t="${i}" data-tk="type" ${editable?"":"disabled"}><option value="goods" ${t.type==="goods"?"selected":""}>بضاعة</option><option value="cash" ${t.type==="cash"?"selected":""}>نقداً</option></select></td>
       <td>${editable&&a.tiers.length>1?`<button class="btn sm bad" data-tdel="${i}">حذف</button>`:""}</td></tr>`).join("")}</tbody></table></div>
@@ -1974,7 +1976,8 @@ function agrView(app,n){
     if(!d.by){d.by=S.uid;d.createdAt=d.updatedAt}if(!d.no)d.no=Math.max(0,...agrList().map(x=>x.no||0))+1;
     d.hist=[...(a.hist||[]),{at:nowIso(),by:S.uid,t:msg}];
     try{await S.db.doc("agr/"+d.id).set(d);S.adraft=null;toast("تم");logAct("agr",agrNo(d)+" "+d.cname+" — "+msg,{cid:String(d.cid),cname:d.cname});if(isNew)S.nav[S.nav.length-1]={t:"agr",id:d.id};render();return true}catch(e){toast("تعذّر الحفظ");return false}};
-  app.querySelectorAll("[data-t],[data-k],[data-d]").forEach(i=>i.onchange=()=>keep());
+  app.querySelectorAll("[data-t],[data-k],[data-d]").forEach(i=>i.onchange=()=>{keep();if(i.dataset.tk==="amt"){const t=a.tiers[+i.dataset.t];if(t.src==="odoo"&&+t.amt!==agrOdooTgt(a.cid))t.src="";const sp=app.querySelector(`[data-tsrc="${i.dataset.t}"]`);if(sp)sp.textContent=t.amt===""?"":t.src==="odoo"?"🎯 من النظام":"✍️ يدوي"}});
+  const uo=app.querySelector("#useodoo");if(uo)uo.onclick=()=>{keep();a.tiers[0]={...a.tiers[0],amt:agrOdooTgt(a.cid),src:"odoo"};const y=scrollY;render();scrollTo(0,y)};
   const ta=app.querySelector("#tadd2");if(ta)ta.onclick=()=>{keep();a.tiers.push({amt:"",pct:1,type:"goods"});render()};
   app.querySelectorAll("[data-tdel]").forEach(b=>b.onclick=()=>{keep();a.tiers.splice(+b.dataset.tdel,1);render()});
   const b1=app.querySelector("#asave");if(b1)b1.onclick=()=>save(mgr&&a.status==="pending"?"pending":"draft",mgr&&a.status==="pending"?"تعديل من مدير المبيعات":"حفظ مسودة");
