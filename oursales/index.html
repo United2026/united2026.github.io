@@ -251,7 +251,7 @@ function back(i){S.nav=S.nav.slice(0,i+1);S.opt={};render();window.scrollTo(0,0)
 const PB={1:"RI",25:"RI",64:"RI",30:"JE",36:"JE",31:"KH",32:"DA",35:"DA",27:"SA",28:"TA",29:"MA",26:"QA"};
 const prodOf=b=>S.prod?(S.prod.items||[]).filter(x=>PB[x.branch]===b):(S.D.branches[b].prod||[]);
 const brLabel=b=>(b==="DP"?"":"فرع ")+S.D.branches[b].name;
-const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة":" "+((S[(DOCK[n.k]||{}).col]||{})[n.id]||{}).no):n.t==="subm"?(n.id==="new"?"تقديم جديد":"تقديم"):n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="branches"?"الفروع":"";
+const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة":" "+((S[(DOCK[n.k]||{}).col]||{})[n.id]||{}).no):n.t==="subm"?(n.id==="new"?"تقديم جديد":"تقديم"):n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="calc"?(n.id==="new"?"Calculation Sheet جديد":"Calculation Sheet "+(((S.calc||{})[n.id]||{}).csno||"")):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="branches"?"الفروع":"";
 
 /* ---------- boot ---------- */
 async function boot(){
@@ -272,7 +272,7 @@ async function boot(){
   db.collection("log").onSnapshot(s=>{S.log=s.docs.map(d=>d.data());render()},()=>{});
   db.collection("proj").onSnapshot(s=>{S.proj={};s.docs.forEach(d=>S.proj[d.id]={id:d.id,...d.data()});render()},()=>{});
   db.collection("quote").onSnapshot(s=>{S.quote={};s.docs.forEach(d=>S.quote[d.id]={id:d.id,...d.data()});render()},()=>{});
-  ["pcust","pprod","fup","pf","so","inv2","subm","pset"].forEach(c=>db.collection(c).onSnapshot(s=>{S[c]={};s.docs.forEach(d=>S[c][d.id]={id:d.id,...d.data()});render()},()=>{}));
+  ["pcust","pprod","fup","pf","so","inv2","subm","pset","calc"].forEach(c=>db.collection(c).onSnapshot(s=>{S[c]={};s.docs.forEach(d=>S[c][d.id]={id:d.id,...d.data()});render()},()=>{}));
   db.collection("agr").onSnapshot(s=>{S.agr={};s.docs.forEach(d=>S.agr[d.id]={id:d.id,...d.data()});render()},()=>{});
   db.collection("tgt").onSnapshot(s=>{S.tgt={};s.docs.forEach(d=>S.tgt[d.id]=d.data());render()},()=>{});
   db.collection("wplan").onSnapshot(s=>{S.wplan={};s.docs.forEach(d=>S.wplan[d.id]={id:d.id,...d.data()});render()},()=>{});
@@ -314,7 +314,7 @@ function render(){const _a=document.getElementById("app");if(_a)_a.oninput=null;
   if(["projects","proj","quote","pdoc","subm"].includes(n.t)&&!canProj(role)||["forecast","exports"].includes(n.t)&&role!=="sales_mgr"){S.nav=[{t:"home"}];return render()}
   const ok=allowedBranches();
   if((n.t==="branch"&&!ok.includes(n.id))||(n.t==="rep"&&!ok.includes(brOf(n.id)))||(n.t==="items"&&!ok.includes(n.scope.t==="rep"?brOf(n.scope.id):n.scope.id))||(n.t==="area"&&!areasFor(role).includes(n.id))){S.nav=[{t:"home"}];return render()}
-  ({agrs:agrsView,agr:agrView,sales:salesView,projects:projectsView,proj:projView,quote:quoteView,pdoc:pdocView,subm:submView,forecast:forecastView,exports:exportsView,targets:targetsView,daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
+  ({agrs:agrsView,agr:agrView,sales:salesView,projects:projectsView,proj:projView,quote:quoteView,calc:calcView,pdoc:pdocView,subm:submView,forecast:forecastView,exports:exportsView,targets:targetsView,daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
 }
 
 /* ---------- join ---------- */
@@ -672,7 +672,7 @@ function wirePcharts(app){
   [["#cmem","cmem"],["#crep","crep"]].forEach(([q,k])=>{const e=app.querySelector(q);if(e)e.onchange=()=>{S.opt[k]=e.value;render()}});
 }
 /* ===== projects workspace: dashboard, follow-ups, proformas, sales orders, invoices, submittals, customers, products, settings ===== */
-const PW_NAV=[["over","🏠","نظرة عامة"],["quote","🧾","عروض الأسعار"],["fup","⏰","المتابعات"],["pf","📄","البروفورما"],["so","📦","أوامر البيع"],["inv","🧮","الفواتير"],["subm","📚","التقديمات"],["cust","👤","العملاء"],["prod","🏷️","المنتجات والكتالوجات"],["proj","🏗️","المشاريع"],["rep","📑","تقارير العروض"],["dqr","📅","التقرير اليومي للعروض"],["charts","📈","الرسومات"],["team","👥","الفريق"],["set","⚙️","الإعدادات"]];
+const PW_NAV=[["over","🏠","نظرة عامة"],["quote","🧾","عروض الأسعار"],["calc","🧮","Calculation Sheet"],["fup","⏰","المتابعات"],["pf","📄","البروفورما"],["so","📦","أوامر البيع"],["inv","🧮","الفواتير"],["subm","📚","التقديمات"],["cust","👤","العملاء"],["prod","🏷️","المنتجات والكتالوجات"],["proj","🏗️","المشاريع"],["rep","📑","تقارير العروض"],["dqr","📅","التقرير اليومي للعروض"],["charts","📈","الرسومات"],["team","👥","الفريق"],["set","⚙️","الإعدادات"]];
 const DOCK={pf:{t:"بروفورما",title:"PROFORMA INVOICE",ar:"فاتورة مبدئية",pre:"UNS",dig:6,col:"pf"},so:{t:"أمر بيع",title:"SALES ORDER",ar:"أمر بيع",pre:"SO",dig:4,col:"so"},inv:{t:"فاتورة",title:"TAX INVOICE",ar:"فاتورة ضريبية",pre:"INV",dig:5,col:"inv2"}};
 const SO_ST=[["open","مفتوح","s-info"],["delivered","تم التسليم","s-ok"],["cancelled","ملغي","s-bad"]];
 const PF_ST=[["draft","مسودة","s-info"],["sent","مرسلة","s-warn"],["accepted","مقبولة","s-ok"],["cancelled","ملغية","s-bad"]];
@@ -909,7 +909,7 @@ function pwSetHtml(role){const ps=pset();const ed=canSet(role);const c=ps.compan
    ${ed?`<div class="row"><button class="btn pri" id="setsave">💾 حفظ الإعدادات</button></div>`:""}`}
 
 /* ---------- workspace shell ---------- */
-function pwCounts(){const t=todayR();return {fup:fupOpen().filter(f=>f.next&&f.next<=t).length,quote:quoteList().length,pf:Object.keys(S.pf||{}).length,so:Object.keys(S.so||{}).length,inv:Object.keys(S.inv2||{}).length,subm:Object.keys(S.subm||{}).length,prod:Object.keys(S.pprod||{}).length,proj:projList().length}}
+function pwCounts(){const t=todayR();return {fup:fupOpen().filter(f=>f.next&&f.next<=t).length,quote:quoteList().length,pf:Object.keys(S.pf||{}).length,so:Object.keys(S.so||{}).length,inv:Object.keys(S.inv2||{}).length,subm:Object.keys(S.subm||{}).length,calc:Object.keys(S.calc||{}).length,prod:Object.keys(S.pprod||{}).length,proj:projList().length}}
 function pwWire(app,tab,role){
   app.querySelectorAll("[data-pwnav]").forEach(b=>b.onclick=()=>{S.opt={ptab:b.dataset.pwnav};render();window.scrollTo(0,0)});
   app.querySelectorAll("[data-pwgo]").forEach(b=>b.onclick=()=>{S.opt={ptab:b.dataset.pwgo};render()});
@@ -1003,8 +1003,9 @@ function projectsView(app){
   else if(tab==="prod")body=pwProdHtml();
   else if(tab==="set")body=pwSetHtml(role);
   else if(tab==="dqr")body=dqrHtml();
+  else if(tab==="calc"&&canCalc(role))body=calcListHtml(role);
   else body=quoteReportHtml();
-  const cnt=pwCounts();const nav=PW_NAV.filter(([k])=>(k!=="team"||canTeam(role))&&(k!=="set"||canSet(role)||isProj(role))&&(!projScope()||!["pf","so","inv","subm","team","set"].includes(k)));const cur=(PW_NAV.find(x=>x[0]===tab)||PW_NAV[0]);
+  const cnt=pwCounts();const nav=PW_NAV.filter(([k])=>(k!=="calc"||canCalc(role))&&(k!=="team"||canTeam(role))&&(k!=="set"||canSet(role)||isProj(role))&&(!projScope()||!["pf","so","inv","subm","team","set"].includes(k)));const cur=(PW_NAV.find(x=>x[0]===tab)||PW_NAV[0]);
   app.innerHTML=`<div class="pw"><nav class="pw-side" aria-label="أقسام المشاريع"><div class="brand"><img src="img/logo.png" style="height:26px;background:#fff;border-radius:6px;padding:2px 4px"><div><b>المشاريع</b><br><span>United · Projects</span></div></div>
      ${nav.map(([k,ic,l])=>`<button data-pwnav="${k}" ${tab===k?'aria-current="page"':""}><span>${ic}</span><span>${l}</span>${k==="fup"&&cnt.fup?`<span class="cnt hot">${cnt.fup}</span>`:cnt[k]?`<span class="cnt">${cnt[k]}</span>`:""}</button>`).join("")}</nav>
     <div class="pw-main"><div class="pw-head"><h1>${cur[1]} ${cur[2]}</h1>${tab==="over"?`<button class="btn pri" data-pwq="1">＋ عرض سعر جديد</button>`:""}${isProj(role)?`<label class="f">اليوم<input type="date" id="qdd0" value="${esc(S.opt.qdd||todayR())}" max="${todayR()}"></label><button class="btn" id="qday0" style="align-self:flex-end">📸 تقرير اليوم</button>`:""}</div>
@@ -1028,6 +1029,7 @@ function projectsView(app){
   const pn=app.querySelector("#pnew");if(pn)pn.onclick=()=>go({t:"proj",id:"new"});
   const qn=app.querySelector("#qnew");if(qn)qn.onclick=()=>go({t:"quote",id:"new"});
   if(tab==="rep")wireQuoteReport(app);
+  if(tab==="calc")wireCalcList(app);
   if(tab==="team"&&canTeam(role))wireTeam(app);
   if(tab==="charts")wirePcharts(app);
   const qd0=app.querySelector("#qdd0");if(qd0)qd0.onchange=()=>{S.opt.qdd=qd0.value};
@@ -1196,7 +1198,7 @@ function quoteView(app,n){pwCss();
     S.qdraft=src?JSON.parse(JSON.stringify(src)):{id:newId("q"),date:todayR(),valid:7,status:pj?pj.status:"s1",projId:pj?pj.id:"",projName:pj?pj.name:"",customer:pj?pj.contractor||"":"",city:pj?(pj.location||"").split(/[-–،,]/)[0].trim():"",country:"Saudi Arabia",contact:ct.name||"",phone:ct.phone||"",email:"",custCode:"",pay:"100% Advance",sales:(projScope()||{}).name||"",pm:"",items:[],disc:0,notes:""};
     S.qdraft._for=n.id;if(!src&&!S.qdraft.inq)S.qdraft.inq=nextInq(S.uid);
   }
-  const q=S.qdraft;const T=qTotal(q);const isNew=n.id==="new";const src=S.opt.qsrc||"stock";const qs=(S.opt.qs||"").trim().toLowerCase();
+  const q=S.qdraft;const T=qTotal(q);const isNew=n.id==="new";const src=isIrfan()&&myRole()==="proj_member"?"mdb":(S.opt.qsrc||"stock");const qs=(S.opt.qs||"").trim().toLowerCase();
   const cat=(S.D.qcat||[]);const hits=src==="stock"&&qs?cat.filter(c=>(c[1]+" "+c[2]).toLowerCase().includes(qs)).slice(0,30):[];
   const I=(id,l,v,t="text",x="")=>`<label class="f">${l}<input id="${id}" type="${t}" value="${esc(v??"")}" ${x}></label>`;
   app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin-inline-end:auto">${isNew?"عرض سعر جديد":"عرض سعر "+esc(qRef(q))}</h1>
@@ -1219,7 +1221,7 @@ function quoteView(app,n){pwCss();
      <label class="f">ملاحظات إضافية تطلع في العرض<textarea id="qnotes" rows="2">${esc(q.notes||"")}</textarea></label>
      <p class="small muted" style="margin:0">صالح حتى: ${fd(addDays(q.date,q.valid))} · الشروط والأحكام والضمان تنضاف تلقائياً في الصفحة الثانية.</p></div>
    <div class="card"><h2 style="margin-top:0">إضافة مواد</h2>
-     <div class="seg">${Q_SRC.map(([k,l])=>`<button data-qsrc="${k}" aria-pressed="${src===k}">${l}</button>`).join("")}</div>
+     <div class="seg">${Q_SRC.filter(([k])=>!(isIrfan()&&myRole()==="proj_member")||k==="mdb").map(([k,l])=>`<button data-qsrc="${k}" aria-pressed="${src===k}">${l}</button>`).join("")}</div>
      ${src==="cat"?(()=>{const P=colList("pprod");const cq=(S.opt.qcq||"").toLowerCase();const H=cq?P.filter(p=>(p.code+" "+p.desc+" "+p.cat).toLowerCase().includes(cq)).slice(0,40):[];return `<input type="search" id="qcq" placeholder="ابحث في ${P.length} منتج بالكود أو الوصف" value="${esc(S.opt.qcq||"")}" style="margin-top:8px">
        ${H.length?`<div class="tbl" style="max-height:300px;overflow:auto"><table><tbody>${H.map(p=>`<tr><td class="ltr"><b>${esc(p.code)}</b></td><td>${esc(p.desc)}</td><td>${fmt(p.price,2)}</td><td><input type="number" value="1" min="0" step="any" data-cq="${esc(p.id)}" style="width:70px"></td><td><button class="btn sm pri" data-cadd="${esc(p.id)}">＋</button></td></tr>`).join("")}</tbody></table></div>`:cq?'<div class="small muted">لا توجد نتائج</div>':""}`})()
      :src==="stock"?ucPicker()
@@ -1449,6 +1451,191 @@ async function dqrPdfBlob(){const L=await vecLibs();const d=vecNew(L);const {d1,
   vecFoot(d);return d.output("blob")}
 async function vecSave(blobP,name,btn,share,txt,phone){await busy(btn,async()=>{const blob=await blobP();const fn=fname(String(name))+".pdf";
   if(share)await shareFile(new File([blob],fn,{type:"application/pdf"}),txt||name,phone);else{await saveBlob(blob,fn);toast("تم تنزيل ملف PDF")}})}
+
+const CALC_TMPL={"project":"RFQ FOR DB AND MDB (VILLA A CLUSTER)","ref":"RD02-08-R01","panels":[{"name":"DB-GF-A","qty":1,"rows":[{"sec":"MAIN INCOMER"},{"ref":"ABN103c-75A","desc":"MCCB 3P 75A 22KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":194.4,"df":0.55},{"sec":"OUTGOING"},{"ref":"BKN-b 1P 10A","desc":"MCB 10A 1P 10KA/400V  C Curve","unit":"Nos.","qty":8,"mfr":"LS","net":21.13,"df":0.55},{"ref":"BKN-b 1P 20A","desc":"MCB 20A 1P 10KA/400V  C Curve","unit":"Nos.","qty":10,"mfr":"LS","net":21.13,"df":0.55},{"ref":"BKN-b 1P 32A","desc":"MCB 32A 1P 10KA/400V  C Curve","unit":"Nos.","qty":5,"mfr":"LS","net":21.13,"df":0.55},{"ref":"RKS-B-1P+N-20A-30mA","desc":"RCBO MCB FRAME  20A 1P+N 30mA C CURVE","unit":"Nos.","qty":7,"mfr":"LS","net":169.29,"df":0.55},{"ref":"BKN-b 3P 20A","desc":"MCB 20A 3P 10KA/400V  C Curve","unit":"Nos.","qty":2,"mfr":"LS","net":66.8,"df":0.55},{"ref":"PAN ASSEMBLY","desc":"DIN RAIL PAN ASSEMBLY 70A  N+E STRIP (36 WAYS)","unit":"Nos.","qty":1,"mfr":"COPPER","net":0,"df":1},{"sec":"ENCLOSURE"},{"ref":"ENCLOSURE","desc":"Indoor Recessed DB (36 ways), IP42, Form 1, Flush Mounted Enclosure\n*I/C: Bottom.\n*O/G: Up and Bottom.\n*1.2 mm thickness\nAccess: Front. (Please Specify the dimensions like length, width and depth)","unit":"Nos.","qty":1,"mfr":"DISBO","net":0,"df":1}],"acc":50,"lab":40.0,"pro":45.0,"type":"DB"},{"name":"DB-FF-A","qty":1,"rows":[{"sec":"MAIN INCOMER"},{"ref":"ABN103c-50A","desc":"MCCB 3P 50A 22KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":194.4,"df":0.55},{"sec":"OUTGOING"},{"ref":"BKN-b 1P 10A","desc":"MCB 10A 1P 10KA/400V  C Curve","unit":"Nos.","qty":8,"mfr":"LS","net":21.13,"df":0.55},{"ref":"BKN-b 1P 20A","desc":"MCB 20A 1P 10KA/400V  C Curve","unit":"Nos.","qty":10,"mfr":"LS","net":21.13,"df":0.55},{"ref":"BKN-b 1P 32A","desc":"MCB 32A 1P 10KA/400V  C Curve","unit":"Nos.","qty":5,"mfr":"LS","net":21.13,"df":0.55},{"ref":"RKS-B-1P+N-20A-30mA","desc":"RCBO MCB FRAME  20A 1P+N 30mA C CURVE","unit":"Nos.","qty":7,"mfr":"LS","net":169.29,"df":0.55},{"ref":"PAN ASSEMBLY","desc":"DIN RAIL PAN ASSEMBLY 50A  N+E STRIP (36 WAYS)","unit":"Nos.","qty":1,"mfr":"COPPER","net":0,"df":1},{"sec":"ENCLOSURE"},{"ref":"ENCLOSURE","desc":"Indoor Recessed DB (36 ways), IP42, Form 1, Flush Mounted Enclosure\n*I/C: Bottom.\n*O/G: Up and Bottom.\n*1.2 mm thickness\nAccess: Front. (Please Specify the dimensions like length, width and depth)","unit":"Nos.","qty":1,"mfr":"DISBO","net":0,"df":1}],"acc":50,"lab":40.0,"pro":45.0,"type":"DB"},{"name":"DB-GF-B","qty":1,"rows":[{"sec":"MAIN INCOMER"},{"ref":"ABN103c-75A","desc":"MCCB 3P 75A 22KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":194.4,"df":0.55},{"sec":"OUTGOING"},{"ref":"BKN-b 1P 10A","desc":"MCB 10A 1P 10KA/400V  C Curve","unit":"Nos.","qty":8,"mfr":"LS","net":21.13,"df":0.55},{"ref":"BKN-b 1P 20A","desc":"MCB 20A 1P 10KA/400V  C Curve","unit":"Nos.","qty":10,"mfr":"LS","net":21.13,"df":0.55},{"ref":"BKN-b 1P 32A","desc":"MCB 32A 1P 10KA/400V  C Curve","unit":"Nos.","qty":5,"mfr":"LS","net":21.13,"df":0.55},{"ref":"RKS-B-1P+N-20A-30mA","desc":"RCBO MCB FRAME  20A 1P+N 30mA C CURVE","unit":"Nos.","qty":7,"mfr":"LS","net":169.29,"df":0.55},{"ref":"BKN-b 3P 20A","desc":"MCB 20A 3P 10KA/400V  C Curve","unit":"Nos.","qty":2,"mfr":"LS","net":66.8,"df":0.55},{"ref":"PAN ASSEMBLY","desc":"DIN RAIL PAN ASSEMBLY 70A  N+E STRIP (36 WAYS)","unit":"Nos.","qty":1,"mfr":"COPPER","net":0,"df":1},{"sec":"ENCLOSURE"},{"ref":"ENCLOSURE","desc":"Indoor Recessed DB (36 ways), IP42, Form 1, Flush Mounted Enclosure\n*I/C: Bottom.\n*O/G: Up and Bottom.\n*1.2 mm thickness\nAccess: Front. (Please Specify the dimensions like length, width and depth)","unit":"Nos.","qty":1,"mfr":"LOCAL","net":0,"df":1}],"acc":50,"lab":40.0,"pro":45.0,"type":"DB"},{"name":"DB-FF-B","qty":1,"rows":[{"sec":"MAIN INCOMER"},{"ref":"ABN103c-40A","desc":"MCCB 3P 40A 22KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":194.4,"df":0.55},{"sec":"OUTGOING"},{"ref":"BKN-b 1P 10A","desc":"MCB 10A 1P 10KA/400V  C Curve","unit":"Nos.","qty":8,"mfr":"LS","net":21.13,"df":0.55},{"ref":"BKN-b 1P 20A","desc":"MCB 20A 1P 10KA/400V  C Curve","unit":"Nos.","qty":10,"mfr":"LS","net":21.13,"df":0.55},{"ref":"BKN-b 1P 32A","desc":"MCB 32A 1P 10KA/400V  C Curve","unit":"Nos.","qty":5,"mfr":"LS","net":21.13,"df":0.55},{"ref":"RKS-B-1P+N-20A-30mA","desc":"RCBO MCB FRAME  20A 1P+N 30mA C CURVE","unit":"Nos.","qty":7,"mfr":"LS","net":169.29,"df":0.55},{"ref":"PAN ASSEMBLY","desc":"DIN RAIL PAN ASSEMBLY 40A  N+E STRIP (36 WAYS)","unit":"Nos.","qty":1,"mfr":"COPPER","net":0,"df":1},{"sec":"ENCLOSURE"},{"ref":"ENCLOSURE","desc":"Indoor Recessed DB (24 ways), IP42, Form 1, Flush Mounted Enclosure\n*I/C: Bottom.\n*O/G: Up and Bottom.\n*1.2 mm thickness\nAccess: Front. (Please Specify the dimensions like length, width and depth)","unit":"Nos.","qty":1,"mfr":"LOCAL","net":0,"df":1}],"acc":50,"lab":40.0,"pro":45.0,"type":"DB"},{"name":"MDB-A","qty":1,"rows":[{"sec":"MAIN INCOMER"},{"ref":"TS160N ATU 3P 160A","desc":"MCCB 160A 3P 50KA/400V Thermal Magnetic Adj.","unit":"Nos.","qty":1,"mfr":"LS","net":708.13,"df":0.55},{"sec":"ACCESSORIES"},{"ref":"P.L","desc":"PILOT LIGHT 230V AC, 60 Hz (RYB)","unit":"Nos.","qty":3,"mfr":"SCHNEIDER","net":11,"df":1},{"ref":"BKJ63 1P 6A","desc":"MCB 6A 1P 6KA/400V  C Curve","unit":"Nos.","qty":3,"mfr":"LS","net":15.12,"df":0.55},{"sec":"OUTGOING"},{"ref":"ABS103C-FMU-80A","desc":"MCCB 3P 80A Thermal Adj. 37KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":383.4,"df":0.55},{"ref":"ABS103C-FMU-63A","desc":"MCCB 3P 63A Thermal Adj. 37KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":383.4,"df":0.55},{"ref":"ABS103C-FMU-50A","desc":"MCCB 3P 50A Thermal Adj. 37KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":383.4,"df":0.55},{"ref":"ABS103C-FMU-50A","desc":"MCCB 3P 50A Thermal Adj. 37KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":383.4,"df":0.55},{"ref":"BUSBAR","desc":"Tin Plated Copper,  200A@1.56A/mmsq. 3Phase + N=1/2Phase + E=1/2(N)","unit":"Lot","qty":1,"mfr":"99.9% \nConductivity","net":0,"df":1},{"ref":"","desc":"BUSBAR 200A (1X20X10)mm","unit":"Meter","qty":2.5,"mfr":"COPPER","net":335,"df":1,"lot":1},{"ref":"","desc":"BUSBAR 100A (1X20x5)mm","unit":"Meter","qty":1,"mfr":"COPPER","net":66,"df":1,"lot":1},{"sec":"ENCLOSURE"},{"ref":"ENCLOSURE","desc":"IP66 IK10 CA Plain door W/mount plate 800HX600WX200D mm\n*I/C: Bottom.\n*O/G: Bottom.\nAccess: Front.","unit":"Nos.","qty":1,"mfr":"LOCAL","net":110,"df":1}],"acc":100,"lab":45.0,"pro":40.0,"type":"MDB"},{"name":"MDB-B","qty":1,"rows":[{"sec":"MAIN INCOMER"},{"ref":"TS160N FMU 3P 100A","desc":"MCCB 100A 3P 50KA/400V Thermal Adj.","unit":"Nos.","qty":1,"mfr":"LS","net":675.86,"df":0.55},{"sec":"ACCESSORIES"},{"ref":"P.L","desc":"PILOT LIGHT 230V AC, 60 Hz (RYB)","unit":"Nos.","qty":3,"mfr":"SCHNEIDER","net":11,"df":1},{"ref":"BKJ63 1P 6A","desc":"MCB 6A 1P 6KA/400V  C Curve","unit":"Nos.","qty":3,"mfr":"LS","net":15.12,"df":0.55},{"sec":"OUTGOING"},{"ref":"ABS103C-FMU-80A","desc":"MCCB 3P 80A Thermal Adj. 37KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":383.4,"df":0.55},{"ref":"ABS103C-FMU-63A","desc":"MCCB 3P 63A Thermal Adj. 37KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":383.4,"df":0.55},{"ref":"ABS103C-FMU-50A","desc":"MCCB 3P 50A Thermal Adj. 37KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":383.4,"df":0.55},{"ref":"ABS103C-FMU-50A","desc":"MCCB 3P 50A Thermal Adj. 37KA/380V 55DEGREE","unit":"Nos.","qty":1,"mfr":"LS","net":383.4,"df":0.55},{"ref":"BUSBAR","desc":"Tin Plated Copper,  200A@1.56A/mmsq. 3Phase + N=1/2Phase + E=1/2(N)","unit":"Lot","qty":1,"mfr":"99.9% \nConductivity","net":0,"df":1},{"ref":"","desc":"BUSBAR 200A (1X20X10)mm","unit":"Meter","qty":2.5,"mfr":"COPPER","net":335,"df":1,"lot":1},{"ref":"","desc":"BUSBAR 100A (1X20x5)mm","unit":"Meter","qty":1,"mfr":"COPPER","net":66,"df":1,"lot":1},{"sec":"ENCLOSURE"},{"ref":"ENCLOSURE","desc":"IP66 IK10 CA Plain door W/mount plate 800HX600WX200D mm\n*I/C: Bottom.\n*O/G: Bottom.\nAccess: Front.","unit":"Nos.","qty":1,"mfr":"LOCAL","net":110,"df":1}],"acc":100,"lab":45.0,"pro":40.0,"type":"MDB"}]};
+/* ===== Calculation Sheet (RD02 layout) + fixed Offer Letter — projects (عرفان، نجف، مدير المبيعات) =====
+   every save = a new record with a new sheet number (CS26-0001) and a new offer ref (RD02-08-R01); saved records never change */
+const isIrfan=u=>/عرفان|irfan/i.test(pname(u||S.uid)||"");
+const canCalc=r=>r==="sales_mgr"||r==="proj_head"||(r==="proj_member"&&isIrfan(S.uid));
+const C_SEC=["MAIN INCOMER","OUTGOING","ACCESSORIES","BUSBAR","PAN ASSEMBLY","ENCLOSURE"];
+const C_TYPE={DB:{acc:50,lab:40,pro:45},MDB:{acc:100,lab:45,pro:40}};
+const C_HDR=[["to","To / العميل"],["project","Project / المشروع"],["attn","Attn / عناية"],["mobile","Mobile / جوال العميل"],["email","Email / إيميل العميل"],["vat","VAT # / الرقم الضريبي للعميل"],
+  ["from","From / من"],["fmobile","Mobile (United)"],["fphone","Phone (United)"],["femail","Email (United)"],["ffax","Fax (United)"],["fvat","VAT # (United)"],
+  ["delivery","Delivery Address / مكان التسليم"],["dtime","Delivery Time / مدة التوريد"],["validity","Quotation Validity / صلاحية العرض"],["payment","Payment Terms / شروط الدفع"],
+  ["note","Note / ملاحظة"],["smTitle","Signature title"],["smName","Signature name"],["smMobile","Signature mobile"],["smEmail","Signature email"]];
+const C_HDR_DEF={from:"",fmobile:"+966 55 041 6218",fphone:"+966 55 041 6218",femail:"",ffax:"",fvat:"300046582500003",delivery:"EX-Works, United Factory, Riyadh.",
+  dtime:"(To be Agreed) after Final Drawing Approval and Down Payment Receipt.",validity:"2 Week",payment:"50% Advance Payment.\n50% Final Payment Before Delivery.",
+  note:"Our scope is limited to supply of material. Installation, Testing & commissioning are not included.",smTitle:"Sales Manager:",smName:"Eng. Mohammed Ali Al-Attas",smMobile:"+966506693115",smEmail:"projects@unitedfactorysa.com"};
+const calcList=()=>Object.values(S.calc||{}).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+const p2=n=>String(n||0).padStart(2,"0");
+const cRef=c=>`${c.prefix||"RD02"}-${p2(c.series)}-R${p2(c.rev)}`;
+const cNum=v=>{const x=parseFloat(v);return isFinite(x)?x:0};
+const cRowG=x=>x.sec?0:(x.lot?1:cNum(x.qty))*cNum(x.net)*(x.df===""||x.df==null?1:cNum(x.df));
+const cPan=p=>{const items=sum((p.rows||[]).map(cRowG)),tot=items+cNum(p.acc),lab=tot*cNum(p.lab)/100,pro=tot*cNum(p.pro)/100;return {items,tot,lab,twl:tot+lab,pro,net:tot+lab+pro}};
+const cRound=(v,r)=>r>0?Math.ceil(v/r-1e-9)*r:Math.round(v*100)/100;
+function cPrices(c){const list=(c.panels||[]).map((p,i)=>{const u=cRound(cPan(p).net,cNum(c.round));const q=cNum(p.qty)||1;return {n:i+1,name:p.name||"",uom:"Each",qty:q,unit:u,total:u*q}});
+  const tot=sum(list.map(x=>x.total)),vat=Math.round(tot*.15*100)/100;return {list,tot,vat,net:tot+vat}}
+const cNewPanel=(t="MDB",name="")=>({name,qty:1,type:t,...C_TYPE[t],rows:C_SEC.map(s=>({sec:s}))});
+function cBlank(){const h={...C_HDR_DEF,from:isIrfan()?"Irfan":(myName()||"")};return {date:todayR(),prefix:"RD02",round:1,notes:"",hdr:h,panels:[cNewPanel("MDB","MDB-A")]}}
+const cFromTmpl=()=>{const t=JSON.parse(JSON.stringify(CALC_TMPL));const c=cBlank();c.hdr.project=t.project;c.panels=t.panels;return c};
+function cOfferSnap(c){const P=cPrices(c);return {ref:cRef(c),rev:p2(c.rev),date:c.date,hdr:JSON.parse(JSON.stringify(c.hdr||{})),list:P.list,tot:P.tot,vat:P.vat,net:P.net,
+  tech:(c.panels||[]).map(p=>({name:p.name,qty:cNum(p.qty)||1,rows:(p.rows||[]).map(r=>r.sec?{sec:r.sec}:{ref:r.ref||"",desc:r.desc||"",unit:r.unit||"",qty:r.qty,mfr:r.mfr||""})}))}}
+
+/* list (projects tab) */
+function calcListHtml(role){const q=(S.opt.cq||"").trim().toLowerCase(),by=S.opt.cby||"";let L=calcList();
+  const bys=[...new Set(L.map(c=>c.by))];if(by)L=L.filter(c=>c.by===by);if(q)L=L.filter(c=>[c.csno,cRef(c),c.hdr&&c.hdr.project,c.hdr&&c.hdr.to].join(" ").toLowerCase().includes(q));
+  const tot=sum(L.map(c=>(c.offer||{}).tot||0));
+  return `<div class="row"><button class="btn pri" id="cnew">＋ Calculation Sheet جديد</button><button class="btn" id="cnewt" title="نموذج RD02-08 (6 لوحات) تعدّل عليه">📋 جديد من نموذج RD02</button>
+     <input type="search" id="cq" placeholder="ابحث برقم الحساب أو رقم العرض أو المشروع أو العميل" value="${esc(S.opt.cq||"")}" style="flex:1;min-width:180px">
+     ${bys.length>1?`<label class="f">أعدّه<select id="cby"><option value="">الكل</option>${bys.map(u=>`<option value="${esc(u)}" ${by===u?"selected":""}>${esc(pname(u))}</option>`).join("")}</select></label>`:""}</div>
+   <p class="small muted" style="margin:4px 0 10px">كل حفظ يتسجّل برقم جديد ولا يتغيّر بعدها. أيقونة «🧮 الحساب» تفتح ورقة الحساب وتقدر تعدّل عليها، ولما تحفظ يطلع رقم حساب جديد ومراجعة جديدة للعرض (R01، R02…). أيقونة «📄 عرض السعر» تنزّل عرض السعر بصيغة الوورد كما حُفظ. ${L.length} سجل · ${fmt(tot,2)} قبل الضريبة</p>
+   ${L.length?`<div class="tbl"><table><thead><tr><th></th><th>رقم الحساب</th><th>رقم العرض</th><th>التاريخ</th><th>المشروع</th><th>العميل</th><th>اللوحات</th><th>قبل الضريبة</th><th>شامل الضريبة</th><th>أعدّه</th><th>وقت الحفظ</th></tr></thead><tbody>
+    ${L.map(c=>{const o=c.offer||{};return `<tr><td style="white-space:nowrap"><button class="btn sm" data-copen="${esc(c.id)}">🧮 الحساب</button> <button class="btn sm pri" data-coffer="${esc(c.id)}">📄 عرض السعر</button></td><td><b class="ltr">${esc(c.csno)}</b></td><td><b class="ltr">${esc(cRef(c))}</b>${c.parent&&S.calc[c.parent]?`<div class="small muted ltr">↩ ${esc(S.calc[c.parent].csno)}</div>`:""}</td><td>${fd(c.date)}</td><td>${esc((c.hdr||{}).project||"")}</td><td>${esc((c.hdr||{}).to||"")}</td><td>${(c.panels||[]).length}</td><td>${fmt(o.tot,2)}</td><td><b>${fmt(o.net,2)}</b></td><td>${esc(pname(c.by))}</td><td class="small">${esc(tmFmt(c.createdAt))}</td></tr>`}).join("")}</tbody></table></div>`
+   :`<div class="empty">لا توجد أوراق حساب بعد. اضغط «＋ Calculation Sheet جديد».</div>`}`}
+function wireCalcList(app){
+  const nw=app.querySelector("#cnew");if(nw)nw.onclick=()=>go({t:"calc",id:"new"});
+  const nt=app.querySelector("#cnewt");if(nt)nt.onclick=()=>go({t:"calc",id:"new",tmpl:1});
+  const cq=app.querySelector("#cq");if(cq)cq.onchange=()=>{S.opt.cq=cq.value;render()};
+  const cb=app.querySelector("#cby");if(cb)cb.onchange=()=>{S.opt.cby=cb.value;render()};
+  app.querySelectorAll("[data-copen]").forEach(b=>b.onclick=()=>go({t:"calc",id:b.dataset.copen}));
+  app.querySelectorAll("[data-coffer]").forEach(b=>b.onclick=e=>{const c=S.calc[b.dataset.coffer];vecSave(()=>offerPdfBlob(c),"Offer "+cRef(c),e.currentTarget)})}
+
+/* editor */
+function calcView(app,n){pwCss();const role=myRole();if(!canCalc(role)){S.nav=[{t:"home"}];return render()}
+  const key="cdraft:"+n.id;
+  if(!S.cdraft||S.cdraft._for!==n.id+(n.tmpl?"t":"")){const src=n.id==="new"?null:(S.calc||{})[n.id];
+    if(n.id!=="new"&&!src){app.innerHTML='<div class="empty">ورقة الحساب غير موجودة</div>';return}
+    let saved=null;try{saved=JSON.parse(localStorage.getItem(key)||"null")}catch(e){}
+    if(saved&&!n.tmpl){S.cdraft=saved;setTimeout(()=>toast("رجّعت لك التعديلات اللي ما انحفظت"),300)}
+    else S.cdraft=src?JSON.parse(JSON.stringify({date:src.date,prefix:src.prefix,round:src.round,notes:src.notes||"",hdr:src.hdr,panels:src.panels,series:src.series,base:src.id})):(n.tmpl?cFromTmpl():cBlank());
+    S.cdraft._for=n.id+(n.tmpl?"t":"")}
+  const c=S.cdraft,src=n.id==="new"?null:S.calc[n.id];const keep=()=>{try{localStorage.setItem(key,JSON.stringify(c))}catch(e){}};
+  const inp=(a,v,w,t="text",x="")=>`<input ${a} value="${esc(v==null?"":v)}" type="${t}" ${t==="number"?'step="any" inputmode="decimal"':""} style="width:${w}" ${x}>`;
+  const H=c.hdr=c.hdr||{};
+  app.innerHTML=`<div class="pw-main" style="max-width:1300px;margin:auto">
+   <div class="pw-head"><h1>🧮 Calculation Sheet ${src?`<span class="ltr">${esc(src.csno)}</span> · <span class="ltr small">${esc(cRef(src))}</span>`:"جديد"}</h1>
+    <button class="btn pri" id="csave">💾 حفظ برقم جديد</button>${src?`<button class="btn" id="coff">📄 عرض السعر ${esc(cRef(src))}</button><button class="btn" id="cpdf">🖨️ PDF الحساب</button>`:""}<button class="btn" id="cdisc">↺ تجاهل التعديلات</button></div>
+   ${src?`<p class="small muted">هذا السجل محفوظ ولا يتغيّر. أي تعديل هنا ينحفظ كسجل جديد برقم حساب جديد ومراجعة جديدة للعرض (${esc(c.prefix||"RD02")}-${p2(src.series)}-R..).</p>`:""}
+   <div class="card"><div class="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+     <label class="f">التاريخ / Date${inp('data-ck="date"',c.date,"100%","date")}</label>
+     <label class="f">بادئة الرقم / Ref prefix${inp('data-ck="prefix" dir="ltr"',c.prefix,"100%")}</label>
+     <label class="f">PROJECT NAME${inp('data-ch="project" dir="ltr"',H.project,"100%")}</label>
+     <label class="f">العميل / To${inp('data-ch="to" dir="ltr"',H.to,"100%")}</label>
+     <label class="f">تقريب سعر الوحدة في العرض<select data-ck="round"><option value="0" ${!cNum(c.round)?"selected":""}>بدون تقريب</option><option value="1" ${cNum(c.round)===1?"selected":""}>لأعلى ريال</option><option value="10" ${cNum(c.round)===10?"selected":""}>لأعلى 10 ريال</option></select></label></div>
+    <label class="f">Notes For Project Estimation/Revision<textarea data-ck="notes" rows="2" dir="ltr">${esc(c.notes||"")}</textarea></label>
+    <details style="margin-top:6px"><summary><b>بيانات عرض السعر (تطلع في العرض)</b></summary><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin-top:8px">
+      ${C_HDR.filter(([k])=>k!=="project"&&k!=="to").map(([k,l])=>["payment","note","dtime"].includes(k)?`<label class="f">${l}<textarea data-ch="${k}" rows="2" dir="ltr">${esc(H[k]||"")}</textarea></label>`:`<label class="f">${l}${inp(`data-ch="${k}" dir="ltr"`,H[k],"100%")}</label>`).join("")}</div></details></div>
+   ${(c.panels||[]).map((p,pi)=>{const T=cPan(p);return `<div class="card" style="padding:10px">
+     <div class="row" style="align-items:flex-end;gap:8px"><b style="font-size:18px">${pi+1}</b>
+      <label class="f">Panel Name${inp(`data-pf="name" data-p="${pi}" dir="ltr"`,p.name,"150px")}</label><label class="f">QTY${inp(`data-pf="qty" data-p="${pi}"`,p.qty,"60px","number")}</label>
+      <label class="f">النوع<select data-ptype="${pi}"><option ${p.type==="DB"?"selected":""}>DB</option><option ${p.type!=="DB"?"selected":""}>MDB</option></select></label>
+      <label class="f">Acc+cab${inp(`data-pf="acc" data-p="${pi}"`,p.acc,"70px","number")}</label><label class="f">LABOUR %${inp(`data-pf="lab" data-p="${pi}"`,p.lab,"60px","number")}</label><label class="f">PROFIT %${inp(`data-pf="pro" data-p="${pi}"`,p.pro,"60px","number")}</label>
+      <span style="margin-inline-start:auto"></span><button class="btn sm" data-pa="up" data-p="${pi}" title="لفوق">▲</button><button class="btn sm" data-pa="dup" data-p="${pi}">⧉ نسخ اللوحة</button><button class="btn sm bad" data-pa="del" data-p="${pi}">✕ حذف اللوحة</button></div>
+     <div class="tbl" dir="ltr" style="margin-top:6px"><table class="ctab"><thead><tr><th>Ref. No.</th><th>Description</th><th>Unit</th><th>Qty</th><th>Manufacturer</th><th>Net Price [SAR]</th><th>DF%</th><th title="السعر إجمالي للسطر بدون ضرب الكمية (مثل الباسبار)">Lot</th><th>Gross Price [SAR]</th><th></th></tr></thead><tbody>
+      ${(p.rows||[]).map((r,ri)=>r.sec?`<tr style="background:#F2E6E6"><td colspan="9"><select data-rsec="${pi}_${ri}" style="font-weight:700">${C_SEC.concat(C_SEC.includes(r.sec)?[]:[r.sec]).map(s=>`<option ${s===r.sec?"selected":""}>${esc(s)}</option>`).join("")}</select>
+          <button class="btn sm" data-ra="add" data-p="${pi}" data-r="${ri}">＋ صنف تحت ${esc(r.sec)}</button></td><td style="white-space:nowrap"><button class="btn sm" data-ra="up" data-p="${pi}" data-r="${ri}">▲</button><button class="btn sm" data-ra="del" data-p="${pi}" data-r="${ri}">✕</button></td></tr>`
+       :`<tr><td>${inp(`data-rf="ref" data-p="${pi}" data-r="${ri}" dir="ltr"`,r.ref,"130px")}</td><td><textarea data-rf="desc" data-p="${pi}" data-r="${ri}" dir="ltr" rows="${Math.min(5,(r.desc||"").split("\n").length)}" style="width:280px">${esc(r.desc||"")}</textarea></td>
+         <td>${inp(`data-rf="unit" data-p="${pi}" data-r="${ri}" dir="ltr"`,r.unit,"58px")}</td><td>${inp(`data-rf="qty" data-p="${pi}" data-r="${ri}"`,r.qty,"58px","number")}</td><td>${inp(`data-rf="mfr" data-p="${pi}" data-r="${ri}" dir="ltr"`,r.mfr,"90px")}</td>
+         <td>${inp(`data-rf="net" data-p="${pi}" data-r="${ri}"`,r.net,"82px","number")}</td><td>${inp(`data-rf="df" data-p="${pi}" data-r="${ri}"`,r.df,"56px","number")}</td><td><input type="checkbox" data-rlot="${pi}_${ri}" ${r.lot?"checked":""}></td>
+         <td class="ltr" data-out="g${pi}_${ri}"><b>${vnum(cRowG(r))}</b></td><td style="white-space:nowrap"><button class="btn sm" data-ra="up" data-p="${pi}" data-r="${ri}">▲</button><button class="btn sm" data-ra="cp" data-p="${pi}" data-r="${ri}" title="نسخ السطر">⧉</button><button class="btn sm" data-ra="del" data-p="${pi}" data-r="${ri}">✕</button></td></tr>`).join("")}
+      </tbody><tfoot>${[["Acc+cab","acc"],["TOTAL=","tot"],[`LABOUR@${cNum(p.lab)}%`,"lab"],["Total with labour=","twl"],[`PROFIT @${cNum(p.pro)}%=`,"pro"],["NET TOTAL =","net"],["سعر الوحدة في العرض","unit"]].map(([l,k])=>`<tr><td colspan="8" style="text-align:left;font-weight:700" class="ltr">${l}</td><td class="ltr" data-out="${k}${pi}" style="font-weight:700${k==="net"?";background:#7B0D0D;color:#fff":""}">${vnum(k==="acc"?cNum(p.acc):k==="unit"?cRound(T.net,cNum(c.round)):T[k])}</td><td></td></tr>`).join("")}</tfoot></table></div>
+     <div class="row"><button class="btn sm" data-ra="addend" data-p="${pi}">＋ صنف</button><button class="btn sm" data-ra="sec" data-p="${pi}">＋ قسم</button></div></div>`}).join("")}
+   <div class="row"><button class="btn" id="cpadd" data-t="MDB">＋ لوحة MDB</button><button class="btn" id="cpaddb">＋ لوحة DB</button></div>
+   <div class="card"><h2 style="margin-top:0">Panels List Prices</h2><div class="tbl" dir="ltr"><table><thead><tr><th>#</th><th>Description</th><th>UOM</th><th>Qty</th><th>Unit Price (SAR)</th><th>Total Price (SAR)</th></tr></thead><tbody id="cplist"></tbody></table></div></div>
+  </div>`;
+  const refresh=()=>{const P=cPrices(c);(c.panels||[]).forEach((p,pi)=>{const T=cPan(p);(p.rows||[]).forEach((r,ri)=>{const e=app.querySelector(`[data-out="g${pi}_${ri}"]`);if(e)e.innerHTML="<b>"+vnum(cRowG(r))+"</b>"});
+      ["tot","lab","twl","pro","net"].forEach(k=>{const e=app.querySelector(`[data-out="${k}${pi}"]`);if(e)e.textContent=vnum(T[k])});const a=app.querySelector(`[data-out="acc${pi}"]`);if(a)a.textContent=vnum(cNum(p.acc));const u=app.querySelector(`[data-out="unit${pi}"]`);if(u)u.textContent=vnum(P.list[pi].unit)});
+    app.querySelector("#cplist").innerHTML=P.list.map(x=>`<tr><td>${x.n}</td><td class="ltr">${esc(x.name)}</td><td>Each</td><td>${x.qty}</td><td class="ltr">${vnum(x.unit)}</td><td class="ltr">${vnum(x.total)}</td></tr>`).join("")
+      +`<tr><td colspan="5" class="ltr" style="text-align:right"><b>Total Discounted Price (SAR)</b></td><td class="ltr"><b>${vnum(P.tot)}</b></td></tr><tr><td colspan="5" class="ltr" style="text-align:right"><b>15% VAT (SAR)</b></td><td class="ltr"><b>${vnum(P.vat)}</b></td></tr><tr><td colspan="5" class="ltr" style="text-align:right"><b>Net Total Price (SAR)</b></td><td class="ltr" style="background:#7B0D0D;color:#fff"><b>${vnum(P.net)}</b></td></tr>`};
+  refresh();
+  const redraw=()=>{keep();const y=scrollY;render();scrollTo(0,y)};
+  app.oninput=e=>{const t=e.target,d=t.dataset;if(d.ck){c[d.ck]=t.value}else if(d.ch){H[d.ch]=t.value}else if(d.pf){c.panels[+d.p][d.pf]=t.value}else if(d.rf){c.panels[+d.p].rows[+d.r][d.rf]=t.value}else return;keep();refresh()};
+  app.querySelectorAll("[data-ck='round']").forEach(s=>s.onchange=()=>{c.round=+s.value;keep();refresh()});
+  app.querySelectorAll("[data-pf='lab'],[data-pf='pro']").forEach(s=>s.onchange=redraw);
+  app.querySelectorAll("[data-ptype]").forEach(s=>s.onchange=()=>{const p=c.panels[+s.dataset.ptype];p.type=s.value;Object.assign(p,C_TYPE[s.value]);redraw()});
+  app.querySelectorAll("[data-rsec]").forEach(s=>s.onchange=()=>{const [pi,ri]=s.dataset.rsec.split("_");c.panels[pi].rows[ri].sec=s.value;keep()});
+  app.querySelectorAll("[data-rlot]").forEach(s=>s.onchange=()=>{const [pi,ri]=s.dataset.rlot.split("_");c.panels[pi].rows[ri].lot=s.checked?1:0;keep();refresh()});
+  app.querySelectorAll("[data-pa]").forEach(b=>b.onclick=()=>{const i=+b.dataset.p,P=c.panels;
+    if(b.dataset.pa==="del"){if(!confirm("حذف اللوحة "+(P[i].name||i+1)+"؟"))return;P.splice(i,1)}else if(b.dataset.pa==="dup")P.splice(i+1,0,{...JSON.parse(JSON.stringify(P[i])),name:(P[i].name||"")+" (2)"});else if(b.dataset.pa==="up"&&i>0)[P[i-1],P[i]]=[P[i],P[i-1]];redraw()});
+  app.querySelectorAll("[data-ra]").forEach(b=>b.onclick=()=>{const p=c.panels[+b.dataset.p],R=p.rows,i=+b.dataset.r,a=b.dataset.ra;const blank={ref:"",desc:"",unit:"Nos.",qty:1,mfr:"",net:0,df:p.type==="DB"?0.55:0.55};
+    if(a==="add"){let j=i+1;while(j<R.length&&!R[j].sec)j++;R.splice(j,0,blank)}else if(a==="addend")R.push(blank);else if(a==="sec"){const s=prompt("اسم القسم",C_SEC[0]);if(!s)return;R.push({sec:s.toUpperCase()})}
+    else if(a==="del")R.splice(i,1);else if(a==="cp")R.splice(i+1,0,JSON.parse(JSON.stringify(R[i])));else if(a==="up"&&i>0)[R[i-1],R[i]]=[R[i],R[i-1]];redraw()});
+  app.querySelector("#cpadd").onclick=()=>{c.panels.push(cNewPanel("MDB","MDB-"+String.fromCharCode(65+c.panels.filter(p=>p.type!=="DB").length)));redraw()};
+  app.querySelector("#cpaddb").onclick=()=>{c.panels.push(cNewPanel("DB","DB-"+(c.panels.length+1)));redraw()};
+  app.querySelector("#cdisc").onclick=()=>{if(!confirm("تجاهل كل التعديلات اللي ما انحفظت؟"))return;try{localStorage.removeItem(key)}catch(e){}S.cdraft=null;render()};
+  const of=app.querySelector("#coff");if(of)of.onclick=e=>vecSave(()=>offerPdfBlob(src),"Offer "+cRef(src),e.currentTarget);
+  const cp=app.querySelector("#cpdf");if(cp)cp.onclick=e=>vecSave(()=>calcPdfBlob(src),"Calculation Sheet "+src.csno,e.currentTarget);
+  app.querySelector("#csave").onclick=async e=>{const btn=e.currentTarget;if(!S.db||S.offline){toast("الحفظ يعمل بعد تسجيل الدخول");return}
+    if(!(c.panels||[]).length){toast("أضف لوحة واحدة على الأقل");return}if((c.panels||[]).some(p=>!String(p.name||"").trim())){toast("اكتب اسم كل لوحة (Panel Name)");return}
+    btn.disabled=true;try{const all=calcList(),yy=String(c.date||todayR()).slice(2,4),pre=String(c.prefix||"RD02").trim()||"RD02";
+      let no=Math.max(0,...all.filter(x=>x.yy===yy).map(x=>x.no||0))+1;while(S.calc["cs"+yy+"_"+no])no++;
+      let series=c.series,rev=0;const same=all.filter(x=>(x.prefix||"RD02")===pre);
+      if(series&&same.some(x=>x.series===series))rev=Math.max(...same.filter(x=>x.series===series).map(x=>x.rev||0))+1;else series=Math.max(0,...same.map(x=>x.series||0))+1;
+      const id="cs"+yy+"_"+no;const now=new Date().toISOString();
+      const rec={id,yy,no,csno:"CS"+yy+"-"+String(no).padStart(4,"0"),prefix:pre,series,rev,date:c.date||todayR(),round:cNum(c.round),notes:c.notes||"",hdr:JSON.parse(JSON.stringify(H)),
+        panels:JSON.parse(JSON.stringify(c.panels)),parent:c.base||"",by:S.uid,createdAt:now};
+      rec.offer=cOfferSnap(rec);await S.db.doc("calc/"+id).set(rec);S.calc[id]=rec;
+      logAct("quote",`Calculation Sheet ${rec.csno} — عرض ${cRef(rec)} — ${H.project||""} — ${vnum(rec.offer.tot)} SAR`);
+      try{localStorage.removeItem(key)}catch(e){}S.cdraft=null;toast(`انحفظ: ${rec.csno} · العرض ${cRef(rec)}`);S.nav[S.nav.length-1]={t:"calc",id};render();scrollTo(0,0)}
+    catch(err){toast("تعذّر الحفظ");btn.disabled=false}};
+}
+
+/* offer letter PDF — same layout as RD02-R01-OFFER_LETTER.docx, built from the snapshot saved with the record */
+let _rdi=null;
+function rdImgs(){if(_rdi)return _rdi;const ld=u=>new Promise((ok,no)=>{const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{const c=document.createElement("canvas");c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext("2d").drawImage(im,0,0);ok({d:c.toDataURL("image/jpeg",.92),w:im.naturalWidth,h:im.naturalHeight})};im.onerror=no;im.src=u});
+  _rdi=Promise.all([ld("img/rd_logo.jpg"),ld("img/rd_brands.jpg")]).then(([logo,brands])=>({logo,brands})).catch(e=>{_rdi=null;throw e});return _rdi}
+function rdFrame(d,I){const n=d.getNumberOfPages();for(let p=1;p<=n;p++){d.setPage(p);const h=56,w=I.logo.w/I.logo.h*h;d.addImage(I.logo.d,"JPEG",VM,16,w,h);
+  vfont(d,8.5,"bold");["United Electrical Supplies Factory Co","2584-Al Kharj Rd - 2Nd Industrial","","City: Riyadh (SA) - Saudi Arabia","VAT Number: 300046582500003"].forEach((t,i)=>t&&d.text(t,VPW-VM,26+i*10.5,{align:"right"}));
+  const bw=VPW-2*VM,bh=I.brands.h/I.brands.w*bw;d.addImage(I.brands.d,"JPEG",VM,VPH-bh-14,bw,bh)}}
+const dmy=s=>s?s.slice(8,10)+"/"+s.slice(5,7)+"/"+s.slice(0,4):"";
+async function offerPdfBlob(c){const [L,I]=await Promise.all([vecLibs(),rdImgs()]);const d=vecNew(L);const o=c.offer||cOfferSnap(c),H=o.hdr||{};const M={left:VM,right:VM,top:92,bottom:70};
+  const title=(t,y)=>{vfont(d,12,"bold");d.text(t,VPW/2,y,{align:"center"});const w=d.getTextWidth(t);d.setDrawColor(...VC.dark);d.setLineWidth(.7);d.line(VPW/2-w/2,y+2,VPW/2+w/2,y+2)};
+  let y=104;title("Sales Quotation",y);
+  const lab=t=>({content:t,styles:{fontStyle:"normal"}});
+  vAT(d,{startY:y+12,margin:M,styles:{font:"DV",fontSize:8.5,cellPadding:4,lineColor:VC.line,lineWidth:.5,textColor:VC.dark,valign:"middle"},
+    columnStyles:{0:{cellWidth:82},1:{cellWidth:178},2:{cellWidth:90}},
+    body:[[lab("Date :"),dmy(o.date)+"        Revision No :  "+o.rev,lab("Offer Ref :"),o.ref],[lab("CUSTOMER DETAILS :"),"",lab("United Factory :"),""],
+      [lab("To:"),H.to||"",lab("From :"),H.from||""],[lab("Project :"),H.project||"",lab("Mobile :"),H.fmobile||""],[lab("Attn :"),H.attn||"",lab("Email :"),H.femail||""],
+      [lab("Mobile :"),H.mobile||"",lab("Phone :"),H.fphone||""],[lab("Email :"),H.email||"",lab("Fax :"),H.ffax||""],[lab("VAT # :"),H.vat||"",lab("VAT # :"),H.fvat||""],
+      [lab("Delivery Address :"),H.delivery||"",lab("Delivery Time :"),H.dtime||""],[lab("Quotation Validity :"),H.validity||"",lab("Payment Terms :"),H.payment||""]]});
+  y=d.lastAutoTable.finalY+18;const W=VPW-2*VM;
+  if(H.note){vfont(d,9,"bold");d.text("Note:",VM,y);vfont(d,8.5);const ls=d.splitTextToSize(H.note,W-34);d.text(ls,VM+34,y);y+=ls.length*11+10}
+  vfont(d,9,"bold");d.text("Dear Sir,",VM,y);y+=18;vfont(d,9);
+  let ls=d.splitTextToSize("            We are pleased to submit to you, our best offer for the above-mentioned project. We trust that you'll find it most competitive and in line with your requirement.",W);d.text(ls,VM,y);y+=ls.length*11.5+10;
+  d.text("If you need any clarification or information, please don't hesitate to contact us.",VM,y);y+=22;
+  if(H.smName){vfont(d,9,"bold",[192,0,0]);d.text(H.smTitle||"Sales Manager:",VM,y);y+=12;vfont(d,9,"bold");d.text(H.smName,VM,y);y+=12;if(H.smMobile){d.text("Mobile: "+H.smMobile,VM,y);y+=12}
+    if(H.smEmail){d.text("Email: ",VM,y);const x=VM+d.getTextWidth("Email: ");vfont(d,9,"normal",[5,99,193]);d.text(H.smEmail,x,y);d.setDrawColor(5,99,193);d.line(x,y+1.5,x+d.getTextWidth(H.smEmail),y+1.5);y+=12}}
+  y+=16;if(y>VPH-180){d.addPage();y=104}title("Panels List Prices",y);
+  const R=(t,b)=>({content:t,styles:{halign:"right",...(b?{fontStyle:"bold"}:{})}});
+  vAT(d,{startY:y+10,margin:M,showHead:"everyPage",styles:{font:"DV",fontSize:8.5,cellPadding:4,lineColor:VC.line,lineWidth:.5,textColor:VC.dark,halign:"center"},headStyles:{halign:"center",fillColor:[255,255,255],textColor:VC.dark,fontStyle:"bold",lineColor:VC.line,lineWidth:.5},
+    head:[["Item\nNo.","Description","UOM","Qty.","Unit Price\n(SAR)","Total Price\n(SAR)"]],
+    body:o.list.map(x=>[String(x.n),{content:x.name,styles:{halign:"left"}},x.uom||"Each",String(x.qty),vnum(x.unit),vnum(x.total)]),
+    foot:[[{content:"Total Discounted Price (SAR)",colSpan:5,styles:{halign:"right"}},vnum(o.tot)],[{content:"15% VAT (SAR)",colSpan:5,styles:{halign:"right"}},vnum(o.vat)],[{content:"Net Total Price (SAR)",colSpan:5,styles:{halign:"right"}},vnum(o.net)]],
+    footStyles:{fillColor:[255,255,255],textColor:VC.dark,fontStyle:"bold",halign:"center",lineColor:VC.line,lineWidth:.5},showFoot:"lastPage",columnStyles:{0:{cellWidth:40},2:{cellWidth:50},3:{cellWidth:40},4:{cellWidth:85},5:{cellWidth:85}}});
+  d.addPage();y=104;title("Technical Details",y);y+=14;
+  o.tech.forEach((p,i)=>{if(y>VPH-150){d.addPage();y=100}
+    const body=[];p.rows.forEach(r=>{if(r.sec)body.push([{content:r.sec,colSpan:5,styles:{fontStyle:"bold",halign:"left",fillColor:[242,242,242]}}]);else body.push([r.ref,{content:r.desc,styles:{halign:"left"}},r.unit,r.qty==null?"":String(r.qty),r.mfr])});
+    vAT(d,{startY:y,margin:M,showHead:"firstPage",styles:{font:"DV",fontSize:8,cellPadding:3.5,lineColor:VC.line,lineWidth:.5,textColor:VC.dark,halign:"center"},
+      head:[[{content:String(i+1),styles:{fillColor:[230,230,230]}},{content:"Panel Name     "+p.name,colSpan:2,styles:{halign:"left",fillColor:[230,230,230]}},{content:"QTY:  "+p.qty,colSpan:2,styles:{fillColor:[230,230,230]}}],["Ref. No.","Description","Unit","Qty","Manufacturer"]],
+      body,columnStyles:{0:{cellWidth:95},2:{cellWidth:42},3:{cellWidth:38},4:{cellWidth:78}}});y=d.lastAutoTable.finalY+16});
+  rdFrame(d,I);return d.output("blob")}
+
+/* calculation sheet PDF (internal) */
+async function calcPdfBlob(c){const [L,I]=await Promise.all([vecLibs(),rdImgs()]);const d=vecNew(L);const M={left:VM,right:VM,top:92,bottom:70};
+  let y=100;vfont(d,13,"bold");d.text("CALCULATION SHEET  "+c.csno,VM,y);vfont(d,9);d.text("Ref: "+cRef(c)+"     Date: "+dmy(c.date),VPW-VM,y,{align:"right"});y+=14;
+  d.text("PROJECT NAME: "+((c.hdr||{}).project||""),VM,y);y+=12;if(c.notes){const ls=d.splitTextToSize("Notes: "+c.notes,VPW-2*VM);d.text(ls,VM,y);y+=ls.length*11}
+  (c.panels||[]).forEach((p,i)=>{const T=cPan(p);if(y>VPH-160){d.addPage();y=100}
+    const body=(p.rows||[]).map(r=>r.sec?[{content:r.sec,colSpan:8,styles:{fontStyle:"bold",fillColor:[242,230,230]}}]:[r.ref||"",r.desc||"",r.unit||"",String(r.qty==null?"":r.qty),r.mfr||"",vnum(r.net),String(r.df==null||r.df===""?1:r.df),{content:vnum(cRowG(r))+(r.lot?" *":""),styles:{halign:"right"}}]);
+    const f=(l,v,b)=>[{content:l,colSpan:7,styles:{halign:"right"}},{content:vnum(v),styles:{halign:"right",...(b?{fillColor:VC.red,textColor:[255,255,255]}:{})}}];
+    vAT(d,{startY:y+6,margin:M,showHead:"firstPage",styles:{font:"DV",fontSize:7.6,cellPadding:3,lineColor:VC.line,lineWidth:.5,textColor:VC.dark},
+      head:[[{content:String(i+1)+"   Panel Name: "+p.name+"   QTY: "+p.qty+"   ("+(p.type||"")+")",colSpan:8,styles:{fillColor:[230,230,230]}}],["Ref. No.","Description","Unit","Qty","Manufacturer","Net Price","DF%","Gross Price"]],
+      body,foot:[f("Acc+cab",cNum(p.acc)),f("TOTAL=",T.tot),f(`LABOUR@${cNum(p.lab)}%`,T.lab),f("Total with labour=",T.twl),f(`PROFIT @${cNum(p.pro)}%=`,T.pro),f("NET TOTAL =",T.net,1)],showFoot:"lastPage",
+      footStyles:{fillColor:[255,255,255],textColor:VC.dark,fontStyle:"bold",lineColor:VC.line,lineWidth:.5},columnStyles:{0:{cellWidth:78},2:{cellWidth:34},3:{cellWidth:30},4:{cellWidth:58},5:{cellWidth:50},6:{cellWidth:30},7:{cellWidth:60}}});y=d.lastAutoTable.finalY+12});
+  const o=c.offer||cOfferSnap(c);if(y>VPH-200){d.addPage();y=100}vfont(d,11,"bold");d.text("PRICE LIST",VM,y+6);
+  vAT(d,{startY:y+12,margin:M,styles:{font:"DV",fontSize:8.5,cellPadding:4,lineColor:VC.line,lineWidth:.5,textColor:VC.dark},head:[["Item No.","Description","UOM","Qty","Unit Price (SAR)","Total (SAR)"]],
+    body:o.list.map(x=>[String(x.n),x.name,"Each",String(x.qty),vnum(x.unit),vnum(x.total)]),foot:[[{content:"Total Discounted Price (SAR)",colSpan:5,styles:{halign:"right"}},vnum(o.tot)],[{content:"15% VAT (SAR)",colSpan:5,styles:{halign:"right"}},vnum(o.vat)],[{content:"Net Total (SAR)",colSpan:5,styles:{halign:"right"}},vnum(o.net)]],
+    footStyles:{fillColor:[255,255,255],textColor:VC.dark,fontStyle:"bold",lineColor:VC.line,lineWidth:.5},showFoot:"lastPage"});
+  rdFrame(d,I);return d.output("blob")}
 
 /* ----- Daily Quotation Report: one day (or a range), list + totals + by salesperson, A4 PDF with company letterhead ----- */
 function dqrData(){const o=S.opt;const d1=o.dq1||todayR(),d2=o.dq2||d1,sp=o.dqs||"";
