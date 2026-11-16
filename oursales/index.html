@@ -312,8 +312,8 @@ function render(){const _a=document.getElementById("app");if(_a)_a.oninput=null;
   if(!role){app.innerHTML="";app.append(joinView());return}
   const n=S.nav[S.nav.length-1];
   // guard: a branch/rep outside this person's scope sends them home
-  if(isProj(role)&&!["home","projects","proj","quote","daily","pdoc","subm"].includes(n.t)){S.nav=[{t:"home"}];return render()}
-  if(["projects","proj","quote","pdoc","subm"].includes(n.t)&&!canProj(role)||["forecast","exports"].includes(n.t)&&role!=="sales_mgr"){S.nav=[{t:"home"}];return render()}
+  if(isProj(role)&&!["home","projects","proj","quote","calc","daily","pdoc","subm"].includes(n.t)){S.nav=[{t:"home"}];return render()}
+  if(["projects","proj","quote","calc","pdoc","subm"].includes(n.t)&&!canProj(role)||["forecast","exports"].includes(n.t)&&role!=="sales_mgr"){S.nav=[{t:"home"}];return render()}
   const ok=allowedBranches();
   if((n.t==="branch"&&!ok.includes(n.id))||(n.t==="rep"&&!ok.includes(brOf(n.id)))||(n.t==="items"&&!ok.includes(n.scope.t==="rep"?brOf(n.scope.id):n.scope.id))||(n.t==="area"&&!areasFor(role).includes(n.id))){S.nav=[{t:"home"}];return render()}
   ({agrs:agrsView,agr:agrView,sales:salesView,projects:projectsView,proj:projView,quote:quoteView,calc:calcView,pdoc:pdocView,subm:submView,forecast:forecastView,exports:exportsView,targets:targetsView,daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
