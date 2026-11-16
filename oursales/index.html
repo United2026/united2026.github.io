@@ -887,15 +887,15 @@ function custDialog(c){const d=document.createElement("dialog");d.style.cssText=
 /* ---------- products ---------- */
 function pwProdHtml(){const m=S.opt.pmode||"";
   const sw=`<div class="seg"><button data-pmode="uc" aria-pressed="${m==="uc"}">🏭 المنتجات</button><button data-pmode="cat" aria-pressed="${m==="cat"}">📘 الكتالوجات</button></div>`;
-  if(!m)return `<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))"><button class="tile" data-pmode="uc" style="padding:22px;text-align:center;align-items:center"><span style="font-size:40px">🏭</span><b style="font-size:18px">المنتجات</b><span class="small muted">بضائع المتحد بالعائلة والنوع والماركة — نفس طلب الإنتاج</span></button><button class="tile" data-pmode="cat" style="padding:22px;text-align:center;align-items:center"><span style="font-size:40px">📘</span><b style="font-size:18px">الكتالوجات</b><span class="small muted">قائمة المنتجات والأكواد والأسعار (${colList("pprod").length})</span></button></div>`;
+  if(!m)return `<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))"><button class="tile" data-pmode="uc" style="padding:22px;text-align:center;align-items:center"><span style="font-size:40px">🏭</span><b style="font-size:18px">المنتجات</b><span class="small muted">بضائع المتحد بالعائلة والنوع والماركة — نفس طلب الإنتاج</span></button><button class="tile" data-pmode="cat" style="padding:22px;text-align:center;align-items:center"><span style="font-size:40px">📘</span><b style="font-size:18px">الكتالوجات</b><span class="small muted">كتالوج لوحات التوزيع وكتالوج مراوح الشفط — إنجليزي وعربي</span></button></div>`;
   if(m==="uc")return sw+ucPicker(true);return sw+pwCatHtml()}
-function pwCatHtml(){const q=(S.opt.prq||"").toLowerCase(),cat=S.opt.prc||"";const P=colList("pprod").sort((a,b)=>(a.cat||"").localeCompare(b.cat||"")||(a.code||"").localeCompare(b.code||""));
-  const cats=[...new Set(P.map(p=>p.cat||"—"))];let L=P;if(cat)L=L.filter(p=>(p.cat||"—")===cat);if(q)L=L.filter(p=>(p.code+" "+p.desc).toLowerCase().includes(q));const shown=L.slice(0,S.opt.prmore||200);
-  return `<div class="row"><button class="btn pri" id="prnew">＋ منتج جديد</button><input type="search" id="prq" placeholder="ابحث بالكود أو الوصف" value="${esc(S.opt.prq||"")}" style="flex:1;min-width:180px"><button class="btn" id="prcsv">⬇️ تصدير CSV</button></div>
-   <div class="seg" style="flex-wrap:wrap"><button data-prc="" aria-pressed="${!cat}">الكل (${P.length})</button>${cats.map(c=>`<button data-prc="${esc(c)}" aria-pressed="${cat===c}">${esc(c)} (${P.filter(p=>(p.cat||"—")===c).length})</button>`).join("")}</div>
-   <div class="tbl"><table><thead><tr><th>الكود</th><th>الوصف</th><th>الفئة</th><th>السعر</th><th></th></tr></thead><tbody>
-   ${shown.map(p=>`<tr><td class="ltr"><b>${esc(p.code)}</b></td><td>${esc(p.desc)}</td><td class="small">${esc(p.cat)}</td><td>${fmt(p.price,2)}</td><td><button class="btn sm" data-predit="${esc(p.id)}">✏️</button></td></tr>`).join("")}</tbody></table></div>
-   ${L.length>shown.length?`<button class="btn" id="prmore">عرض المزيد (${L.length-shown.length})</button>`:""}`}
+const CATALOGS=[["⚡","لوحات التوزيع — Panel Boards 2026","DBs & MDBs — لوحات MDB وSMDB وDB ومراكز الأحمال","cat/panel-boards-2026-en.pdf","cat/panel-boards-2026-ar.pdf","30 صفحة"],
+  ["🌀","مراوح الشفط — Exhaust Fans 2026","مراوح الشفط والتهوية والستائر الهوائية والمضخات","cat/exhaust-fans-2026-en.pdf","cat/exhaust-fans-2026-ar.pdf","131 صفحة"]];
+function pwCatHtml(){const btn=(href,lab,fn)=>`<a class="btn sm" href="${href}" target="_blank" rel="noopener">👁️ ${lab}</a><a class="btn sm" href="${href}" download="${fn}">⬇️ تنزيل</a>`;
+  return `<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">${CATALOGS.map(([ic,t,d,en,ar,pg])=>`<div class="card" style="margin:0"><div class="row" style="align-items:center"><span style="font-size:38px">${ic}</span><div><b style="font-size:17px">${t}</b><div class="small muted">${d} · ${pg}</div></div></div>
+   <div class="row" style="margin-top:8px"><b style="min-width:70px">English</b>${btn(en,"فتح",en.split("/").pop())}</div>
+   <div class="row"><b style="min-width:70px">عربي</b>${btn(ar,"فتح",ar.split("/").pop())}</div></div>`).join("")}</div>
+   <p class="small muted">النسخة العربية مترجمة على نفس تصميم الكتالوج الإنجليزي.</p>`}
 function prodDialog(p){const d=document.createElement("dialog");d.style.cssText="max-width:560px;width:calc(100% - 24px)";const cats=[...new Set(colList("pprod").map(x=>x.cat).filter(Boolean))];
   d.innerHTML=`<form method="dialog" class="stack"><h2 style="margin:0">${p.id?"تعديل منتج":"منتج جديد"}</h2>
    <label class="f">الكود<input name="code" value="${esc(p.code||"")}" required dir="ltr"></label><label class="f">الوصف<input name="desc" value="${esc(p.desc||"")}" required></label>
@@ -912,7 +912,7 @@ function pwSetHtml(role){const ps=pset();const ed=canSet(role);const c=ps.compan
    ${ed?`<div class="row"><button class="btn pri" id="setsave">💾 حفظ الإعدادات</button></div>`:""}`}
 
 /* ---------- workspace shell ---------- */
-function pwCounts(){const t=todayR();return {fup:fupOpen().filter(f=>f.next&&f.next<=t).length,quote:quoteList().length,pf:colList("pf").length,so:colList("so").length,inv:colList("inv2").length,subm:colList("subm").length,calc:calcList().length,prod:Object.keys(S.pprod||{}).length,proj:projList().length}}
+function pwCounts(){const t=todayR();return {fup:fupOpen().filter(f=>f.next&&f.next<=t).length,quote:quoteList().length,pf:colList("pf").length,so:colList("so").length,inv:colList("inv2").length,subm:colList("subm").length,calc:calcList().length,prod:CATALOGS.length*2,proj:projList().length}}
 function pwWire(app,tab,role){
   app.querySelectorAll("[data-pwnav]").forEach(b=>b.onclick=()=>{S.opt={ptab:b.dataset.pwnav};render();window.scrollTo(0,0)});
   app.querySelectorAll("[data-pwgo]").forEach(b=>b.onclick=()=>{S.opt={ptab:b.dataset.pwgo};render()});
@@ -2752,8 +2752,8 @@ function rElec(box,{sc,ids,br}){
   const vd=box.querySelector("#vd");
   box.querySelectorAll("[data-visit]").forEach(b=>b.onclick=()=>{const e=S.elec.find(x=>x.id===b.dataset.visit);const vf=box.querySelector("#vf");vf.reset();box.querySelector("#vt").textContent="ملاحظة مكالمة — "+e.name;
     vd.showModal();vd.onclose=async()=>{if(vd.returnValue!=="ok")return;const note=vf.note.value.trim();if(!note)return;const now=new Date();const p={visits:[...(e.visits||[]),{d:new Date(now.getTime()+3*3600e3).toISOString().slice(0,10),at:now.toISOString(),note,by:S.uid,st:vf.st.value||""}]};
-      if(vf.st.value)p.status=vf.st.value;if(vf.cls.value)p.cls=vf.cls.value;
-      try{await elecSave(e,p);toast("تم حفظ الملاحظة");logAct("el_call",e.name+": "+note,{eid:e.id,st:vf.st.value||""})}catch(err){toast("تعذّر الحفظ")}}});
+      if(vf.st.value)p.status=vf.st.value;let clsPend=false;if(vf.cls.value&&vf.cls.value!==(e.cls||"")){if(canApprove())p.cls=vf.cls.value;else{clsPend=true;p.pend=[...(e.pend||[]),{id:"u"+now.getTime().toString(36)+"p",at:now.toISOString(),d:new Date(now.getTime()+3*3600e3).toISOString().slice(0,10),by:S.uid,note,ch:{cls:[e.cls||"",vf.cls.value]}}]}}
+      try{await elecSave(e,p);toast(clsPend?"تم حفظ الملاحظة — وتغيير التصنيف بانتظار موافقة المدير":"تم حفظ الملاحظة");logAct("el_call",e.name+": "+note,{eid:e.id,st:vf.st.value||""})}catch(err){toast("تعذّر الحفظ")}}});
   const fdl=box.querySelector("#fd");box.querySelector("#fc").onclick=()=>fdl.close();
   const edl=box.querySelector("#ed");
   box.querySelectorAll("[data-eedit]").forEach(b=>b.onclick=()=>{const e=S.elec.find(x=>x.id===b.dataset.eedit);if(!e)return;const ef2=box.querySelector("#eform");ef2.reset();
