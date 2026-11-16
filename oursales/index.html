@@ -1476,7 +1476,7 @@ const cRound=(v,r)=>r>0?Math.ceil(v/r-1e-9)*r:Math.round(v*100)/100;
 function cPrices(c){const list=(c.panels||[]).map((p,i)=>{const u=cRound(cPan(p).net,cNum(c.round));const q=cNum(p.qty)||1;return {n:i+1,name:p.name||"",uom:"Each",qty:q,unit:u,total:u*q}});
   const tot=sum(list.map(x=>x.total)),vat=Math.round(tot*.15*100)/100;return {list,tot,vat,net:tot+vat}}
 const cNewPanel=(t="MDB",name="")=>({name,qty:1,type:t,...C_TYPE[t],rows:C_SEC.map(s=>({sec:s}))});
-function cBlank(){const h={...C_HDR_DEF,from:isIrfan()?"Irfan":(myName()||"")};return {date:todayR(),prefix:"RD02",round:1,notes:"",hdr:h,panels:[cNewPanel("MDB","MDB-A")]}}
+function cBlank(){const h={...C_HDR_DEF,from:isIrfan()?"Irfan":(myName()||"")};return {date:todayR(),prefix:"RD02",round:0,notes:"",hdr:h,panels:[cNewPanel("MDB","MDB-A")]}}
 const cFromTmpl=()=>{const t=JSON.parse(JSON.stringify(CALC_TMPL));const c=cBlank();c.hdr.project=t.project;c.panels=t.panels;return c};
 function cOfferSnap(c){const P=cPrices(c);return {ref:cRef(c),rev:p2(c.rev),date:c.date,hdr:JSON.parse(JSON.stringify(c.hdr||{})),list:P.list,tot:P.tot,vat:P.vat,net:P.net,
   tech:(c.panels||[]).map(p=>({name:p.name,qty:cNum(p.qty)||1,rows:(p.rows||[]).map(r=>r.sec?{sec:r.sec}:{ref:r.ref||"",desc:r.desc||"",unit:r.unit||"",qty:r.qty,mfr:r.mfr||""})}))}}
