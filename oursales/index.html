@@ -384,6 +384,14 @@ function kdScopeName(ids){const bs=[...new Set(ids.map(brOf))];const all=Object.
   if(bs.length===1)return ids.length===1?R(ids[0]).name:brLabel(bs[0]);if(all.every(b=>bs.includes(b)))return "الشركة";
   const ar=Object.keys(S.D.areas).filter(a=>branchesOfArea(a).length&&branchesOfArea(a).every(b=>bs.includes(b)));return ar.length?ar.map(a=>S.D.areas[a].name).join(" + "):"المجموعة"}
 const KD={score:["تقييم الأداء من 100",i=>R(i).perf?R(i).perf.score:0],msale:["صافي مبيعات الشهر",i=>R(i).kpi.mtdSale],mcol:["تحصيل الشهر",i=>R(i).kpi.mtdCol],ysale:["صافي مبيعات السنة",i=>R(i).kpi.ytdSale],ycol:["صافي التحصيل للسنة",i=>R(i).kpi.ytdCol],debt:["المديونية",i=>R(i).kpi.debt]};
+/* managers' scores: each manager = weighted score of the reps in her branches; heads (خالد) = score of their branch */
+const MGR_SC=[{n:"ندى الحازمي",t:"مديرة منطقة",a:"nada",own:1},{n:"نسرين الدوسري",t:"مديرة منطقة",a:"nesreen"},{n:"عيدة القحطاني",t:"مديرة منطقة",a:"eida"},{n:"خالد تقلو",t:"رئيس قسم — فرع جدة",b:["JE"]}];
+function mgrScoreHtml(ids,kb){const A=S.D.areas||{};
+  const L=MGR_SC.map(m=>{const bs=m.b||((A[m.a]||{}).branches||[]).concat(m.own?[]:[]);const ri=ids.filter(i=>bs.includes(kb(i)));return {...m,bs,n2:ri.length,v:grpScore(ri)}}).filter(m=>m.n2);
+  if(!L.length)return "";const scCol=s=>s>=60?"#2E8B57":s>=40?"#E0A100":"#C0392B";
+  return `<div class="card" style="margin:0"><b>تقييم المديرات والمشرفين</b><div class="tbl" style="margin-top:6px"><table><thead><tr><th>الاسم</th><th>الفروع</th><th class="n">المناديب</th><th class="n">التقييم /100</th><th>التصنيف</th><th></th></tr></thead><tbody>
+   ${L.sort((a,b)=>(b.v||0)-(a.v||0)).map(m=>`<tr data-kdm="${m.bs.join(",")}" style="cursor:pointer"><td><b>${esc(m.n)}</b> <span class="small muted">${esc(m.t)}</span></td><td class="small">${m.bs.map(b=>esc(brLabel(b))).join("، ")}</td><td class="n">${m.n2}</td><td class="n"><b>${m.v??"—"}</b></td><td><span class="pill ${RPILL[scoreRating(m.v||0)]}">${scoreRating(m.v||0)}</span></td><td style="width:20%"><div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:${m.v||0}%;background:${scCol(m.v||0)}"></i></div></td></tr>`).join("")}
+  </tbody></table></div><p class="small muted" style="margin:4px 0 0">تقييم المديرة = متوسط تقييم مناديب فروعها موزون بمبيعات السنة. تقييم خالد = تقييم فرع جدة. اضغط على الاسم لتشوف الفروع والمناديب.</p></div>`}
 function kdDialog(kind,ids,br){
   const old=document.getElementById("kdDlg");if(old)old.remove();
   /* reps of «باقي المناديب» are counted under the branch they actually invoice through */
@@ -409,11 +417,13 @@ function kdDialog(kind,ids,br){
   d.innerHTML=`<div class="stack"><div class="row"><h2 style="margin:0;margin-inline-end:auto">${esc(title)} — ${esc(scope)}</h2>${br&&bsAll.length>1?'<button class="btn sm" id="kdBack">→ رجوع للفروع</button>':""}<button class="btn sm" id="kdX">إغلاق</button></div>
     ${isScore?`<div class="kpis"><div class="kpi ${tot>=60?"ok":tot<40?"bad":""}"><span>${br?"تقييم الفرع":esc(scope==="الشركة"?"تقييم الشركة":"التقييم")}</span><b>${tot??"—"}/100</b><small>${esc(scoreRating(tot||0))}</small></div></div>`:
       kind==="debt"?`<div class="card" style="margin:0"><div class="row"><b style="margin-inline-end:auto">رسمة أعمار الديون</b>${waImgBtn("kdAging")}${pdfBtn("kdAging")}</div>${agingGraphic("kdAging",scope,b8)}</div>`:""}
+    ${isScore&&!br?mgrScoreHtml(ids,kb):""}
     <div class="card" style="margin:0"><div class="tbl">${rows}</div></div>
     <p class="small muted" style="margin:0">${isScore?"تقييم المندوب من 100 (تحقيق الهدف 20، نسبة التحصيل 25، جودة الديون 20، تنوع بيع الأصناف 15، جودة العملاء 10، انتظام البيع 10). تقييم الفرع والشركة = متوسط تقييم المناديب موزون بمبيعات السنة.":"اضغط على الفرع لعرض مناديبه، وعلى المندوب لفتح صفحته."} البيانات حتى ${fd(S.D.asof)}.</p></div>`;
   document.body.append(d);d.addEventListener("close",()=>d.remove());d.showModal();
   d.querySelector("#kdX").onclick=()=>d.close();const bk=d.querySelector("#kdBack");if(bk)bk.onclick=()=>{d.close();kdDialog(kind,ids)};
   d.querySelectorAll("[data-kdb]").forEach(r=>r.onclick=()=>{d.close();kdDialog(kind,ids,r.dataset.kdb)});
+  d.querySelectorAll("[data-kdm]").forEach(r=>r.onclick=()=>{d.close();const bs=r.dataset.kdm.split(",");kdDialog(kind,ids.filter(i=>bs.includes(kb(i))),bs.length===1?bs[0]:undefined)});
   d.querySelectorAll("[data-kdr]").forEach(r=>r.onclick=()=>{d.close();go({t:"rep",id:r.dataset.kdr})});
   if(kind==="debt"){wirePdf(d,{kdAging:"أعمار الديون - "+scope});wireWaImg(d,{kdAging:"أعمار الديون - "+scope})}}
 if(!window._kdL){window._kdL=1;const h=e=>{const c=e.target.closest&&e.target.closest("[data-kd]");if(!c)return;if(e.type==="keydown"&&e.key!=="Enter"&&e.key!==" ")return;e.preventDefault();
