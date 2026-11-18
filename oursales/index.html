@@ -305,7 +305,7 @@ function render(){const _a=document.getElementById("app");if(_a)_a.oninput=null;
   if(role){const c=document.createElement("span");c.className="chip";c.textContent=(S.preview&&S.pvu?pname(S.pvu)+" — ":"")+ROLES[role]+(S.preview?" (معاينة)":"");w.append(c)}
   if(role&&(TGT_ROLES.includes(role)||role==="sales_mgr"||role==="deputy")){const t=document.createElement("button");t.className="btn sm";t.textContent="🎯 الأهداف";t.onclick=()=>{S.nav=[{t:"home"},{t:"targets"}];S.opt={};render();scrollTo(0,0)};w.append(t)}
   if(role&&canAgr(role)){const pend=role==="sales_mgr"?agrList().filter(a=>a.status==="pending").length:0;const t=document.createElement("button");t.className="btn sm"+(pend?" bad":"");t.textContent="📄 الاتفاقيات"+(pend?` (${pend} بانتظار موافقتك)`:"");t.onclick=()=>{S.nav=[{t:"home"},{t:"agrs"}];S.opt={};render();scrollTo(0,0)};w.append(t)}
-  if(role){const d=document.createElement("button");d.className="btn sm pri";d.textContent="📝 التقرير اليومي";d.onclick=()=>{S.nav=[{t:"home"},{t:"daily"}];S.opt={};render();scrollTo(0,0)};w.append(d)}
+  if(role){const d=document.createElement("button");d.className="btn sm pri";d.textContent="📝 التقرير اليومي";d.onclick=()=>{if(isProj(role)){const t=todayR();qDayShare(t,role==="proj_head"?dqUids(t,t):[S.uid],d);return}S.nav=[{t:"home"},{t:"daily"}];S.opt={};render();scrollTo(0,0)};w.append(d)}
   if(S.isOwner){
     const sel=document.createElement("select");sel.setAttribute("aria-label","معاينة كمستخدم");
     const pu=Object.entries(S.members).filter(([u,m])=>isProj(m.role)).sort((a,b)=>(a[1].role==="proj_head"?0:1)-(b[1].role==="proj_head"?0:1)||pname(a[0]).localeCompare(pname(b[0]),"ar"));
@@ -1097,7 +1097,7 @@ function projectsView(app){
   else if(tab==="dqr")body=dqrHtml();
   else if(tab==="calc"&&canCalc(role))body=calcListHtml(role);
   else body=quoteReportHtml();
-  const cnt=pwCounts();const nav=PW_NAV.map(x=>x[0]==="calc"&&!canCalcEdit(role)?["calc","🧾","عروض أسعار عرفان"]:x).filter(([k])=>(k!=="calc"||canCalc(role))&&(k!=="team"||canTeam(role))&&(k!=="set"||canSet(role)||isProj(role))&&(!projScope()||!["pf","so","inv","subm","team","set"].includes(k)));const cur=(nav.find(x=>x[0]===tab)||PW_NAV[0]);
+  const cnt=pwCounts();const nav=PW_NAV.filter(x=>x[0]!=="dqr").map(x=>x[0]==="calc"&&!canCalcEdit(role)?["calc","🧾","عروض أسعار عرفان"]:x).filter(([k])=>(k!=="calc"||canCalc(role))&&(k!=="team"||canTeam(role))&&(k!=="set"||canSet(role)||isProj(role))&&(!projScope()||!["pf","so","inv","subm","team","set"].includes(k)));const cur=(nav.find(x=>x[0]===tab)||PW_NAV[0]);
   app.innerHTML=`<div class="pw"><nav class="pw-side" aria-label="أقسام المشاريع"><div class="brand"><img src="img/logo.png" style="height:26px;background:#fff;border-radius:6px;padding:2px 4px"><div><b>المشاريع</b><br><span>United · Projects</span></div></div>
      ${nav.map(([k,ic,l])=>`<button data-pwnav="${k}" ${tab===k?'aria-current="page"':""}><span>${ic}</span><span>${l}</span>${k==="fup"&&cnt.fup?`<span class="cnt hot">${cnt.fup}</span>`:cnt[k]?`<span class="cnt">${cnt[k]}</span>`:""}</button>`).join("")}</nav>
     <div class="pw-main"><div class="pw-head"><h1>${cur[1]} ${cur[2]}</h1>${tab==="over"?`<button class="btn pri" data-pwq="1">＋ عرض سعر جديد</button>`:""}${isProj(role)?`<label class="f">اليوم<input type="date" id="qdd0" value="${esc(S.opt.qdd||todayR())}" max="${todayR()}"></label><button class="btn" id="qday0" style="align-self:flex-end">📸 تقرير اليوم</button>`:""}</div>
