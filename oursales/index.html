@@ -589,8 +589,8 @@ async function qDayShare(date,uids,btn){
     const dl=()=>{const a=document.createElement("a");a.href=url;a.download=nm;document.body.append(a);a.click();a.remove()};
     d.querySelector("#qx").onclick=()=>d.close();d.querySelector("#qdl").onclick=dl;
     d.querySelector("#qsh").onclick=async()=>{const txt="Daily Report: "+enDate(date)+(uids.length===1?" — "+pname(uids[0]):"");
-      if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],text:txt});return}catch(e){if(e&&e.name==="AbortError")return}}
-      dl();window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank")};
+      if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return}catch(e){if(e&&e.name==="AbortError")return}}
+      dl();toast("نزلت الصورة — اسحبها لمحادثة واتساب");window.open("https://web.whatsapp.com/","_blank")};
     logAct("quote_day","تقرير عروض الأسعار اليومي "+fd(date)+" — "+uids.map(pname).join("، "));
   }catch(e){toast("تعذّر تجهيز الصورة")}finally{if(btn){btn.disabled=false;btn.textContent=old}}}
 /* ----- projects team overview: head of projects and sales manager see the total and each member ----- */
@@ -2403,7 +2403,7 @@ function dailyView(app,n){
   const A=dailyAuto(who,date,sb);
   app.innerHTML=`<div class="stack"><div class="row"><h1 style="margin-inline-end:auto">التقرير اليومي</h1>
      ${users.length>1?`<label class="f">المستخدم<select id="du">${users.map(u=>`<option value="${esc(u)}" ${u===who?"selected":""}>${esc(u===S.uid?"أنا":pname(u))}${roleOf(u)?" — "+esc(ROLES[roleOf(u)]||""):""}</option>`).join("")}</select></label>`:""}
-     <label class="f">التاريخ<input type="date" id="dd" value="${date}" max="${todayR()}"></label><button class="btn pri" id="dpdf" style="align-self:flex-end">🖨️ إصدار PDF</button></div>
+     <label class="f">التاريخ<input type="date" id="dd" value="${date}" max="${todayR()}"></label><button class="btn pri" id="dwa" style="align-self:flex-end">📲 إرسال واتساب (صورة)</button><button class="btn" id="dpdf" style="align-self:flex-end">🖨️ إصدار PDF</button></div>
    ${(()=>{const wr=roleOf(who);const ars=(wr==="sales_mgr"||wr==="deputy"?areasFor(myRole()):areasFor(wr)).filter(a=>branchesOfArea(a).some(b=>ub(who).includes(b)));const own=areasFor(wr)[0];
      const chip=b=>`<button data-dbr="${b}" aria-pressed="${sb.includes(b)}">${esc(brLabel(b))}</button>`;
      return ars.length>1?ars.map(a=>`<div class="row"><span class="small" style="min-width:120px"><b>${a===own&&wr==="nada"?"فروعي":"المديرة: "+esc(S.D.areas[a].name)}</b></span><div class="seg">${branchesOfArea(a).filter(b=>ub(who).includes(b)).map(chip).join("")}</div><button class="btn sm" data-dar="${a}">${branchesOfArea(a).every(b=>sb.includes(b))?"إلغاء":"الكل"}</button></div>`).join("")
@@ -2420,6 +2420,10 @@ function dailyView(app,n){
   const du=app.querySelector("#du");if(du)du.onchange=()=>{S.opt.du=du.value;S.opt.dbr=null;render()};
   app.querySelectorAll("[data-dbr]").forEach(b=>b.onclick=()=>{const v=b.dataset.dbr;S.opt.dbr=sb.includes(v)?sb.filter(x=>x!==v):[...sb,v];render()});
   app.querySelectorAll("[data-dar]").forEach(b=>b.onclick=()=>{const bs=branchesOfArea(b.dataset.dar);S.opt.dbr=bs.every(x=>sb.includes(x))?sb.filter(x=>!bs.includes(x)):[...new Set([...sb,...bs])];render()});
+  app.querySelector("#dwa").onclick=e=>{const nm="التقرير اليومي - "+(who===S.uid?(S.people[S.uid]&&S.people[S.uid].name)||ROLES[role]:pname(who))+" - "+date;
+    busy(e.currentTarget,async()=>{const c=await elCanvas(app.querySelector("#dailyDoc"));const blob=await new Promise(r=>c.toBlob(r,"image/png"));const file=new File([blob],fname(nm)+".png",{type:"image/png"});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return}catch(er){if(er&&er.name==="AbortError")return}}
+      await saveBlob(file,file.name);toast("نزلت الصورة — اسحبها لمحادثة واتساب");window.open("https://web.whatsapp.com/","_blank")})};
   app.querySelector("#dpdf").onclick=e=>chartPdf(app.querySelector("#dailyDoc"),"التقرير اليومي - "+(who===S.uid?(S.people[S.uid]&&S.people[S.uid].name)||ROLES[role]:pname(who))+" - "+date,e.currentTarget);
   const df=app.querySelector("#dform");if(df)df.onsubmit=async e=>{e.preventDefault();if(!S.db||S.offline){toast("الحفظ يعمل عند فتح التطبيق من رابطه");return}
     const f=new FormData(df);try{await S.db.doc("daily/"+docId).set({date,by:S.uid,offers:(f.get("offers")||"").trim(),issues:(f.get("issues")||"").trim(),plan:(f.get("plan")||"").trim(),at:new Date().toISOString()});toast("تم الحفظ");logAct("daily","إضافات تقرير "+fd(date))}catch(err){toast("تعذّر الحفظ")}};
