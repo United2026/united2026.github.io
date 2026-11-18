@@ -977,7 +977,7 @@ function pwSetHtml(role){const ps=pset();const ed=canSet(role);const c=ps.compan
    ${ed?`<div class="row"><button class="btn pri" id="setsave">💾 حفظ الإعدادات</button></div>`:""}`}
 
 /* ---------- workspace shell ---------- */
-function pwCounts(){const t=todayR();return {fup:fupOpen().filter(f=>f.next&&f.next<=t).length,quote:quoteList().length,pf:colList("pf").length,so:colList("so").length,inv:colList("inv2").length,subm:colList("subm").length,calc:calcList().length,prod:CATALOGS.length*2,proj:projList().length}}
+function pwCounts(){const t=todayR();return {fup:fupOpen().filter(f=>f.next&&f.next<=t).length,quote:quoteList().length,pf:colList("pf").length,so:colList("so").length,inv:colList("inv2").length,subm:colList("subm").length,calc:(canCalcEdit(myRole())?calcList():calcList().filter(c=>isIrfan(c.by))).length,prod:CATALOGS.length*2,proj:projList().length}}
 function pwWire(app,tab,role){
   app.querySelectorAll("[data-pwnav]").forEach(b=>b.onclick=()=>{S.opt={ptab:b.dataset.pwnav};render();window.scrollTo(0,0)});
   app.querySelectorAll("[data-pwgo]").forEach(b=>b.onclick=()=>{S.opt={ptab:b.dataset.pwgo};render()});
@@ -1075,7 +1075,7 @@ function projectsView(app){
   else if(tab==="dqr")body=dqrHtml();
   else if(tab==="calc"&&canCalc(role))body=calcListHtml(role);
   else body=quoteReportHtml();
-  const cnt=pwCounts();const nav=PW_NAV.filter(([k])=>(k!=="calc"||canCalc(role))&&(k!=="team"||canTeam(role))&&(k!=="set"||canSet(role)||isProj(role))&&(!projScope()||!["pf","so","inv","subm","team","set"].includes(k)));const cur=(PW_NAV.find(x=>x[0]===tab)||PW_NAV[0]);
+  const cnt=pwCounts();const nav=PW_NAV.map(x=>x[0]==="calc"&&!canCalcEdit(role)?["calc","🧾","عروض أسعار عرفان"]:x).filter(([k])=>(k!=="calc"||canCalc(role))&&(k!=="team"||canTeam(role))&&(k!=="set"||canSet(role)||isProj(role))&&(!projScope()||!["pf","so","inv","subm","team","set"].includes(k)));const cur=(nav.find(x=>x[0]===tab)||PW_NAV[0]);
   app.innerHTML=`<div class="pw"><nav class="pw-side" aria-label="أقسام المشاريع"><div class="brand"><img src="img/logo.png" style="height:26px;background:#fff;border-radius:6px;padding:2px 4px"><div><b>المشاريع</b><br><span>United · Projects</span></div></div>
      ${nav.map(([k,ic,l])=>`<button data-pwnav="${k}" ${tab===k?'aria-current="page"':""}><span>${ic}</span><span>${l}</span>${k==="fup"&&cnt.fup?`<span class="cnt hot">${cnt.fup}</span>`:cnt[k]?`<span class="cnt">${cnt[k]}</span>`:""}</button>`).join("")}</nav>
     <div class="pw-main"><div class="pw-head"><h1>${cur[1]} ${cur[2]}</h1>${tab==="over"?`<button class="btn pri" data-pwq="1">＋ عرض سعر جديد</button>`:""}${isProj(role)?`<label class="f">اليوم<input type="date" id="qdd0" value="${esc(S.opt.qdd||todayR())}" max="${todayR()}"></label><button class="btn" id="qday0" style="align-self:flex-end">📸 تقرير اليوم</button>`:""}</div>
@@ -1532,6 +1532,8 @@ const CALC_TMPL={"project":"RFQ FOR DB AND MDB (VILLA A CLUSTER)","ref":"RD02-08
    every save = a new record with a new sheet number (CS26-0001) and a new offer ref (RD02-08-R01); saved records never change */
 const isIrfan=u=>/عرفان|irfan/i.test(pname(u||(S.preview&&S.pvu)||S.uid)||"");
 const canCalc=r=>r==="sales_mgr"||r==="proj_head"||(r==="proj_member"&&isIrfan());
+/* only Irfan (and the sales manager) make / change calculation sheets; the head of projects only views Irfan's quotations */
+const canCalcEdit=r=>r==="sales_mgr"||(r==="proj_member"&&isIrfan());
 const C_SEC=["MAIN INCOMER","OUTGOING","ACCESSORIES","BUSBAR","PAN ASSEMBLY","ENCLOSURE"];
 const C_TYPE={DB:{acc:50,lab:40,pro:45},MDB:{acc:100,lab:45,pro:40}};
 const C_HDR_G=[["Customer Details",[["to","To (Customer)"],["attn","Attn"],["mobile","Mobile"],["email","Email"],["vat","VAT #"]]],
@@ -1573,16 +1575,16 @@ function cOfferSnap(c){const P=cPrices(c);return {ref:cRef(c),rev:p2(c.rev),date
   tech:(c.panels||[]).map(p=>({name:p.name,qty:cNum(p.qty)||1,rows:cDropEmptySec(p.rows).map(r=>r.sec?{sec:r.sec}:{ref:r.ref||"",desc:r.desc||"",unit:r.unit||"",qty:r.qty,mfr:r.mfr||""})}))}}
 
 /* list (projects tab) */
-function calcListHtml(role){const q=(S.opt.cq||"").trim().toLowerCase(),by=S.opt.cby||"";let L=calcList();
+function calcListHtml(role){const ro=!canCalcEdit(role);const q=(S.opt.cq||"").trim().toLowerCase(),by=S.opt.cby||"";let L=calcList();if(ro)L=L.filter(c=>isIrfan(c.by));
   const bys=[...new Set(L.map(c=>c.by))];if(by)L=L.filter(c=>c.by===by);if(q)L=L.filter(c=>[c.csno,cRef(c),c.hdr&&c.hdr.project,c.hdr&&c.hdr.to].join(" ").toLowerCase().includes(q));
   const tot=sum(L.filter(c=>!c.void).map(c=>(c.offer||{}).tot||0));
-  return `<div dir="ltr" style="text-align:left"><div class="row"><button class="btn pri" id="cnew">＋ New Calculation Sheet</button>
+  return `<div dir="ltr" style="text-align:left"><div class="row">${ro?`<b style="align-self:center">Irfan's quotations — view only</b>`:`<button class="btn pri" id="cnew">＋ New Calculation Sheet</button>`}
      <input type="search" id="cq" placeholder="Search by sheet no., offer ref, project or customer" value="${esc(S.opt.cq||"")}" style="flex:1;min-width:180px">
      ${bys.length>1?`<label class="f">Prepared by<select id="cby"><option value="">All</option>${bys.map(u=>`<option value="${esc(u)}" ${by===u?"selected":""}>${esc(pname(u))}</option>`).join("")}</select></label>`:""}</div>
    <p class="small muted" style="margin:4px 0 10px">Every save gets a new sheet number and is locked after that. «🧮 Calc Sheet» opens the sheet for editing — saving it gives a new sheet number and a new offer revision (R01, R02…). Each record gives two PDFs: «🖨️ Calc PDF» (calculation sheet) and «📄 Offer PDF» (offer letter). ${L.length} records · ${fmt(tot,2)} SAR before VAT</p>
    ${L.length?`<div class="tbl"><table><thead><tr><th></th><th>Sheet No.</th><th>Offer Ref</th><th>Status</th><th>Date</th><th>Project</th><th>Customer</th><th>Panels</th><th>Before VAT</th><th>With VAT</th><th>Prepared by</th><th>Saved at</th></tr></thead><tbody>
-    ${L.map(c=>{const o=c.offer||{};return `<tr ${c.void?'style="background:#FDECEC"':""}><td style="white-space:nowrap"><button class="btn sm" data-copen="${esc(c.id)}">🧮 Calc Sheet</button> <button class="btn sm" data-cpdf="${esc(c.id)}">🖨️ Calc PDF</button> <button class="btn sm pri" data-coffer="${esc(c.id)}">📄 Offer PDF</button>
-      <button class="btn sm" data-ccopy="${esc(c.id)}" title="New quotation with the same data and a new offer number — the old one is not changed">⧉ New offer from this</button>${c.void?"":` <button class="btn sm bad" data-cvoid="${esc(c.id)}" title="Cancel this quotation because of a mistake">⛔ Cancel (error)</button>`}</td><td><b>${esc(c.csno)}</b></td><td><b>${esc(cRef(c))}</b>${c.parent&&S.calc[c.parent]?`<div class="small muted">↩ ${esc(S.calc[c.parent].csno)}</div>`:""}</td><td class="small" style="min-width:150px">${cVoidTxt(c)||"Active"}</td><td>${dmy(c.date)}</td><td>${esc((c.hdr||{}).project||"")}</td><td>${esc((c.hdr||{}).to||"")}</td><td>${(c.panels||[]).length}</td><td>${fmt(o.tot,2)}</td><td><b>${fmt(o.net,2)}</b></td><td>${esc(pname(c.by))}</td><td class="small">${esc(tmFmt(c.createdAt))}</td></tr>`}).join("")}</tbody></table></div>`
+    ${L.map(c=>{const o=c.offer||{};return `<tr ${c.void?'style="background:#FDECEC"':""}><td style="white-space:nowrap">${ro?"":`<button class="btn sm" data-copen="${esc(c.id)}">🧮 Calc Sheet</button> `}<button class="btn sm" data-cpdf="${esc(c.id)}">🖨️ Calc PDF</button> <button class="btn sm pri" data-coffer="${esc(c.id)}">📄 Offer PDF</button>
+      ${ro?"":`<button class="btn sm" data-ccopy="${esc(c.id)}" title="New quotation with the same data and a new offer number — the old one is not changed">⧉ New offer from this</button>${c.void?"":` <button class="btn sm bad" data-cvoid="${esc(c.id)}" title="Cancel this quotation because of a mistake">⛔ Cancel (error)</button>`}`}</td><td><b>${esc(c.csno)}</b></td><td><b>${esc(cRef(c))}</b>${c.parent&&S.calc[c.parent]?`<div class="small muted">↩ ${esc(S.calc[c.parent].csno)}</div>`:""}</td><td class="small" style="min-width:150px">${cVoidTxt(c)||"Active"}</td><td>${dmy(c.date)}</td><td>${esc((c.hdr||{}).project||"")}</td><td>${esc((c.hdr||{}).to||"")}</td><td>${(c.panels||[]).length}</td><td>${fmt(o.tot,2)}</td><td><b>${fmt(o.net,2)}</b></td><td>${esc(pname(c.by))}</td><td class="small">${esc(tmFmt(c.createdAt))}</td></tr>`}).join("")}</tbody></table></div>`
    :`<div class="empty">No calculation sheets yet. Click «＋ New Calculation Sheet».</div>`}</div>`}
 function wireCalcList(app){
   const nw=app.querySelector("#cnew");if(nw)nw.onclick=()=>go({t:"calc",id:"new"});
@@ -1610,7 +1612,7 @@ function cCopyNew(src){if(!src)return;const c=JSON.parse(JSON.stringify({date:to
   try{localStorage.setItem("cdraft:new",JSON.stringify(c))}catch(e){}S.cdraft=c;go({t:"calc",id:"new"});setTimeout(()=>toast("Copied from "+cRef(src)+" — change the quantities / items and save to get a new offer number"),300)}
 
 /* editor */
-function calcView(app,n){pwCss();const role=myRole();if(!canCalc(role)){S.nav=[{t:"home"}];return render()}
+function calcView(app,n){pwCss();const role=myRole();if(!canCalcEdit(role)){S.nav=[{t:"home"}];return render()}
   const key="cdraft:"+n.id;
   if(!S.cdraft||S.cdraft._for!==n.id+(n.tmpl?"t":"")){const src=n.id==="new"?null:(S.calc||{})[n.id];
     if(n.id!=="new"&&!src){app.innerHTML='<div class="empty" dir="ltr">Calculation sheet not found</div>';return}
