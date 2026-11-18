@@ -515,6 +515,21 @@ const P_ST=Object.fromEntries(P_STATUS.map(x=>[x[0],x]));
 const pill=(st)=>{const x=P_ST[st]||P_STATUS[0];return `<span class="pill ${x[2]}">${x[1]}</span>`};
 const qYear=x=>{const m=/^Q(\d\d)-/.exec(x.qno||"");return m?"20"+m[1]:(x.date||"").slice(0,4)};
 const Q_YEARS=["2024","2025","2026"];
+/* year folders > months (count + total) > rows; open state kept in S.qopen */
+const AR_MON=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+function ymTree(id,L,o){S.qopen=S.qopen||{};const OP=S.qopen;const dt=o.date||(x=>x.date||""),val=o.val||(()=>0),yr=o.year||(x=>dt(x).slice(0,4));
+  const Y={};L.forEach(x=>{const y=yr(x)||"—",m=dt(x).slice(0,7)||"—";((Y[y]=Y[y]||{})[m]=Y[y][m]||[]).push(x)});
+  const ys=Object.keys(Y).sort().reverse().sort((a,b)=>(a==="—")-(b==="—"));if(!ys.length)return `<div class="empty">${o.empty||"لا توجد بيانات"}</div>`;
+  const sm=a=>sum(a.map(val));const fv=v=>o.noVal?"":` · <b>${fmt(v)}</b>`;
+  const mName=m=>m==="—"?(o.noDate||"بدون تاريخ"):AR_MON[+m.slice(5,7)-1]+" "+m.slice(0,4);
+  return `<div class="ymt" data-ymt="${id}">${ys.map((y,yi)=>{const ms=Object.keys(Y[y]).sort().reverse(),all=ms.flatMap(m=>Y[y][m]);const yk=id+"|"+y,yo=S._ymAll||(OP[yk]!=null?OP[yk]:yi===0);
+    return `<details data-ok="${esc(yk)}" ${yo?"open":""} style="border:1px solid var(--line);border-radius:10px;margin:8px 0;background:var(--surface)"><summary style="padding:10px 12px;cursor:pointer;font-size:16px">📁 <b>${esc(y==="—"?(o.noDate||"بدون تاريخ"):y)}</b> <span class="muted small">· ${all.length} ${o.unit||"عرض"}${fv(sm(all))}</span></summary>
+     <div style="padding:0 10px 10px">${ms.length>1?`<button class="btn sm" data-ymall="${esc(yk)}" style="margin-bottom:6px">${ms.every(m=>OP[yk+"|"+m])?"▴ اطوِ كل الشهور":"▾ افتح كل الشهور"}</button>`:""}
+     ${ms.map(m=>{const a=Y[y][m],mk=yk+"|"+m,mo=S._ymAll||OP[mk];return `<details data-ok="${esc(mk)}" ${mo?"open":""} style="border-top:1px solid var(--line)"><summary style="padding:8px 4px;cursor:pointer;display:flex;gap:8px;align-items:center"><b style="min-width:120px">${mName(m)}</b><span class="small muted">${a.length} ${o.unit||"عرض"}</span>${o.noVal?"":`<b style="margin-inline-start:auto">${fmt(sm(a))}</b>`}</summary>
+       ${mo?`<div class="tbl"><table><thead><tr>${o.head}</tr></thead><tbody>${a.map(o.row).join("")}${o.noVal?"":`<tr class="tot"><td colspan="${o.cols-1}">الإجمالي — ${a.length}</td><td><b>${fmt(sm(a))}</b></td></tr>`}</tbody></table></div>`:""}</details>`}).join("")}</div></details>`}).join("")}</div>`}
+function wireYmt(app){app.querySelectorAll(".ymt details[data-ok]").forEach(d=>d.addEventListener("toggle",()=>{const k=d.dataset.ok;if(!!S.qopen[k]===d.open&&S.qopen[k]!=null)return;S.qopen[k]=d.open;
+    if(k.split("|").length===3&&d.open&&!d.querySelector(".tbl")){const y=scrollY;render();scrollTo(0,y)}}));
+  app.querySelectorAll("[data-ymall]").forEach(b=>b.onclick=()=>{const yk=b.dataset.ymall,ms=[...b.parentElement.querySelectorAll(":scope>details[data-ok]")].map(d=>d.dataset.ok);const op=!ms.every(k=>S.qopen[k]);ms.forEach(k=>S.qopen[k]=op);const y=scrollY;render();scrollTo(0,y)})}
 const custOrContact=x=>x.customer?cvLink(x.customer):(x.contact?`<span class="muted">${esc(x.contact)}</span>`:"—");
 function qYearTiles(){const Q=quoteList();return `<div class="pw-card"><h3 style="margin-top:0">📁 عروض الأسعار بالسنوات</h3><div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">${Q_YEARS.map(y=>{const L=Q.filter(x=>qYear(x)===y);const w=L.filter(x=>x.status==="won");
   return `<button class="tile" data-qyear="${y}" style="padding:16px;text-align:center;align-items:center"><span style="font-size:30px">📁</span><b style="font-size:24px">${y}</b><span><b>${L.length}</b> عرض سعر</span><span class="small muted">القيمة ${fmt(sum(L.map(x=>qTotal(x).total)))}</span>${w.length?`<span class="small" style="color:#2E8B57">فزنا ${w.length}</span>`:""}</button>`}).join("")}</div></div>`}
@@ -562,32 +577,32 @@ function nextInq(uid){const L=quoteList().filter(x=>x.by===uid&&/^[A-Za-z]+\d+$/
 const enDate=d=>{const t=new Date(d+"T12:00:00");return t.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})};
 const usDate=d=>d?d.slice(5,7)+"/"+d.slice(8,10)+"/"+d.slice(0,4):"";
 /* calculation sheets saved that day (latest revision of each offer) — shown in the daily report */
-function calcDay(u,date){const L=Object.values(S.calc||{}).filter(c=>c.by===u&&c.date===date),best={};
+function calcDay(u,date,d2){const L=Object.values(S.calc||{}).filter(c=>c.by===u&&c.date>=date&&c.date<=(d2||date)),best={};
   L.forEach(c=>{const k=(c.prefix||"RD02")+"|"+c.series;if(!best[k]||(c.rev||0)>(best[k].rev||0))best[k]=c});
   return Object.values(best).map(c=>{const o=c.offer||{};return {calc:1,inq:c.csno,date:c.date,desc:"Calc Sheet: "+(c.panels||[]).map(p=>p.name).filter(Boolean).join(", "),
     customer:(c.hdr||{}).to||"",projName:(c.hdr||{}).project||"",ref:cRef(c),total:o.net||0,status:"Calculation Sheet",createdAt:c.createdAt}})}
-const qDayRows=(u,date)=>quoteList().filter(x=>x.by===u&&x.date===date).map(x=>({inq:x.inq||"",date:x.date,desc:qDesc(x),customer:x.customer||"",projName:x.projName||"",ref:qRef(x),total:qTotal(x).total,status:P_ST[x.status]?P_ST[x.status][1]:"",createdAt:x.createdAt||"",no:x.no||0}))
-  .concat(calcDay(u,date)).sort((a,c)=>(a.createdAt||"").localeCompare(c.createdAt||"")||(a.no||0)-(c.no||0));
-function qDayHtml(date,uids){
-  const b="border:1px solid #000;padding:4px 8px;",H=`background:#BDD7EE;font-weight:700;${b}`;
-  const blocks=uids.map(u=>{const L=qDayRows(u,date);
-    const tot=sum(L.map(x=>x.total));const empty=Math.max(0,3-L.length);
-    return `<div style="text-align:center;font-weight:700;font-size:16px;padding:6px 0 3px">${esc(pname(u))}</div>
-     <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;table-layout:fixed"><colgroup>${[5,10,10,14,26,11,13,11].map(w=>`<col style="width:${w}%">`).join("")}</colgroup><thead><tr><th style="${H}width:44px">S/No</th><th style="${H}">Inquiry No</th><th style="${H}">Date</th><th style="${H}">Description</th><th style="${H}">Customer</th><th style="${H}">Quotation No</th><th style="${H}">Costing with VAT</th><th style="${H}">Status</th></tr></thead><tbody>
-     ${L.map((x,i)=>`<tr><td style="${b}">${i+1}</td><td style="${b}">${esc(x.inq||"")}</td><td style="${b}">${usDate(x.date)}</td><td style="${b}">${esc(x.desc)}</td><td style="${b}">${esc(x.customer||x.projName||"")}${x.projName&&x.customer&&x.projName!==x.customer?`<div style="font-size:11px;color:#555">${esc(x.projName)}</div>`:""}</td><td style="${b}" dir="ltr">${esc(x.ref)}</td><td style="${b}">${fmt(x.total,2)}</td><td style="${b}font-size:12px">${esc(x.status)}</td></tr>`).join("")}
-     ${L.length?"":`<tr><td colspan="8" style="${b}color:#777">No quotations — لا توجد عروض أسعار بهذا اليوم</td></tr>`}
-     ${Array.from({length:L.length?empty:0},()=>`<tr>${`<td style="${b}height:22px"></td>`.repeat(8)}</tr>`).join("")}
-     <tr><td colspan="5" style="border:none"></td><td style="${b}background:#FFC000;font-weight:700;font-size:15px">Total</td><td style="${b}background:#FFC000;font-weight:700;font-size:15px">${tot.toFixed(2)}</td><td style="border:none"></td></tr></tbody></table>`}).join("");
-  const all=sum(uids.flatMap(u=>qDayRows(u,date).map(x=>x.total)));
+const qDayRows=(u,date,d2)=>quoteList().filter(x=>x.by===u&&x.date>=date&&x.date<=(d2||date)).map(x=>({inq:x.inq||"",date:x.date,desc:qDesc(x),customer:x.customer||"",projName:x.projName||"",ref:qRef(x),total:qTotal(x).total,status:P_ST[x.status]?P_ST[x.status][1]:"",createdAt:x.createdAt||"",no:x.no||0}))
+  .concat(calcDay(u,date,d2)).sort((a,c)=>(a.createdAt||"").localeCompare(c.createdAt||"")||(a.no||0)-(c.no||0));
+function qDayHtml(date,uids,d2){d2=d2&&d2!==date?d2:"";
+  const b="border:1px solid #000;padding:4px 8px;word-break:break-word;",H=`background:#BDD7EE;font-weight:700;${b}`,E=`<td style="${b}height:21px"></td>`;
+  const blocks=uids.map(u=>{const L=qDayRows(u,date,d2);const tot=sum(L.map(x=>x.total));const pad=Math.max(0,9-L.length);
+    return `<tr><td colspan="7" style="text-align:center;font-weight:700;font-size:16px;padding:5px 0 3px;border-left:1px solid #000;border-right:1px solid #000">${esc(pname(u))}</td></tr>
+     <tr><th style="${H}">S/No</th><th style="${H}">Inquiry No</th><th style="${H}">Date</th><th style="${H}">Description</th><th style="${H}">Customer</th><th style="${H}">Quotation No</th><th style="${H}">Costing with VAT</th></tr>
+     ${L.map((x,i)=>`<tr><td style="${b}">${i+1}</td><td style="${b}">${esc(x.inq||"")}</td><td style="${b}">${usDate(x.date)}</td><td style="${b}">${esc(x.desc)}</td><td style="${b}">${esc(x.customer||x.projName||"")}${x.projName&&x.customer&&x.projName!==x.customer?`<div style="font-size:11px;color:#555">${esc(x.projName)}</div>`:""}</td><td style="${b}" dir="ltr">${esc(x.ref)}</td><td style="${b}">${fmt(x.total,2)}</td></tr>`).join("")}
+     ${Array.from({length:pad},()=>`<tr>${E.repeat(7)}</tr>`).join("")}
+     <tr>${E.repeat(5)}<td style="${b}background:#FFC000;font-weight:700;font-size:16px">Total</td><td style="${b}background:#FFC000;font-weight:700;font-size:16px">${tot.toFixed(2)}</td></tr>
+     <tr>${E.repeat(7)}</tr><tr>${E.repeat(7)}</tr>`}).join("");
+  const all=sum(uids.flatMap(u=>qDayRows(u,date,d2).map(x=>x.total)));
   return `<div id="qday" dir="ltr" style="background:#fff;color:#000;width:1040px;padding:10px;font-family:Calibri,Arial,sans-serif">
-    <div style="background:#C6E0B4;font-weight:700;text-align:center;padding:5px;border:1px solid #000;font-size:15px">Daily Report: ${esc(enDate(date))}</div>${blocks}
+    <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;table-layout:fixed"><colgroup>${[7,10,10,14,34,11,14].map(w=>`<col style="width:${w}%">`).join("")}</colgroup>
+    <tr><td colspan="7" style="background:#C6E0B4;font-weight:700;text-align:center;padding:5px;border:1px solid #000;font-size:15px">Daily Report: ${esc(enDate(date))}${d2?" — "+esc(enDate(d2)):""}</td></tr>${blocks}</table>
     ${uids.length>1?`<div style="text-align:end;margin-top:10px;font-weight:700;font-size:15px"><span style="background:#FFC000;border:1px solid #000;padding:5px 14px">Grand Total: ${all.toFixed(2)}</span></div>`:""}</div>`}
-async function qDayShare(date,uids,btn){
+async function qDayShare(date,uids,btn,d2){
   const old=btn&&btn.textContent;if(btn){btn.disabled=true;btn.textContent="⏳ جاري التجهيز…"}
   try{if(S.ucat===undefined||!S.ucat)await loadUcat();await loadLibs();
-    const w=document.createElement("div");w.dataset.notr="1";w.style.cssText="position:fixed;left:-12000px;top:0";w.innerHTML=qDayHtml(date,uids);document.body.append(w);
+    const w=document.createElement("div");w.dataset.notr="1";w.style.cssText="position:fixed;left:-12000px;top:0";w.innerHTML=qDayHtml(date,uids,d2);document.body.append(w);
     const c=await html2canvas(w.firstElementChild,{scale:hqScale(w.firstElementChild),backgroundColor:"#ffffff"});w.remove();
-    const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.92));const nm=(uids.length===1?pname(uids[0]):"Projects")+" - Daily Report "+date+".jpg";const file=new File([blob],nm,{type:"image/jpeg"});const url=URL.createObjectURL(blob);
+    const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.92));const nm=(uids.length===1?pname(uids[0]):"Projects")+" - Daily Report "+date+(d2&&d2!==date?" to "+d2:"")+".jpg";const file=new File([blob],nm,{type:"image/jpeg"});const url=URL.createObjectURL(blob);
     const d=document.createElement("dialog");d.style.cssText="max-width:1100px;width:calc(100% - 24px)";
     d.innerHTML=`<div class="stack"><div class="row"><h2 style="margin:0;margin-inline-end:auto">تقرير اليوم — ${fd(date)}</h2><button class="btn pri" id="qsh">📲 إرسال واتساب (JPG)</button><button class="btn" id="qdl">⬇️ تحميل الصورة JPG</button><button class="btn sm" id="qx">إغلاق</button></div>
       <p class="small muted" style="margin:0">في الجوال: «إرسال واتساب» يفتح المشاركة وتختار واتساب والمحادثة. في الكمبيوتر: تنزل الصورة وينفتح واتساب ويب، وتسحب الصورة للمحادثة.</p>
@@ -900,11 +915,15 @@ function custViewHtml(name){const k=name.trim().toLowerCase();const o=S.opt;cons
 function pwCustHtml(){if(S.opt.cv)return custViewHtml(S.opt.cv);const q=(S.opt.cq||"").toLowerCase();const saved=colList("pcust");const Q=quoteList();
   const M={};saved.forEach(c=>M[(c.name||"").trim().toLowerCase()]={...c,saved:1,n:0,v:0,won:0,last:""});
   Q.forEach(x=>{const k=(x.customer||"").trim().toLowerCase();if(!k)return;const m=M[k]=M[k]||{name:x.customer,city:x.city,contact:x.contact,phone:x.phone,email:x.email,code:x.custCode,n:0,v:0,won:0,last:""};m.n++;m.v+=qTotal(x).total;if(x.status==="won")m.won+=qTotal(x).total;if((x.date||"")>m.last)m.last=x.date;if(!m.city)m.city=x.city;if(!m.phone)m.phone=x.phone;if(!m.contact)m.contact=x.contact});
-  let L=Object.values(M);if(q)L=L.filter(c=>[c.name,c.city,c.contact,c.phone,c.code].join(" ").toLowerCase().includes(q));L.sort((a,b)=>b.v-a.v);const shown=L.slice(0,S.opt.cmore||200);
-  return `<div class="row"><button class="btn pri" id="cnew">＋ عميل جديد</button><input type="search" id="cq" placeholder="ابحث بالاسم أو المدينة أو الجوال" value="${esc(S.opt.cq||"")}" style="flex:1;min-width:180px"><span class="small muted">${L.length} عميل</span></div>
-   <div class="tbl"><table><thead><tr><th>العميل</th><th>المندوب</th><th>المدينة</th><th>الشخص المسؤول</th><th>الجوال</th><th>عروض الأسعار</th><th>قيمة العروض</th><th>فزنا</th><th>آخر عرض</th><th></th></tr></thead><tbody>
-   ${shown.map(c=>`<tr><td><b>${cvLink(c.name||"")}</b>${c.code?`<div class="small muted ltr">${esc(c.code)}</div>`:""}</td><td class="small">${(()=>{const r=custReps(c.name);return r.length?esc(r[0][0])+(r.length>1?` <span class="muted">+${r.length-1}</span>`:""):"—"})()}</td><td>${esc(c.city||"")}</td><td>${esc(c.contact||"")}</td><td class="ltr">${esc(c.phone||"")}</td><td><button class="btn sm" data-cqf="${esc(c.name)}">${c.n}</button></td><td>${fmt(c.v)}</td><td style="color:#2E8B57">${c.won?fmt(c.won):"—"}</td><td>${c.last?fd(c.last):"—"}</td><td><button class="btn sm" data-cedit="${esc(c.id||"")}" data-cname="${esc(c.name)}">${c.saved?"✏️":"＋ حفظ"}</button></td></tr>`).join("")}</tbody></table></div>
-   ${L.length>shown.length?`<button class="btn" id="cmore">عرض المزيد (${L.length-shown.length})</button>`:""}`}
+  let L=Object.values(M);if(q)L=L.filter(c=>[c.name,c.city,c.contact,c.phone,c.code].join(" ").toLowerCase().includes(q));L.sort((a,b)=>b.v-a.v);
+  const crp=S.opt.crep||"",ccn=S.opt.ccn||"";const allC=L;const reps=[...new Set(Q.map(x=>x.sales||"").filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  if(crp)L=L.filter(c=>custReps(c.name).some(r=>r[0]===crp));if(ccn)L=L.filter(c=>c.name===ccn);
+  const crow=c=>`<tr><td><b>${cvLink(c.name||"")}</b>${c.code?`<div class="small muted ltr">${esc(c.code)}</div>`:""}</td><td class="small">${(()=>{const r=custReps(c.name);return r.length?esc(r[0][0])+(r.length>1?` <span class="muted">+${r.length-1}</span>`:""):"—"})()}</td><td>${esc(c.city||"")}</td><td>${esc(c.contact||"")}</td><td class="ltr">${esc(c.phone||"")}</td><td><button class="btn sm" data-cqf="${esc(c.name)}">${c.n}</button></td><td style="color:#2E8B57">${c.won?fmt(c.won):"—"}</td><td>${c.last?fd(c.last):"—"}</td><td><button class="btn sm" data-cedit="${esc(c.id||"")}" data-cname="${esc(c.name)}">${c.saved?"✏️":"＋ حفظ"}</button></td><td><b>${fmt(c.v)}</b></td></tr>`;
+  return `<div class="row"><button class="btn pri" id="cnew">＋ عميل جديد</button><input type="search" id="cq" placeholder="ابحث بالاسم أو المدينة أو الجوال" value="${esc(S.opt.cq||"")}" style="flex:1;min-width:180px"></div>
+   <div class="row"><label class="f">المندوب<select id="crep"><option value="">الكل (${reps.length})</option>${reps.map(n=>`<option value="${esc(n)}" ${crp===n?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
+    <label class="f">العميل<select id="ccn" style="max-width:320px"><option value="">الكل (${allC.length})</option>${allC.map(c=>c.name).sort((a,b)=>(a||"").localeCompare(b||"")).map(n=>`<option value="${esc(n)}" ${ccn===n?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
+    ${crp||ccn?`<button class="btn sm" id="cclr" style="align-self:flex-end">✕ مسح الفلتر</button>`:""}<span class="small muted" style="align-self:flex-end">${L.length} عميل · ${fmt(sum(L.map(c=>c.v)))} — مرتبين حسب شهر آخر عرض</span></div>
+   ${ymTree("c",L,{noDate:"بدون عروض",date:c=>c.last||"",val:c=>c.v,unit:"عميل",cols:10,empty:"لا يوجد عملاء",head:"<th>العميل</th><th>المندوب</th><th>المدينة</th><th>الشخص المسؤول</th><th>الجوال</th><th>عروض الأسعار</th><th>فزنا</th><th>آخر عرض</th><th></th><th>قيمة العروض</th>",row:crow})}`}
 function custDialog(c){const d=document.createElement("dialog");d.style.cssText="max-width:620px;width:calc(100% - 24px)";const F=[["name","اسم العميل"],["code","كود العميل"],["city","المدينة"],["country","الدولة"],["contact","الشخص المسؤول"],["phone","الجوال"],["email","البريد"],["vat","الرقم الضريبي"],["cr","السجل التجاري"],["address","العنوان"]];
   d.innerHTML=`<form method="dialog" class="stack"><h2 style="margin:0">${c.id?"تعديل عميل":"عميل جديد"}</h2><div class="grid2">${F.map(([k,l])=>`<label class="f">${l}<input name="${k}" value="${esc(c[k]||(k==="country"?"Saudi Arabia":""))}" ${k==="name"?"required":""}></label>`).join("")}</div>
    <div class="row"><button class="btn pri" value="ok">💾 حفظ</button><button class="btn" value="cancel" formnovalidate>إلغاء</button></div></form>`;
@@ -965,6 +984,7 @@ function pwWire(app,tab,role){
   [["#cvsp","cvsp"],["#cvd1","cvd1"],["#cvd2","cvd2"]].forEach(([q,k])=>{const e=app.querySelector(q);if(e)e.onchange=()=>{S.opt[k]=e.value;render()}});
   const cvd=app.querySelector("#cvdir");if(cvd)cvd.onclick=()=>{S.opt.cvdir=S.opt.cvdir==="asc"?"":"asc";render()};
   const cm=app.querySelector("#cmore");if(cm)cm.onclick=()=>{S.opt.cmore=(S.opt.cmore||200)+200;render()};
+  [["#crep","crep"],["#ccn","ccn"]].forEach(([q,k])=>{const e=app.querySelector(q);if(e)e.onchange=()=>{S.opt[k]=e.value;render()}});const ccl=app.querySelector("#cclr");if(ccl)ccl.onclick=()=>{S.opt.crep=S.opt.ccn="";render()};
   // products
   app.querySelectorAll("[data-pmode]").forEach(b=>b.onclick=()=>{S.opt={ptab:"prod",pmode:b.dataset.pmode};render()});
   if(tab==="prod"&&S.opt.pmode==="uc"){const U=S.opt;const ure=l=>{if(l<=0)U.ufam="";if(l<=1)U.uty="";if(l<=2)U.ubd="";U.uamp=0};
@@ -1010,7 +1030,6 @@ function projectsView(app){
     const qd1=S.opt.qd1||"",qd2=S.opt.qd2||"",qasc=S.opt.qdir==="asc";if(qd1)L=L.filter(x=>(x.date||"")>=qd1);if(qd2)L=L.filter(x=>(x.date||"")<=qd2);
     const srt=S.opt.qsort||"date";if(srt==="date"&&qasc)L=L.slice().reverse();if(srt==="cust")L=L.slice().sort((a,b)=>(a.customer||"￿").localeCompare(b.customer||"￿")||(b.date||"").localeCompare(a.date||""));else if(srt==="rep")L=L.slice().sort((a,b)=>(a.sales||"￿").localeCompare(b.sales||"￿")||(a.customer||"").localeCompare(b.customer||""));
     const allQ=quoteList();const sps=[...new Set(allQ.map(x=>x.sales||"-"))].sort((a,b)=>a.localeCompare(b));const cus=[...new Set(allQ.map(x=>x.customer||"-"))].sort((a,b)=>a.localeCompare(b));
-    const shown=L.slice(0,S.opt.qmore||300);
     body=`<div class="row"><button class="btn pri" id="qnew">＋ عرض سعر جديد</button><input type="search" id="pq" placeholder="ابحث برقم العرض أو المشروع أو العميل" value="${esc(q)}" style="flex:1;min-width:180px">
       <div class="seg"><button data-pst="" aria-pressed="${!fs}">الكل</button>${P_STATUS.map(s=>`<button data-pst="${s[0]}" aria-pressed="${fs===s[0]}">${s[1]}</button>`).join("")}</div></div>
      <div class="row"><span class="small muted">السنة:</span><div class="seg"><button data-qy="" aria-pressed="${!qy}">كل السنوات</button>${Q_YEARS.map(y=>`<button data-qy="${y}" aria-pressed="${qy===y}">📁 ${y} (${allQ.filter(x=>qYear(x)===y).length})</button>`).join("")}</div></div>
@@ -1020,8 +1039,8 @@ function projectsView(app){
       <label class="f">من تاريخ<input type="date" id="qd1" value="${esc(qd1)}"></label><label class="f">إلى تاريخ<input type="date" id="qd2" value="${esc(qd2)}"></label>
       <button class="btn" id="qdir" style="align-self:flex-end" title="ترتيب حسب التاريخ">${qasc?"↑ الأقدم أولاً":"↓ الأحدث أولاً"}</button>${qd1||qd2?`<button class="btn sm" id="qdclr" style="align-self:flex-end">✕ مسح التاريخ</button>`:""}
       <span class="small muted" style="align-self:flex-end">${L.length} عرض · ${fmt(sum(L.map(x=>qTotal(x).total)))}</span></div>
-     ${L.length?`<div class="tbl"><table><thead><tr><th>رقم العرض</th><th>التاريخ</th><th>العميل</th><th>المشروع</th><th>المندوب</th><th>الأصناف</th><th>الإجمالي شامل الضريبة</th><th>الحالة</th></tr></thead><tbody>
-      ${shown.map(x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td><b class="ltr">${esc(qRef(x))}</b></td><td>${fd(x.date)}</td><td>${custOrContact(x)}</td><td>${esc(x.projName||"")}</td><td>${esc(x.sales||"—")}</td><td>${(x.items||[]).length}</td><td><b>${fmt(qTotal(x).total,2)}</b></td><td>${qpill(x)}</td></tr>`).join("")}</tbody></table></div>${L.length>shown.length?`<div class="row"><button class="btn" id="qmore">عرض المزيد (${L.length-shown.length})</button></div>`:""}`:`<div class="empty">لا توجد عروض أسعار</div>`}`;
+     ${ymTree("q",L,{year:qYear,val:x=>qTotal(x).total,cols:8,empty:"لا توجد عروض أسعار",head:"<th>رقم العرض</th><th>التاريخ</th><th>العميل</th><th>المشروع</th><th>المندوب</th><th>الأصناف</th><th>الحالة</th><th>الإجمالي شامل الضريبة</th>",
+       row:x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td><b class="ltr">${esc(qRef(x))}</b></td><td>${fd(x.date)}</td><td>${custOrContact(x)}</td><td>${esc(x.projName||"")}</td><td>${esc(x.sales||"—")}</td><td>${(x.items||[]).length}</td><td>${qpill(x)}</td><td><b>${fmt(qTotal(x).total,2)}</b></td></tr>`})}`;
   }else if(tab==="team"&&canTeam(role))body=teamHtml();
   else if(tab==="charts")body=pchartsHtml();
   else if(tab==="over")body=pwOverHtml(role);
@@ -1048,7 +1067,7 @@ function projectsView(app){
   const dqPages=()=>{const w=app.querySelector("#dqrWrap");w.innerHTML=dqrDoc();return [...w.querySelectorAll(".qpage")]};const dqName=()=>{const {d1,d2}=dqrData();return "Daily Quotation Report "+(d1===d2?d1:d1+" to "+d2)};
   const dqp=app.querySelector("#dqpdf");if(dqp)dqp.onclick=e=>vecSave(dqrPdfBlob,dqName(),e.currentTarget);
   const dqr=app.querySelector("#dqprn");if(dqr)dqr.onclick=e=>pagesPrint(dqPages(),dqName(),e.currentTarget);
-  const dqw=app.querySelector("#dqwa");if(dqw)dqw.onclick=e=>{const {L,tot}=dqrData();vecSave(dqrPdfBlob,dqName(),e.currentTarget,true,dqName()+" — "+L.length+" quotations, "+fmtN(tot)+" SAR")};
+  const dqw=app.querySelector("#dqwa");if(dqw)dqw.onclick=e=>{const {d1,d2}=dqrData();qDayShare(d1,dqUids(d1,d2),e.currentTarget,d2)};
   app.querySelectorAll("[data-qyear]").forEach(b=>b.onclick=()=>{S.opt={ptab:"quote",qyear:b.dataset.qyear};S.lastPtab="quote";render();window.scrollTo(0,0)});
   [["#qfsp","qfsp"],["#qfcu","qfcu"],["#qsort","qsort"],["#qd1","qd1"],["#qd2","qd2"]].forEach(([q,k])=>{const e=app.querySelector(q);if(e)e.onchange=()=>{S.opt[k]=e.value;S.opt.qmore=0;render()}});
   const qdr=app.querySelector("#qdir");if(qdr)qdr.onclick=()=>{S.opt.qdir=S.opt.qdir==="asc"?"":"asc";render()};const qdc=app.querySelector("#qdclr");if(qdc)qdc.onclick=()=>{S.opt.qd1=S.opt.qd2="";render()};
@@ -1057,6 +1076,7 @@ function projectsView(app){
   app.querySelectorAll("[data-qid]").forEach(r=>r.onclick=()=>go({t:"quote",id:r.dataset.qid}));
   const pn=app.querySelector("#pnew");if(pn)pn.onclick=()=>go({t:"proj",id:"new"});
   const qn=app.querySelector("#qnew");if(qn)qn.onclick=()=>go({t:"quote",id:"new"});
+  wireYmt(app);
   if(tab==="rep")wireQuoteReport(app);
   if(tab==="calc")wireCalcList(app);
   if(tab==="team"&&canTeam(role))wireTeam(app);
@@ -1691,11 +1711,14 @@ function dqrData(){const o=S.opt;const d1=o.dq1||todayR(),d2=o.dq2||d1,sp=o.dqs|
   L=L.slice().sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.no||0)-(b.no||0));
   const val=x=>qTotal(x).total;const tot=sum(L.map(val));const by={};L.forEach(x=>{const k=x.sales||"—";(by[k]=by[k]||{n:0,v:0});by[k].n++;by[k].v+=val(x)});
   const BY=Object.entries(by).sort((a,b)=>b[1].v-a[1].v);return {d1,d2,sp,L,tot,BY,val}}
+/* users shown in the daily picture: projects team members who have quotations / calc sheets in the period */
+const dqUids=(d1,d2)=>{const T=ownOnly()?[meId()]:teamIds();const w=T.filter(u=>qDayRows(u,d1,d2).length);return w.length?w:T};
 function dqrHtml(){const {d1,d2,sp,L,tot,BY,val}=dqrData();const sps=[...new Set(quoteList().map(x=>x.sales||"-"))].sort((a,b)=>a.localeCompare(b));
   return `<div class="row"><label class="f">التاريخ / من<input type="date" id="dq1" value="${esc(d1)}"></label><label class="f">إلى<input type="date" id="dq2" value="${esc(d2)}"></label>
     <label class="f">المندوب<select id="dqs"><option value="">الكل</option>${sps.map(n=>`<option value="${esc(n)}" ${sp===n?"selected":""}>${esc(n==="-"?"بدون مندوب":n)}</option>`).join("")}</select></label>
     <div class="seg" style="align-self:flex-end"><button data-dqd="0">اليوم</button><button data-dqd="1">أمس</button><button data-dqd="7">آخر 7 أيام</button></div>
-    <span style="margin-inline-start:auto;align-self:flex-end;display:flex;gap:6px;flex-wrap:wrap"><button class="btn pri" id="dqpdf">⬇️ PDF</button><button class="btn" id="dqwa">📲 واتساب PDF</button><button class="btn" id="dqprn">🖨️ طباعة</button></span></div>
+    <span style="margin-inline-start:auto;align-self:flex-end;display:flex;gap:6px;flex-wrap:wrap"><button class="btn pri" id="dqpdf">⬇️ PDF</button><button class="btn" id="dqwa">📲 إرسال واتساب (صورة)</button><button class="btn" id="dqprn">🖨️ طباعة</button></span></div>
+   <div class="pw-card" style="overflow:auto"><h3 style="margin-top:0">التقرير كصورة (يرسل بالواتساب بهذا الشكل)</h3><div data-notr="1" style="min-width:1060px">${qDayHtml(d1,dqUids(d1,d2),d2)}</div></div>
    <div class="pw-kpis"><div class="pw-kpi"><span>عدد عروض الأسعار</span><b>${L.length}</b><small>${d1===d2?fd(d1):fd(d1)+" — "+fd(d2)}</small></div><div class="pw-kpi"><span>إجمالي قيمة العروض (شامل الضريبة)</span><b>${Math.round(tot).toLocaleString("en-US")}</b><small>ريال</small></div><div class="pw-kpi"><span>عدد المناديب</span><b>${BY.length}</b><small>متوسط العرض ${L.length?Math.round(tot/L.length).toLocaleString("en-US"):0}</small></div></div>
    <div class="pw-card"><h3 style="margin-top:0">حسب المندوب</h3>${BY.length?`<div class="tbl"><table><thead><tr><th>المندوب</th><th>عدد العروض</th><th>إجمالي القيمة (ريال)</th><th>النسبة</th></tr></thead><tbody>${BY.map(([n,o])=>`<tr><td><b>${esc(n)}</b></td><td>${o.n}</td><td>${fmt(o.v,2)}</td><td>${tot?Math.round(o.v/tot*100):0}%</td></tr>`).join("")}<tr class="tot"><td>الإجمالي</td><td>${L.length}</td><td>${fmt(tot,2)}</td><td>100%</td></tr></tbody></table></div>`:'<div class="empty">لا توجد عروض أسعار في هذا التاريخ</div>'}</div>
    <div class="pw-card"><h3 style="margin-top:0">عروض الأسعار (${L.length})</h3>${L.length?`<div class="tbl"><table><thead><tr><th>#</th><th>التاريخ</th><th>رقم العرض</th><th>العميل</th><th>المشروع</th><th>القيمة (ريال)</th><th>المندوب</th></tr></thead><tbody>
@@ -1737,9 +1760,13 @@ function quoteReportHtml(){
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px">${byS.map(([s,n,v])=>`<tr><td style="border:1px solid #ccc;padding:5px">${pill(s[0])}</td><td style="border:1px solid #ccc;padding:5px">${n} عرض</td><td style="border:1px solid #ccc;padding:5px"><b>${fmt(v)}</b></td><td style="border:1px solid #ccc;padding:5px;width:40%"><div style="background:#1D5C8F;height:10px;width:${tot?v/tot*100:0}%"></div></td></tr>`).join("")}</table>
     ${!sp&&L.length?`<div style="font-weight:700;margin:6px 0 4px">حسب المندوب</div><table style="width:100%;border-collapse:collapse;margin-bottom:10px"><tr>${["المندوب","عدد العروض","قيمة العروض","فزنا","ما فزنا","قيد العمل"].map(h=>`<th style="border:1px solid #999;padding:5px;background:#D9E1F2">${h}</th>`).join("")}</tr>
      ${[...new Set(L.map(x=>x.sales||""))].map(n=>{const a=L.filter(x=>(x.sales||"")===n);const w=a.filter(x=>x.status==="won"),l=a.filter(x=>x.status==="lost"),o=a.filter(x=>["s1","s2","s3"].includes(x.status||"s1"));const v=z=>sum(z.map(x=>qTotal(x).total));
-      return [n,a.length,v(a),w.length,v(w),l.length,v(l),o.length,v(o)]}).sort((a,b)=>b[2]-a[2]).map(r=>`<tr data-rsp="${esc(r[0]||"-")}" style="cursor:pointer"><td style="border:1px solid #ccc;padding:5px"><b>${esc(r[0]||"بدون مندوب")}</b></td><td style="border:1px solid #ccc;padding:5px">${r[1]}</td><td style="border:1px solid #ccc;padding:5px">${fmt(r[2])}</td><td style="border:1px solid #ccc;padding:5px;color:#1E7B3E">${r[3]} · ${fmt(r[4])}</td><td style="border:1px solid #ccc;padding:5px;color:#B42318">${r[5]} · ${fmt(r[6])}</td><td style="border:1px solid #ccc;padding:5px">${r[7]} · ${fmt(r[8])}</td></tr>`).join("")}</table>`:""}
-${L.length?`<table style="width:100%;border-collapse:collapse"><tr>${["رقم العرض","التاريخ","المشروع / العميل","المندوب","أعدّه","الحالة","الإجمالي شامل الضريبة"].map(h=>`<th style="border:1px solid #999;padding:5px;background:#D9E1F2">${h}</th>`).join("")}</tr>
-     ${L.map(x=>`<tr data-qst="${esc(x.id)}" style="cursor:pointer" title="اضغط لتحديث المرحلة"><td style="border:1px solid #ccc;padding:5px" class="ltr">${esc(qRef(x))}</td><td style="border:1px solid #ccc;padding:5px">${fd(x.date)}</td><td style="border:1px solid #ccc;padding:5px">${esc(x.projName||x.customer||"")}</td><td style="border:1px solid #ccc;padding:5px">${esc(x.sales||"—")}</td><td style="border:1px solid #ccc;padding:5px">${esc(pname(x.by))}</td><td style="border:1px solid #ccc;padding:5px">${qpill(x)}</td><td style="border:1px solid #ccc;padding:5px"><b>${fmt(qTotal(x).total)}</b></td></tr>`).join("")}</table>`:'<div class="empty">لا توجد عروض بهذا الفلتر</div>'}
+      return [n,a.length,v(a),w.length,v(w),l.length,v(l),o.length,v(o)]}).sort((a,b)=>b[2]-a[2]).map(r=>`<tr data-rsp="${esc(r[0]||"-")}" style="cursor:pointer"><td style="border:1px solid #ccc;padding:5px"><b>${esc(r[0]||"بدون مندوب")}</b></td><td style="border:1px solid #ccc;padding:5px">${r[1]}</td><td style="border:1px solid #ccc;padding:5px">${fmt(r[2])}</td><td style="border:1px solid #ccc;padding:5px;color:#1E7B3E">${r[3]} · ${fmt(r[4])}</td><td style="border:1px solid #ccc;padding:5px;color:#B42318">${r[5]} · ${fmt(r[6])}</td><td style="border:1px solid #ccc;padding:5px">${r[7]} · ${fmt(r[8])}</td></tr>`).join("")}
+     ${(()=>{const w=L.filter(x=>x.status==="won"),l=L.filter(x=>x.status==="lost"),o=L.filter(x=>["s1","s2","s3"].includes(x.status||"s1"));const v=z=>sum(z.map(x=>qTotal(x).total));const c='style="border:1px solid #999;padding:6px;background:#FFC000;font-weight:700"';
+       return `<tr><td ${c}>الإجمالي</td><td ${c}>${L.length}</td><td ${c}>${fmt(tot)}</td><td ${c}>${w.length} · ${fmt(v(w))}</td><td ${c}>${l.length} · ${fmt(v(l))}</td><td ${c}>${o.length} · ${fmt(v(o))}</td></tr>`})()}</table>
+     <div class="small muted" style="margin-bottom:8px">اضغط على اسم المندوب يطلع لك تقاريره وعروضه ومرحلة كل عرض.</div>`:""}
+    ${sp?`<div style="display:flex;gap:8px;align-items:center;background:#F2F6FC;border:1px solid #D9E1F2;border-radius:8px;padding:8px 10px;margin:6px 0"><b style="font-size:17px">👤 ${esc(sp==="-"?"بدون مندوب":sp)}</b><span class="small">${L.length} عرض · ${fmt(tot)} ريال · فزنا ${byS[3][1]} · ما فزنا ${byS[4][1]}</span><button class="btn sm" id="rspall" style="margin-inline-start:auto" data-html2canvas-ignore>↩ كل المناديب</button></div>`:""}
+${ymTree("r",L,{year:qYear,val:x=>qTotal(x).total,cols:8,empty:"لا توجد عروض بهذا الفلتر",head:["رقم العرض","التاريخ","المشروع / العميل","المندوب","أعدّه","الحالة","آخر ما صار عليه","الإجمالي شامل الضريبة"].map(h=>`<th>${h}</th>`).join(""),
+      row:x=>{const h=(x.hist||[]).slice(-1)[0];return `<tr data-qst="${esc(x.id)}" style="cursor:pointer" title="اضغط لتحديث المرحلة"><td class="ltr">${esc(qRef(x))}</td><td>${fd(x.date)}</td><td>${esc(x.projName||x.customer||"")}</td><td>${esc(x.sales||"—")}</td><td>${esc(pname(x.by))}</td><td>${qpill(x)}</td><td class="small">${h?esc(h.t)+`<div class="muted">${esc(tmFmt(h.at))}</div>`:"—"}</td><td><b>${fmt(qTotal(x).total)}</b></td></tr>`}})}
    </div>`;
 }
 function stageDialog(q){
@@ -1772,7 +1799,8 @@ function wireQuoteReport(app){
   app.querySelectorAll("[data-qst]").forEach(r=>r.onclick=()=>{const q=(S.quote||{})[r.dataset.qst];if(q)stageDialog(q)});
   app.querySelectorAll("[data-rsp]").forEach(r=>r.onclick=()=>{S.opt.rsp=r.dataset.rsp;render()});
   [["#rf","rf"],["#rt","rt"],["#rw","rw"],["#rs","pst"],["#rsp","rsp"],["#rcu","rcu"]].forEach(([s,k])=>{const e=app.querySelector(s);if(e)e.onchange=()=>{S.opt[k]=e.value;render()}});
-  const b=app.querySelector("#rpdf");if(b)b.onclick=e=>chartPdf(app.querySelector("#qrep"),"تقرير عروض الأسعار - "+todayR(),e.currentTarget);
+  const ra=app.querySelector("#rspall");if(ra)ra.onclick=()=>{S.opt.rsp="";render()};
+  const b=app.querySelector("#rpdf");if(b)b.onclick=async e=>{S._ymAll=1;render();try{await chartPdf(document.querySelector("#qrep"),"تقرير عروض الأسعار - "+todayR(),document.querySelector("#rpdf"))}finally{S._ymAll=0;render()}};
 }
 
 /* ----- forecasting (tables as in the user's Excel files) ----- */
