@@ -520,7 +520,7 @@ const AR_MON=["يناير","فبراير","مارس","أبريل","مايو","ي
 function ymTree(id,L,o){S.qopen=S.qopen||{};const OP=S.qopen;const dt=o.date||(x=>x.date||""),val=o.val||(()=>0),yr=o.year||(x=>dt(x).slice(0,4));
   const Y={};L.forEach(x=>{const y=yr(x)||"—",m=dt(x).slice(0,7)||"—";((Y[y]=Y[y]||{})[m]=Y[y][m]||[]).push(x)});
   const ys=Object.keys(Y).sort().reverse().sort((a,b)=>(a==="—")-(b==="—"));if(!ys.length)return `<div class="empty">${o.empty||"لا توجد بيانات"}</div>`;
-  const sm=a=>sum(a.map(val)),u=o.unit||"عرض",isOpen=k=>S._ymAll||OP[k];
+  const sm=a=>sum(a.map(val)),u=o.unit||"عرض",isOpen=k=>S._ymAll||OP[k]||(o.autoOpen&&OP[k]==null);
   const mName=m=>m==="—"?(o.noDate||"بدون تاريخ"):AR_MON[+m.slice(5,7)-1]+" "+m.slice(0,4);
   /* one row = arrow · name · count · total */
   const rowSum=(ic,name,a,lvl)=>`<summary class="ymr ymr${lvl}"><span class="ar"></span><span class="nm">${ic} ${name}</span><span class="ct">${a.length} ${u}</span>${o.noVal?"":`<span class="vl">${fmt(sm(a))}</span>`}</summary>`;
@@ -1048,20 +1048,23 @@ function projectsView(app){
   }else if(tab==="quote"){
     let L=quoteList();if(fs)L=L.filter(x=>x.status===fs);if(q){const ql=q.toLowerCase();L=L.filter(x=>[qRef(x),x.projName,x.customer,x.sales].join(" ").toLowerCase().includes(ql))}
     const qy=S.opt.qyear||"";if(qy)L=L.filter(x=>qYear(x)===qy);
-    const fsp=S.opt.qfsp||"",fcu=S.opt.qfcu||"";if(fsp)L=L.filter(x=>(x.sales||"-")===fsp);if(fcu)L=L.filter(x=>(x.customer||"-")===fcu);
+    const fsp=S.opt.qfsp||"",fcu=S.opt.qfcu||"";const Lsp=L;if(fsp)L=L.filter(x=>(x.sales||"-")===fsp);const Lcu=L;if(fcu)L=L.filter(x=>(x.customer||"-")===fcu);
+    /* column filters (arrow in the table header, like Excel): values from what the other filters leave */
+    const cnt=(A,k)=>{const o={};A.forEach(x=>{const v=x[k]||"-";o[v]=(o[v]||0)+1});return Object.entries(o).sort((a,b)=>a[0].localeCompare(b[0]))};
+    const thSel=(id,lab,A,k,cur,none)=>`<th style="padding:2px 4px"><select data-thf="${id}" style="font-weight:700;border:1px solid #9DB3D6;background:#fff;border-radius:6px;padding:4px 6px;max-width:220px;${cur?"background:#FFF4E0;border-color:#E0A100":""}"><option value="">${lab} ▾ ${cur?"":"(الكل)"}</option>${cnt(A,k).map(([v,n])=>`<option value="${esc(v)}" ${cur===v?"selected":""}>${esc(v==="-"?none:v)} (${n})</option>`).join("")}</select></th>`;
     const qd1=S.opt.qd1||"",qd2=S.opt.qd2||"",qasc=S.opt.qdir==="asc";if(qd1)L=L.filter(x=>(x.date||"")>=qd1);if(qd2)L=L.filter(x=>(x.date||"")<=qd2);
     const srt=S.opt.qsort||"date";if(srt==="date"&&qasc)L=L.slice().reverse();if(srt==="cust")L=L.slice().sort((a,b)=>(a.customer||"￿").localeCompare(b.customer||"￿")||(b.date||"").localeCompare(a.date||""));else if(srt==="rep")L=L.slice().sort((a,b)=>(a.sales||"￿").localeCompare(b.sales||"￿")||(a.customer||"").localeCompare(b.customer||""));
-    const allQ=quoteList();const sps=[...new Set(allQ.map(x=>x.sales||"-"))].sort((a,b)=>a.localeCompare(b));const cus=[...new Set(allQ.map(x=>x.customer||"-"))].sort((a,b)=>a.localeCompare(b));
+    const allQ=quoteList();const sps=[...new Set(Lsp.map(x=>x.sales||"-"))].sort((a,b)=>a.localeCompare(b));const cus=[...new Set(Lcu.map(x=>x.customer||"-"))].sort((a,b)=>a.localeCompare(b));
     body=`<div class="row"><button class="btn pri" id="qnew">＋ عرض سعر جديد</button><input type="search" id="pq" placeholder="ابحث برقم العرض أو المشروع أو العميل" value="${esc(q)}" style="flex:1;min-width:180px">
       <div class="seg"><button data-pst="" aria-pressed="${!fs}">الكل</button>${P_STATUS.map(s=>`<button data-pst="${s[0]}" aria-pressed="${fs===s[0]}">${s[1]}</button>`).join("")}</div></div>
      <div class="row"><span class="small muted">السنة:</span><div class="seg"><button data-qy="" aria-pressed="${!qy}">كل السنوات</button>${Q_YEARS.map(y=>`<button data-qy="${y}" aria-pressed="${qy===y}">📁 ${y} (${allQ.filter(x=>qYear(x)===y).length})</button>`).join("")}</div></div>
      <div class="row"><label class="f">المندوب<select id="qfsp"><option value="">الكل (${sps.length})</option>${sps.map(n=>`<option value="${esc(n)}" ${fsp===n?"selected":""}>${esc(n==="-"?"بدون مندوب":n)} (${allQ.filter(x=>(x.sales||"-")===n).length})</option>`).join("")}</select></label>
-      <label class="f">العميل<select id="qfcu" style="max-width:320px"><option value="">الكل (${cus.length})</option>${cus.map(n=>`<option value="${esc(n)}" ${fcu===n?"selected":""}>${esc(n==="-"?"بدون عميل":n)} (${allQ.filter(x=>(x.customer||"-")===n).length})</option>`).join("")}</select></label>
+      <label class="f">العميل<select id="qfcu" style="max-width:320px"><option value="">الكل (${cus.length})</option>${cus.map(n=>`<option value="${esc(n)}" ${fcu===n?"selected":""}>${esc(n==="-"?"بدون عميل":n)} (${Lcu.filter(x=>(x.customer||"-")===n).length})</option>`).join("")}</select></label>
       <label class="f">الترتيب<select id="qsort"><option value="date" ${srt==="date"?"selected":""}>الأحدث أولاً</option><option value="cust" ${srt==="cust"?"selected":""}>حسب العميل</option><option value="rep" ${srt==="rep"?"selected":""}>حسب المندوب</option></select></label>
       <label class="f">من تاريخ<input type="date" id="qd1" value="${esc(qd1)}"></label><label class="f">إلى تاريخ<input type="date" id="qd2" value="${esc(qd2)}"></label>
       <button class="btn" id="qdir" style="align-self:flex-end" title="ترتيب حسب التاريخ">${qasc?"↑ الأقدم أولاً":"↓ الأحدث أولاً"}</button>${qd1||qd2?`<button class="btn sm" id="qdclr" style="align-self:flex-end">✕ مسح التاريخ</button>`:""}
       <span class="small muted" style="align-self:flex-end">${L.length} عرض · ${fmt(sum(L.map(x=>qTotal(x).total)))}</span></div>
-     ${ymTree("q",L,{group:x=>x.sales||"",year:qYear,val:x=>qTotal(x).total,cols:8,empty:"لا توجد عروض أسعار",head:"<th>رقم العرض</th><th>التاريخ</th><th>العميل</th><th>المشروع</th><th>المندوب</th><th>الأصناف</th><th>الحالة</th><th>الإجمالي شامل الضريبة</th>",
+     ${ymTree("q",L,{autoOpen:!!(fsp||fcu||q)&&L.length<=80,group:x=>x.sales||"",year:qYear,val:x=>qTotal(x).total,cols:8,empty:"لا توجد عروض أسعار",head:"<th>رقم العرض</th><th>التاريخ</th>"+thSel("qfcu","العميل",Lcu,"customer",fcu,"بدون عميل")+"<th>المشروع</th>"+thSel("qfsp","المندوب",Lsp,"sales",fsp,"بدون مندوب")+"<th>الأصناف</th><th>الحالة</th><th>الإجمالي شامل الضريبة</th>",
        row:x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td><b class="ltr">${esc(qRef(x))}</b>${x.isRev?`<div class="small" style="color:#B26A00">معدّل${x.revOf?` من <span class="ltr">${esc(x.revOf)}</span>`:""}</div>`:""}</td><td>${fd(x.date)}</td><td>${custOrContact(x)}</td><td>${esc(x.projName||"")}</td><td>${esc(x.sales||"—")}</td><td>${(x.items||[]).length}</td><td>${qpill(x)}</td><td><b>${fmt(qTotal(x).total,2)}</b></td></tr>`})}`;
   }else if(tab==="team"&&canTeam(role))body=teamHtml();
   else if(tab==="charts")body=pchartsHtml();
@@ -1099,6 +1102,7 @@ function projectsView(app){
   const pn=app.querySelector("#pnew");if(pn)pn.onclick=()=>go({t:"proj",id:"new"});
   const qn=app.querySelector("#qnew");if(qn)qn.onclick=()=>go({t:"quote",id:"new"});
   wireYmt(app);
+  app.querySelectorAll("[data-thf]").forEach(e=>{e.onclick=ev=>ev.stopPropagation();e.onchange=()=>{S.opt[e.dataset.thf]=e.value;render()}});
   if(tab==="rep")wireQuoteReport(app);
   if(tab==="calc")wireCalcList(app);
   if(tab==="team"&&canTeam(role))wireTeam(app);
