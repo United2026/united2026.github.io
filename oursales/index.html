@@ -232,7 +232,10 @@ const LOGK={fup_add:"متابعة عرض",fup_done:"إنجاز متابعة",pf_
 /* ---------- electricians: imported list (elec.json) + changes and new ones in the shared db ---------- */
 function mergeElec(){
   const M=new Map();((S.elecBase&&S.elecBase.items)||[]).forEach(e=>M.set(e.id,e));
-  (S.elecDb||[]).forEach(d=>{if(d.deleted)M.delete(d.id);else M.set(d.id,{...(M.get(d.id)||{}),...d})});
+  (S.elecDb||[]).forEach(d=>{if(d.deleted){M.delete(d.id);return}const b=M.get(d.id)||{};const e={...b,...d};
+    /* notes added later to the imported list still show when the app already saved its own copy of the notes */
+    if(d.visits&&(b.visits||[]).length){const k=new Set(d.visits.map(v=>(v.lbl||"")+"|"+v.note));const add=b.visits.filter(v=>!k.has((v.lbl||"")+"|"+v.note));if(add.length)e.visits=[...d.visits,...add]}
+    M.set(d.id,e)});
   S.elec=[...M.values()];S.elecSN=null;
 }
 /* serial per electrician: city letter + rep letter + number; numbers run per city (shared by the city's reps), stable order (imported list, then new ones by date; deleted keep their number) */
