@@ -767,13 +767,13 @@ function pwCss(){if(document.getElementById("pwcss"))return;const st=document.cr
 
 /* ---------- dashboard ---------- */
 function pwOverHtml(role){
-  const t=todayR(),m=t.slice(0,7);const Q=quoteList();const qm=Q.filter(x=>(x.date||"").slice(0,7)===m);const val=x=>qTotal(x).total;
+  const t=todayR(),m=t.slice(0,7),cy=t.slice(0,4),oy=S.opt.oy||cy;const QA=quoteList();const Q=QA.filter(x=>qYear(x)===oy);const QN=Q.filter(x=>!x.isRev);const qm=Q.filter(x=>(x.date||"").slice(0,7)===m);const val=x=>qTotal(x).total;
   const wonM=qm.filter(x=>x.status==="won");const dec=Q.filter(x=>["won","lost"].includes(x.status));const wr=dec.length?Math.round(Q.filter(x=>x.status==="won").length/dec.length*100):null;
   const fo=fupOpen();const due=fo.filter(f=>f.next&&f.next<=t).sort((a,b)=>a.next.localeCompare(b.next));
   const exp=Q.filter(x=>["s1","s2","s3",undefined,""].includes(x.status)&&!x.imp||(x.imp&&x.date>=addDays(t,-14)&&["s1","s2","s3"].includes(x.status||"s1"))).filter(x=>{const v=quoteValidTo(x);return v>=t&&v<=addDays(t,7)}).sort((a,b)=>quoteValidTo(a).localeCompare(quoteValidTo(b)));
-  // 12-month volume
-  const months=[];{const d=new Date(t);d.setDate(1);d.setMonth(d.getMonth()-11);for(let i=0;i<12;i++){months.push(d.toISOString().slice(0,7));d.setMonth(d.getMonth()+1)}}
-  const MV=months.map(mm=>{const a=Q.filter(x=>(x.date||"").slice(0,7)===mm);return [mm,sum(a.map(val)),a.length]});const mx=Math.max(1,...MV.map(r=>r[1]));
+  // months of the year shown (from January)
+  const months=[];{const last=oy===cy?+m.slice(5):12;for(let i=1;i<=last;i++)months.push(oy+"-"+String(i).padStart(2,"0"))}
+  const MV=months.map(mm=>{const a=QN.filter(x=>(x.date||"").slice(0,7)===mm);return [mm,sum(a.map(val)),a.length]});const mx=Math.max(1,...MV.map(r=>r[1]));
   const mon=mm=>["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"][+mm.slice(5)-1];
   const chart=`<div style="display:flex;align-items:flex-end;gap:8px;height:210px;padding-top:6px">${MV.map(([mm,v,n])=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0" title="${mon(mm)}: ${n}">
      <div class="ltr" style="font-size:10px;font-weight:700">${v?(v>=1e6?(v/1e6).toFixed(1)+"M":Math.round(v/1e3)+"K"):""}</div>
@@ -781,12 +781,20 @@ function pwOverHtml(role){
      <div class="small muted" style="font-size:10px;margin-top:4px;white-space:nowrap">${mon(mm)}</div></div>`).join("")}</div>`;
   const acts=(S.log||[]).filter(l=>/^(proj|quote|fup|pf|so|inv|subm|pcust|pprod)/.test(l.kind||"")).sort((a,b)=>(b.at||"").localeCompare(a.at||"")).slice(0,12);names(acts.map(a=>a.by));
   const recent=Q.slice(0,8);
-  return `${["sales_mgr","proj_head","admin","nada"].includes(role)?qYearTiles():""}${projScope()?`<p class="small" style="margin:0;padding:8px 14px;background:var(--info-bg);border-radius:10px">🔎 يظهر لك في المشاريع عروض أسعار المندوب <span style="font-weight:700">${esc(projScope().ar)}</span> فقط.</p>`:""}<div class="pw-kpis">
-     <div class="pw-kpi" style="--c:#B3261E"><span>عروض الأسعار هذا الشهر</span><b>${qm.length}</b><small>${fmt(sum(qm.map(val)))} ريال</small></div>
-     <div class="pw-kpi" style="--c:#2E8B57"><span>فزنا هذا الشهر</span><b style="color:#2E8B57">${fmt(sum(wonM.map(val)))}</b><small>${wonM.length} عرض</small></div>
+  /* one box per salesperson: quotations of the year without revised ones */
+  const RP={};QN.forEach(x=>{const k=x.sales||"-";const r=RP[k]=RP[k]||{n:0,v:0,won:0,wv:0};r.n++;r.v+=val(x);if(x.status==="won"){r.won++;r.wv+=val(x)}});
+  const nRev=Q.length-QN.length;
+  const repBoxes=`<div class="pw-card"><div class="hd"><h3>المناديب — ${oy}</h3><span class="small muted">بدون عروض الأسعار المعدّلة${nRev?` (${nRev} معدّل)`:""} · اضغط على المندوب تطلع عروضه</span></div>
+    <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">${Object.entries(RP).sort((a,b)=>b[1].v-a[1].v).map(([k,r])=>`<button class="tile" data-orep="${esc(k)}" style="padding:12px;align-items:flex-start;text-align:start"><b style="font-size:16px">👤 ${esc(k==="-"?"بدون مندوب":k)}</b><span><b style="font-size:20px">${r.n}</b> عرض سعر</span><span style="font-weight:700;color:#7B0D0D">${fmt(r.v)} ريال</span>${r.won?`<span class="small" style="color:#2E8B57">فزنا ${r.won} · ${fmt(r.wv)}</span>`:""}</button>`).join("")||'<div class="small muted">لا توجد عروض في هذه السنة</div>'}</div></div>`;
+  const prevYears=[...new Set(QA.map(qYear).filter(y=>y&&y<cy))].sort().reverse();
+  const yearBar=`<div class="pw-card"><div class="row" style="align-items:center"><h3 style="margin:0;margin-inline-end:auto">${oy===cy?`📅 السنة الحالية ${cy}`:`📁 سنة ${oy}`}</h3>${oy!==cy?`<button class="btn pri" data-oy="">↩ السنة الحالية ${cy}</button>`:""}</div>
+    ${prevYears.length?`<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-top:8px">${prevYears.map(y=>{const L=QA.filter(x=>qYear(x)===y&&!x.isRev);return `<button class="tile" data-oy="${y}" style="padding:10px;text-align:center;align-items:center;${oy===y?"border:2px solid var(--accent)":""}"><span style="font-size:26px">📁</span><b style="font-size:20px">${y}</b><span class="small">${L.length} عرض · ${fmt(sum(L.map(val)))}</span></button>`}).join("")}</div>`:""}</div>`;
+  return `${yearBar}${projScope()?`<p class="small" style="margin:0;padding:8px 14px;background:var(--info-bg);border-radius:10px">🔎 يظهر لك في المشاريع عروض أسعار المندوب <span style="font-weight:700">${esc(projScope().ar)}</span> فقط.</p>`:""}<div class="pw-kpis">
+     ${oy===cy?`<div class="pw-kpi" style="--c:#B3261E"><span>عروض الأسعار هذا الشهر</span><b>${qm.length}</b><small>${fmt(sum(qm.map(val)))} ريال</small></div>`:""}<div class="pw-kpi" style="--c:#7B0D0D"><span>عروض سنة ${oy}</span><b>${QN.length}</b><small>${fmt(sum(QN.map(val)))} ريال${nRev?` · ${nRev} معدّل`:""}</small></div>
+     ${oy!==cy?"":`<div class="pw-kpi" style="--c:#2E8B57"><span>فزنا هذا الشهر</span><b style="color:#2E8B57">${fmt(sum(wonM.map(val)))}</b><small>${wonM.length} عرض</small></div>`}
      <div class="pw-kpi" style="--c:#1D5C8F"><span>نسبة الفوز</span><b>${wr===null?"—":wr+"%"}</b><small>${dec.length} عرض انحسم</small></div>
      <div class="pw-kpi" style="--c:#E0A100"><span>متابعات مستحقة ومتأخرة</span><b>${due.length}</b><small>${fo.length} متابعة مفتوحة</small></div></div>
-   <div class="pw-card"><div class="hd"><h3>حجم عروض الأسعار شهرياً (ريال)</h3><span class="small muted">آخر 12 شهر</span></div>${chart}</div>
+   <div class="pw-card"><div class="hd"><h3>حجم عروض الأسعار شهرياً (ريال) — ${oy}</h3><span class="small muted">من بداية السنة</span></div>${chart}</div>${repBoxes}
    <div class="pw-grid2">
      <div class="pw-card"><div class="hd"><h3>متابعات مستحقة / متأخرة</h3><button class="btn sm" data-pwgo="fup">كل المتابعات</button></div>
        ${due.length?due.slice(0,8).map(f=>{const q=(S.quote||{})[f.qid];return `<div class="pw-li" data-fq="${esc(f.qid)}" style="cursor:pointer"><span class="pw-dot" style="background:${f.next<t?"#C0392B":"#E0A100"}"></span><div style="flex:1;min-width:0"><b class="ltr">${esc(q?qRef(q):"—")}</b> <span class="small">${esc(q?(q.customer||q.projName||""):"")}</span><div class="small muted">${esc(f.note||"")}</div></div><span class="small" style="color:${f.next<t?"#C0392B":"inherit"}">${fd(f.next)}</span></div>`}).join(""):'<div class="small muted">✓ ما فيه متابعات متأخرة. كل شي تمام.</div>'}</div>
@@ -973,6 +981,8 @@ function pwCounts(){const t=todayR();return {fup:fupOpen().filter(f=>f.next&&f.n
 function pwWire(app,tab,role){
   app.querySelectorAll("[data-pwnav]").forEach(b=>b.onclick=()=>{S.opt={ptab:b.dataset.pwnav};render();window.scrollTo(0,0)});
   app.querySelectorAll("[data-pwgo]").forEach(b=>b.onclick=()=>{S.opt={ptab:b.dataset.pwgo};render()});
+  app.querySelectorAll("[data-oy]").forEach(b=>b.onclick=()=>{S.opt.oy=b.dataset.oy;render();scrollTo(0,0)});
+  app.querySelectorAll("[data-orep]").forEach(b=>b.onclick=()=>{const y=S.opt.oy||todayR().slice(0,4);S.opt={ptab:"quote",qfsp:b.dataset.orep,qyear:y};S.lastPtab="quote";S.qopen=S.qopen||{};S.qopen["q|"+y]=true;render();scrollTo(0,0)});
   app.querySelectorAll("[data-fq]").forEach(r=>r.onclick=()=>go({t:"quote",id:r.dataset.fq}));
   // follow-ups
   const ff=app.querySelector("#fupf");if(ff)ff.onsubmit=async e=>{e.preventDefault();const F=new FormData(ff);const key=F.get("q").trim();const q=quoteList().find(x=>qRef(x)===key||qNo(x)===key||(x.customer||"")===key);if(!q){toast("اختر عرض سعر من القائمة");return}
@@ -1052,7 +1062,7 @@ function projectsView(app){
       <button class="btn" id="qdir" style="align-self:flex-end" title="ترتيب حسب التاريخ">${qasc?"↑ الأقدم أولاً":"↓ الأحدث أولاً"}</button>${qd1||qd2?`<button class="btn sm" id="qdclr" style="align-self:flex-end">✕ مسح التاريخ</button>`:""}
       <span class="small muted" style="align-self:flex-end">${L.length} عرض · ${fmt(sum(L.map(x=>qTotal(x).total)))}</span></div>
      ${ymTree("q",L,{group:x=>x.sales||"",year:qYear,val:x=>qTotal(x).total,cols:8,empty:"لا توجد عروض أسعار",head:"<th>رقم العرض</th><th>التاريخ</th><th>العميل</th><th>المشروع</th><th>المندوب</th><th>الأصناف</th><th>الحالة</th><th>الإجمالي شامل الضريبة</th>",
-       row:x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td><b class="ltr">${esc(qRef(x))}</b></td><td>${fd(x.date)}</td><td>${custOrContact(x)}</td><td>${esc(x.projName||"")}</td><td>${esc(x.sales||"—")}</td><td>${(x.items||[]).length}</td><td>${qpill(x)}</td><td><b>${fmt(qTotal(x).total,2)}</b></td></tr>`})}`;
+       row:x=>`<tr data-qid="${esc(x.id)}" style="cursor:pointer"><td><b class="ltr">${esc(qRef(x))}</b>${x.isRev?`<div class="small" style="color:#B26A00">معدّل${x.revOf?` من <span class="ltr">${esc(x.revOf)}</span>`:""}</div>`:""}</td><td>${fd(x.date)}</td><td>${custOrContact(x)}</td><td>${esc(x.projName||"")}</td><td>${esc(x.sales||"—")}</td><td>${(x.items||[]).length}</td><td>${qpill(x)}</td><td><b>${fmt(qTotal(x).total,2)}</b></td></tr>`})}`;
   }else if(tab==="team"&&canTeam(role))body=teamHtml();
   else if(tab==="charts")body=pchartsHtml();
   else if(tab==="over")body=pwOverHtml(role);
@@ -1278,7 +1288,10 @@ function quoteView(app,n){pwCss();
      <label class="f">نوع العرض / Type<select id="qtype"><option value="P" ${qType(q)==="P"?"selected":""}>P — مشروع (Project)</option><option value="R" ${qType(q)==="R"?"selected":""}>R — تجزئة (Retail)</option></select></label>
      <label class="f">إدارة المشاريع / Project Management<select id="qpm"><option value="">—</option>${QPM.map(n=>`<option ${q.pm===n?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
      <label class="f">أعدّه / Prepared By<input value="${esc(q.prep||pname(q.by||S.uid)||myName())}" disabled></label>${I("qpay","شروط الدفع / Payment Terms",q.pay,"text",'list="qptl"')}<datalist id="qptl">${(pset().terms||[]).map(t=>`<option value="${esc(t.name)}">`).join("")}<option value="100% Advance"><option value="50% Advance"></datalist>
-     <div class="f"><label class="f" style="margin:0">خصم إضافي على الإجمالي %<input id="qdisc" type="number" step="0.1" value="${esc(q.disc||0)}"></label><div class="row" style="gap:6px;margin-top:4px">${[0,2.5,5,7.5,10,15].map(n=>`<button type="button" class="btn sm" data-qdc="${n}" style="${(+q.disc||0)==n?"background:#7B0D0D;color:#fff;border-color:#7B0D0D":""}">${n}%</button>`).join("")}</div></div>${I("qinq","رقم الاستفسار / Inquiry No",q.inq,"text",'dir="ltr" placeholder="مثال: SN366"')}${I("qdesc","الوصف في التقرير اليومي / Description",q.desc,"text",`dir="ltr" placeholder="${esc(qDesc({...q,desc:""})||"Exhaust Fans")}"`)}</div>
+     <div class="f"><label class="f" style="margin:0">خصم إضافي على الإجمالي %<input id="qdisc" type="number" step="0.1" value="${esc(q.disc||0)}"></label><div class="row" style="gap:6px;margin-top:4px">${[0,2.5,5,7.5,10,15].map(n=>`<button type="button" class="btn sm" data-qdc="${n}" style="${(+q.disc||0)==n?"background:#7B0D0D;color:#fff;border-color:#7B0D0D":""}">${n}%</button>`).join("")}</div></div>${I("qinq","رقم الاستفسار / Inquiry No",q.inq,"text",'dir="ltr" placeholder="مثال: SN366"')}${I("qdesc","الوصف في التقرير اليومي / Description",q.desc,"text",`dir="ltr" placeholder="${esc(qDesc({...q,desc:""})||"Exhaust Fans")}"`)}
+     <div class="f" style="background:${q.isRev?"#FFF4E0":"transparent"};border-radius:8px;padding:4px 6px"><label style="display:flex;gap:6px;align-items:center;font-weight:700"><input type="checkbox" id="qisrev" ${q.isRev?"checked":""}> عرض سعر معدّل / Revised Quotation</label>
+      ${q.isRev?`<label class="f" style="margin:4px 0 0">رقم عرض السعر الأصلي / Original Quotation No<input id="qrevof" list="qrevl" dir="ltr" value="${esc(q.revOf||"")}" placeholder="مثال: Q26-RSR-5100"></label><datalist id="qrevl">${quoteList().filter(x=>x.id!==q.id).slice(0,400).map(x=>`<option value="${esc(qRef(x))}">${esc(x.customer||"")}</option>`).join("")}</datalist>
+      <span class="small muted">ما ينحسب في عدد ومبالغ المندوب في النظرة العامة.</span>`:""}</div></div>
      <label class="f">ملاحظات إضافية تطلع في العرض<textarea id="qnotes" rows="2">${esc(q.notes||"")}</textarea></label>
      <p class="small muted" style="margin:0">صالح حتى: ${fd(addDays(q.date,q.valid))} · الشروط والأحكام والضمان تنضاف تلقائياً في الصفحة الثانية.</p></div>
    <div class="card"><h2 style="margin-top:0">إضافة مواد</h2>
@@ -1298,12 +1311,13 @@ function quoteView(app,n){pwCss();
    <div id="qdocWrap" data-notr="1" style="position:absolute;left:-10000px;top:0"></div></div>`;
   const v=s=>app.querySelector(s).value;
   const keep=()=>{q.projName=v("#qproj").trim();const pj=projList().find(p=>p.name===q.projName);q.projId=pj?pj.id:"";q.customer=v("#qcust").trim();q.city=v("#qcity").trim();q.country=v("#qcountry").trim();q.contact=v("#qcontact").trim();q.phone=v("#qphone").trim();q.email=v("#qemail").trim();q.custCode=v("#qcode").trim();
-    q.date=v("#qdate");q.valid=+v("#qvalid")||7;q.sales=v("#qsales").trim();q.pm=v("#qpm");q.qtype=v("#qtype");q.pay=v("#qpay").trim();q.disc=+v("#qdisc")||0;q.notes=v("#qnotes");q.inq=v("#qinq").trim();q.desc=v("#qdesc").trim()};
+    q.date=v("#qdate");q.valid=+v("#qvalid")||7;q.sales=v("#qsales").trim();q.pm=v("#qpm");q.qtype=v("#qtype");q.pay=v("#qpay").trim();q.disc=+v("#qdisc")||0;q.notes=v("#qnotes");q.inq=v("#qinq").trim();q.desc=v("#qdesc").trim();const ir=app.querySelector("#qisrev");if(ir)q.isRev=ir.checked?1:0;const ro=app.querySelector("#qrevof");if(ro)q.revOf=ro.value.trim();if(!q.isRev)q.revOf=""};
   const qd=S.qdraft;app.oninput=()=>{if(S.qdraft!==qd||!app.querySelector("#qcust"))return;try{keep();localStorage.setItem("qdraft:"+qd._for,JSON.stringify(qd))}catch(e){}};
   app.querySelector("#qproj").onchange=()=>{keep();const pj=(S.proj||{})[q.projId];if(pj&&!q.status)q.status=pj.status;if(pj){if(!q.customer)q.customer=pj.contractor||"";const ct=pj.poles&&pj.poles.contractor||{};if(!q.contact)q.contact=ct.name||"";if(!q.phone)q.phone=ct.phone||""}render()};
   ["#qdisc","#qdate","#qvalid"].forEach(s=>app.querySelector(s).onchange=()=>{keep();render()});
   app.querySelectorAll("[data-qv]").forEach(b=>b.onclick=()=>{keep();q.valid=+b.dataset.qv;render()});
   app.querySelectorAll("[data-qdc]").forEach(b=>b.onclick=()=>{keep();q.disc=+b.dataset.qdc;render()});
+  const qir=app.querySelector("#qisrev");if(qir)qir.onchange=()=>{keep();render()};
   app.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{keep();const [i,dd]=b.dataset.mv.split(":").map(Number);const t=q.items[i];q.items[i]=q.items[i+dd];q.items[i+dd]=t;render()});
   app.querySelectorAll("[data-dup]").forEach(b=>b.onclick=()=>{keep();const i=+b.dataset.dup;q.items.splice(i+1,0,JSON.parse(JSON.stringify(q.items[i])));render()});
   wireTermsEditor(app,q,keep);
