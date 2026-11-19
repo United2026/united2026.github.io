@@ -599,7 +599,7 @@ const usDate=d=>d?d.slice(5,7)+"/"+d.slice(8,10)+"/"+d.slice(0,4):"";
 /* calculation sheets saved that day (latest revision of each offer) — shown in the daily report */
 function calcDay(u,date,d2){const L=Object.values(S.calc||{}).filter(c=>c.by===u&&c.date>=date&&c.date<=(d2||date)),best={};
   L.forEach(c=>{const k=(c.prefix||"RD02")+"|"+c.series;if(!best[k]||(c.rev||0)>(best[k].rev||0))best[k]=c});
-  return Object.values(best).map(c=>{const o=c.offer||{};const r=c.void&&c.void.by2&&(S.calc||{})[c.void.by2];return {calc:1,inq:c.csno,date:c.date,desc:"Calc Sheet: "+(c.panels||[]).map(p=>p.name).filter(Boolean).join(", "),
+  return Object.values(best).map(c=>{const o=c.offer||{};const r=c.void&&c.void.by2&&(S.calc||{})[c.void.by2];return {calc:1,inq:c.code?"—":c.csno,date:c.date,desc:"Calc Sheet: "+(c.panels||[]).map(p=>p.name).filter(Boolean).join(", "),
     customer:(c.hdr||{}).to||"",projName:(c.hdr||{}).project||"",ref:cRef(c),sales:c.sales||"",cat:c.cat||"MDB",total:c.void?0:o.net||0,was:c.void?o.net||0:0,
     void:c.void?"CANCELLED — error in quotation"+(r?", replaced by "+cRef(r):""):"",status:c.void?"Cancelled":"Calculation Sheet",createdAt:c.createdAt}})}
 const qDayRows=(u,date,d2)=>quoteList().filter(x=>x.by===u&&x.date>=date&&x.date<=(d2||date)).map(x=>({inq:x.inq||"",date:x.date,desc:qDesc(x),customer:x.customer||"",projName:x.projName||"",ref:qRef(x),sales:x.sales||"",cat:qCats(x).join(" / "),total:qTotal(x).total,status:P_ST[x.status]?P_ST[x.status][1]:"",createdAt:x.createdAt||"",no:x.no||0}))
@@ -613,13 +613,13 @@ function qDayHtml(date,uids,d2){d2=d2&&d2!==date?d2:"";
   const blocks=B.map(({u,L})=>{const tot=sum(L.map(x=>x.total)),n=L.filter(x=>!x.void).length;
     return `<div style="margin-top:14px;border:1px solid #CBD5E1;border-radius:8px;overflow:hidden">
      <div style="display:flex;align-items:center;gap:10px;background:#EAF1F8;padding:8px 12px;border-bottom:2px solid #1F3B5C"><b style="font-size:15px;color:#1F3B5C">${esc(pname(u))}</b><span style="margin-left:auto;font-size:12.5px;color:#334">${n} quotation${n===1?"":"s"}</span><b style="font-size:14px;color:#7B0D0D">${nf(tot)} SAR</b></div>
-     ${L.length?`<table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed"><colgroup>${[5,10,9,15,24,12,13,12].map(w=>`<col style="width:${w}%">`).join("")}</colgroup>
-      <tr><th style="${th}">#</th><th style="${th}">Inquiry No</th><th style="${th}">Date</th><th style="${th}">Description</th><th style="${th}">Customer / Project</th><th style="${th}">Salesperson</th><th style="${th}">Quotation No</th><th style="${th}text-align:right">Value incl. VAT</th></tr>
+     ${L.length?`<table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed"><colgroup>${[4,9,8,13,17,15,11,12,11].map(w=>`<col style="width:${w}%">`).join("")}</colgroup>
+      <tr><th style="${th}">#</th><th style="${th}">Inquiry No</th><th style="${th}">Date</th><th style="${th}">Description</th><th style="${th}">Customer</th><th style="${th}">Project</th><th style="${th}">Salesperson</th><th style="${th}">Quotation No</th><th style="${th}text-align:right">Value incl. VAT</th></tr>
       ${L.map((x,i)=>{const bg=x.void?"#FDECEC":i%2?"#F7F9FC":"#fff";const no=x.void?"–":++sn;return `<tr style="background:${bg}"><td style="${td}font-weight:700">${no}</td><td style="${td}">${esc(x.inq||"")}</td><td style="${td}white-space:nowrap">${usDate(x.date)}</td><td style="${td}">${esc(x.desc)}${x.cat?`<div style="font-size:10.5px;color:#667">${esc(x.cat)}</div>`:""}</td>
-        <td style="${td}"><b>${esc(x.customer||x.projName||"—")}</b>${x.projName&&x.customer&&x.projName!==x.customer?`<div style="font-size:10.5px;color:#667">${esc(x.projName)}</div>`:""}</td><td style="${td}">${esc(x.sales||"—")}</td>
+        <td style="${td}"><b>${esc(x.customer||"—")}</b></td><td style="${td}">${esc(x.projName||"—")}</td><td style="${td}">${esc(x.sales||"—")}</td>
         <td style="${td}font-weight:700">${x.void?`<s>${esc(x.ref)}</s>`:esc(x.ref)}</td><td style="${td}text-align:right;font-weight:700">${x.void?`<s style="color:#999;font-weight:400">${nf(x.was)}</s><div style="color:#B42318">0.00</div>`:nf(x.total)}</td></tr>
-        ${x.void?`<tr style="background:#FDECEC"><td style="${td}"></td><td colspan="7" style="${td}color:#B42318;font-weight:700">↳ ${esc(x.void)} — not counted</td></tr>`:""}`}).join("")}
-      <tr style="background:#FFF4D6"><td colspan="7" style="padding:8px;text-align:right;font-weight:700;font-size:13.5px">Total — ${esc(pname(u))}</td><td style="padding:8px;text-align:right;font-weight:700;font-size:14px;color:#7B0D0D">${nf(tot)}</td></tr></table>`
+        ${x.void?`<tr style="background:#FDECEC"><td style="${td}"></td><td colspan="8" style="${td}color:#B42318;font-weight:700">↳ ${esc(x.void)} — not counted</td></tr>`:""}`}).join("")}
+      <tr style="background:#FFF4D6"><td colspan="8" style="padding:8px;text-align:right;font-weight:700;font-size:13.5px">Total — ${esc(pname(u))}</td><td style="padding:8px;text-align:right;font-weight:700;font-size:14px;color:#7B0D0D">${nf(tot)}</td></tr></table>`
      :`<div style="padding:10px 12px;color:#888;font-size:12.5px">No quotations on this day</div>`}</div>`}).join("");
   const per=enDate(date)+(d2?" — "+enDate(d2):"");
   return `<div id="qday" dir="ltr" style="background:#fff;color:#111;width:1040px;padding:18px 20px;font-family:Calibri,Arial,sans-serif">
@@ -1584,7 +1584,11 @@ const C_HDR_DEF={from:"",fmobile:"+966 55 041 6218",fphone:"+966 55 041 6218",fe
   note:"Our scope is limited to supply of material. Installation, Testing & commissioning are not included.",smTitle:"Sales Manager:",smName:"Eng. Mohammed Ali Al-Attas",smMobile:"+966506693115",smEmail:"projects@unitedfactorysa.com"};
 const calcList=()=>Object.values(S.calc||{}).filter(c=>!ownOnly()||c.by===meId()).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
 const p2=n=>String(n||0).padStart(2,"0");
-const cRef=c=>`${c.prefix||"RD02"}-${p2(c.series)}-R${p2(c.rev)}`;
+/* new numbering: M + city letter + salesperson letter + yy + 00001 (revisions add -R01, -R02…) */
+const cRef=c=>c.code?c.code+(c.rev?"-R"+p2(c.rev):""):`${c.prefix||"RD02"}-${p2(c.series)}-R${p2(c.rev)}`;
+const C_CITIES=["Riyadh","Jeddah","Dammam","Makkah","Madinah","Qassim","Khamis Mushait","Abha","Tabuk","Sakaka","Arar","Jazan","Hail","Najran","Al Ahsa","Jubail","Khobar","Taif","Yanbu","Other"];
+const AR2EN={"ا":"A","أ":"A","إ":"A","آ":"A","ب":"B","ت":"T","ث":"T","ج":"J","ح":"H","خ":"K","د":"D","ذ":"D","ر":"R","ز":"Z","س":"S","ش":"S","ص":"S","ض":"D","ط":"T","ظ":"Z","ع":"A","غ":"G","ف":"F","ق":"Q","ك":"K","ل":"L","م":"M","ن":"N","ه":"H","ة":"H","و":"W","ي":"Y","ى":"Y"};
+const cLetter=t=>{const x=String(t||"").trim().replace(/^(engr?\.?|eng\.|mr\.?)\s+/i,"");const ch=x.charAt(0);return /[a-z]/i.test(ch)?ch.toUpperCase():(AR2EN[ch]||"X")};
 const cNum=v=>{const x=parseFloat(v);return isFinite(x)?x:0};
 const cRowG=x=>x.sec?0:(x.lot?1:cNum(x.qty))*cNum(x.net)*(x.df===""||x.df==null?1:cNum(x.df));
 const cPan=p=>{const items=sum((p.rows||[]).map(cRowG)),tot=items+cNum(p.acc),lab=tot*cNum(p.lab)/100,pro=tot*cNum(p.pro)/100;return {items,tot,lab,twl:tot+lab,pro,net:tot+lab+pro}};
@@ -1597,9 +1601,11 @@ const cFromTmpl=()=>{const t=JSON.parse(JSON.stringify(CALC_TMPL));const c=cBlan
 /* the numbers a save would give: sheet no + offer series/revision */
 function cNextIds(c){const all=Object.values(S.calc||{}),yy=String(c.date||todayR()).slice(2,4),pre=String(c.prefix||"RD02").trim()||"RD02";
   let no=Math.max(0,...all.filter(x=>x.yy===yy).map(x=>x.no||0))+1;while((S.calc||{})["cs"+yy+"_"+no])no++;
-  let series=c.series,rev=0;const same=all.filter(x=>(x.prefix||"RD02")===pre);
-  if(series&&same.some(x=>x.series===series))rev=Math.max(...same.filter(x=>x.series===series).map(x=>x.rev||0))+1;else series=Math.max(0,...same.map(x=>x.series||0))+1;
-  return {yy,no,pre,series,rev,id:"cs"+yy+"_"+no,csno:"CS"+yy+"-"+String(no).padStart(4,"0")}}
+  let code=c.code||"",seq=c.seq||0,rev=0;
+  if(code&&all.some(x=>x.code===code))rev=Math.max(...all.filter(x=>x.code===code).map(x=>x.rev||0))+1;
+  else{seq=Math.max(0,...all.filter(x=>x.code&&x.yy===yy).map(x=>x.seq||0))+1;code="M"+cLetter(c.city)+cLetter(c.sales)+yy+String(seq).padStart(5,"0")}
+  const csno=code+(rev?"-R"+p2(rev):"");
+  return {yy,no,pre,series:seq,seq,code,rev,id:"cs"+yy+"_"+no,csno}}
 function cOfferSnap(c){const P=cPrices(c);return {ref:cRef(c),rev:p2(c.rev),date:c.date,hdr:JSON.parse(JSON.stringify(c.hdr||{})),list:P.list,tot:P.tot,vat:P.vat,net:P.net,
   tech:(c.panels||[]).map(p=>({name:p.name,qty:cNum(p.qty)||1,rows:cDropEmptySec(p.rows).map(r=>r.sec?{sec:r.sec}:{ref:r.ref||"",desc:r.desc||"",unit:r.unit||"",qty:r.qty,mfr:r.mfr||""})}))}}
 
@@ -1640,8 +1646,17 @@ function cVoidDialog(c){if(!c)return;const others=calcList().filter(x=>x.id!==c.
     const v={reason:"error",by2:F.get("by2")||"",note:(F.get("note")||"").trim(),at:new Date().toISOString(),uid:S.uid};
     try{const rec={...c,void:v};await S.db.doc("calc/"+c.id).set(rec);S.calc[c.id]=rec;logAct("quote",`Cancelled ${cRef(c)} (${c.csno}) — error in quotation`+(v.by2&&S.calc[v.by2]?" — replaced by "+cRef(S.calc[v.by2]):""));toast("Quotation cancelled");render()}catch(e){toast("Could not save")}}d.remove()})}
 /* new quotation with the same data: new offer number (new series), the old record is not touched */
-function cCopyNew(src){if(!src)return;const c=JSON.parse(JSON.stringify({date:todayR(),prefix:src.prefix,round:src.round,notes:src.notes||"",sales:src.sales||"",cat:src.cat||"MDB",hdr:src.hdr,panels:src.panels}));c.copyOf=src.id;c._dirty=1;c._for="new";
+function cCopyNew(src){if(!src)return;const c=JSON.parse(JSON.stringify({date:todayR(),prefix:src.prefix,round:src.round,notes:src.notes||"",sales:src.sales||"",city:src.city||"",cat:src.cat||"MDB",hdr:src.hdr,panels:src.panels}));c.copyOf=src.id;c._dirty=1;c._for="new";
   try{localStorage.setItem("cdraft:new",JSON.stringify(c))}catch(e){}S.cdraft=c;go({t:"calc",id:"new"});setTimeout(()=>toast("Copied from "+cRef(src)+" — change the quantities / items and save to get a new offer number"),300)}
+
+/* items used before (all sheets + the RD02 sample): description -> its last line, to fill price / brand when adding */
+function cItemLib(){if(S._cil&&S._cilN===Object.keys(S.calc||{}).length)return S._cil;const L={};const take=rows=>(rows||[]).forEach(r=>{if(!r.sec&&String(r.desc||"").trim())L[String(r.desc).trim()]=r});
+  (CALC_TMPL.panels||[]).forEach(p=>take(p.rows));Object.values(S.calc||{}).sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||"")).forEach(c=>(c.panels||[]).forEach(p=>take(p.rows)));
+  S._cil=L;S._cilN=Object.keys(S.calc||{}).length;return L}
+/* put a line at the end of a section of a panel (the section is created in the usual order if missing) */
+function cAddToSec(p,sec,row){const R=p.rows=p.rows||[];let i=R.findIndex(r=>r.sec===sec);
+  if(i<0){const ord=k=>{const j=C_SEC.indexOf(k);return j<0?99:j};let at=R.findIndex(r=>r.sec&&ord(r.sec)>ord(sec));if(at<0)at=R.length;R.splice(at,0,{sec},row);return}
+  let j=i+1;while(j<R.length&&!R[j].sec)j++;R.splice(j,0,row)}
 
 /* editor */
 function calcView(app,n){pwCss();const role=myRole();if(!canCalcEdit(role)){S.nav=[{t:"home"}];return render()}
@@ -1650,24 +1665,26 @@ function calcView(app,n){pwCss();const role=myRole();if(!canCalcEdit(role)){S.na
     if(n.id!=="new"&&!src){app.innerHTML='<div class="empty" dir="ltr">Calculation sheet not found</div>';return}
     let saved=null;try{saved=JSON.parse(localStorage.getItem(key)||"null")}catch(e){}
     if(saved&&!n.tmpl){S.cdraft=saved;setTimeout(()=>toast("Your unsaved changes were restored"),300)}
-    else S.cdraft=src?JSON.parse(JSON.stringify({date:src.date,prefix:src.prefix,round:src.round,notes:src.notes||"",sales:src.sales||"",cat:src.cat||"MDB",hdr:src.hdr,panels:src.panels,series:src.series,base:src.id})):(n.tmpl?cFromTmpl():cBlank());
+    else S.cdraft=src?JSON.parse(JSON.stringify({date:src.date,prefix:src.prefix,round:src.round,notes:src.notes||"",sales:src.sales||"",city:src.city||"",code:src.code||"",seq:src.seq||0,cat:src.cat||"MDB",hdr:src.hdr,panels:src.panels,series:src.series,base:src.id})):(n.tmpl?cFromTmpl():cBlank());
     cSplitBus(S.cdraft.panels);S.cdraft._for=n.id+(n.tmpl?"t":"")}
   const c=S.cdraft,src=n.id==="new"?null:S.calc[n.id];const keep=()=>{c._dirty=1;try{localStorage.setItem(key,JSON.stringify(c))}catch(e){}};
   const inp=(a,v,w,t="text",x="")=>`<input ${a} value="${esc(v==null?"":v)}" type="${t}" ${t==="number"?'step="any" inputmode="decimal"':""} style="width:${w}" ${x}>`;
   const H=c.hdr=c.hdr||{};const grid='display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px';
   const fld=(k,l)=>["payment","note","dtime","delivery"].includes(k)?`<label class="f">${l}<textarea data-ch="${k}" rows="2">${esc(H[k]||"")}</textarea></label>`:`<label class="f">${l}${inp(`data-ch="${k}"`,H[k],"100%")}</label>`;
   app.innerHTML=`<div class="pw-main" dir="ltr" style="max-width:1300px;margin:auto;text-align:left">
+   <datalist id="citems">${Object.keys(cItemLib()).slice(0,1500).map(d=>`<option value="${esc(d)}">`).join("")}</datalist>
    <datalist id="ctypes">${C_TYPES.map(t=>`<option value="${esc(t)}">`).join("")}</datalist>
    <div class="pw-head"><h1>🧮 ${src?`Calculation Sheet ${esc(src.csno)} · <span class="small">${esc(cRef(src))}</span>`:"New Calculation Sheet"}</h1>
     <button class="btn pri" id="csave">💾 Save (new number)</button><button class="btn" id="cpdf">🖨️ Calculation Sheet PDF</button><button class="btn" id="coff">📄 Offer Letter PDF</button>
     ${src?`<button class="btn" id="ccopy1">⧉ New offer from this</button>${src.void?"":`<button class="btn bad" id="cvoid1">⛔ Cancel (error)</button>`}`:""}${src?"":`<button class="btn" id="ctmpl" title="Replace the panels with the RD02-08 sample (6 panels)">📋 Load RD02 sample</button>`}<button class="btn" id="cdisc">↺ Discard changes</button></div>
    ${src&&src.void?`<p style="background:#FDECEC;border:1px solid #F3B4B4;border-radius:8px;padding:8px 10px">${cVoidTxt(src)}</p>`:""}${c.copyOf&&!src&&(S.calc||{})[c.copyOf]?`<p class="small" style="background:#EEF6EE;border-radius:8px;padding:6px 10px">Copied from ${esc(cRef(S.calc[c.copyOf]))} — saving gives a <b>new offer number</b>; ${esc(cRef(S.calc[c.copyOf]))} stays as it is.</p>`:""}
-   <p class="small muted">${src?`This record is saved and locked. Any change here is saved as a new record with a new sheet number and a new offer revision (${esc(c.prefix||"RD02")}-${p2(src.series)}-R..). `:""}The two PDFs are built from what is on screen; unsaved changes are marked DRAFT until you save.</p>
+   <p class="small muted">${src?`This record is saved and locked. Any change here is saved as a new revision (${esc(src.code||cRef(src))}-R..). `:""}The two PDFs are built from what is on screen; unsaved changes are marked DRAFT until you save.</p>
    <div class="card"><h2 style="margin-top:0">Sheet</h2><div style="${grid}">
      <label class="f">Date${inp('data-ck="date"',c.date,"100%","date")}</label>
-     <label class="f">Ref prefix${inp('data-ck="prefix"',c.prefix,"100%")}</label>
      <label class="f">Project Name${inp('data-ch="project"',H.project,"100%")}</label>
      <label class="f">Salesperson (made for)<select data-ck="sales"><option value="">— select —</option>${[...new Set([...salesNames(),...(c.sales?[c.sales]:[])])].map(n=>`<option ${c.sales===n?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
+     <label class="f">City<select data-ck="city"><option value="">— select —</option>${[...new Set([...C_CITIES,...(c.city?[c.city]:[])])].map(n=>`<option ${c.city===n?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
+     <div class="f">Number${c.city&&c.sales?`<b class="ltr" style="font-size:17px;padding:6px 0">${esc(cNextIds(c).csno)}</b>`:`<span class="small muted" style="padding:6px 0">choose City + Salesperson</span>`}</div>
      <label class="f">Section<select data-ck="cat">${Q_CATS.map(k=>`<option ${(c.cat||"MDB")===k?"selected":""}>${k}</option>`).join("")}</select></label>
      <label class="f">Unit price rounding (offer)<select data-ck="round"><option value="0" ${!cNum(c.round)?"selected":""}>No rounding</option><option value="1" ${cNum(c.round)===1?"selected":""}>Round up to 1 SAR</option><option value="10" ${cNum(c.round)===10?"selected":""}>Round up to 10 SAR</option></select></label></div>
     <label class="f">Notes For Project Estimation/Revision<textarea data-ck="notes" rows="2">${esc(c.notes||"")}</textarea></label></div>
@@ -1687,7 +1704,13 @@ function calcView(app,n){pwCss();const role=myRole();if(!canCalcEdit(role)){S.na
          <td>${inp(`data-rf="net" data-p="${pi}" data-r="${ri}"`,r.net,"82px","number")}</td><td>${inp(`data-rf="df" data-p="${pi}" data-r="${ri}"`,r.df,"56px","number")}</td><td><input type="checkbox" data-rlot="${pi}_${ri}" ${r.lot?"checked":""}></td>
          <td data-out="g${pi}_${ri}"><b>${vnum(cRowG(r))}</b></td><td style="white-space:nowrap"><button class="btn sm" data-ra="up" data-p="${pi}" data-r="${ri}" title="Move up">▲</button><button class="btn sm" data-ra="cp" data-p="${pi}" data-r="${ri}" title="Copy line">⧉</button><button class="btn sm" data-ra="del" data-p="${pi}" data-r="${ri}" title="Delete">✕</button></td></tr>`).join("")}
       </tbody><tfoot>${[["Acc+cab","acc"],["TOTAL=","tot"],[`LABOUR@${cNum(p.lab)}%`,"lab"],["Total with labour=","twl"],[`PROFIT @${cNum(p.pro)}%=`,"pro"],["NET TOTAL =","net"],["Unit price in offer","unit"]].map(([l,k])=>`<tr><td colspan="8" style="text-align:left;font-weight:700">${l}</td><td data-out="${k}${pi}" style="font-weight:700${k==="net"?";background:#7B0D0D;color:#fff":""}">${vnum(k==="acc"?cNum(p.acc):k==="unit"?cRound(T.net,cNum(c.round)):T[k])}</td><td></td></tr>`).join("")}</tfoot></table></div>
-     <div class="row"><button class="btn sm" data-ra="addend" data-p="${pi}">＋ Item</button><button class="btn sm" data-ra="sec" data-p="${pi}">＋ Section</button></div></div>`}).join("")}
+     <div class="row" style="background:#EEF4FB;border:1px solid #C9D7EA;border-radius:8px;padding:8px;align-items:flex-end;gap:8px">
+       <b style="align-self:center">＋ Add item</b>
+       <label class="f" style="margin:0">Section<select data-as="${pi}">${[...new Set([...C_SEC,...(p.rows||[]).filter(r=>r.sec).map(r=>r.sec)])].map(k=>`<option>${esc(k)}</option>`).join("")}</select></label>
+       <label class="f" style="margin:0;flex:1;min-width:240px">Item (type or pick from the list)<input data-ad="${pi}" list="citems" placeholder="e.g. MCCB 3P 250A 36kA"></label>
+       <label class="f" style="margin:0">Qty<input data-aq="${pi}" type="number" step="any" value="1" style="width:70px"></label>
+       <button class="btn pri" data-aa="${pi}">＋ Add</button>
+       <span style="flex-basis:100%;height:0"></span><button class="btn sm" data-ra="sec" data-p="${pi}">＋ New section</button></div></div>`}).join("")}
    <div class="row"><button class="btn" id="cpadd">＋ MDB panel</button><button class="btn" id="cpaddb">＋ DB panel</button><button class="btn" id="cpaddo">＋ Other panel</button></div>
    <div class="card"><h2 style="margin-top:0">Panels List Prices</h2><div class="tbl"><table><thead><tr><th>#</th><th>Description</th><th>UOM</th><th>Qty</th><th>Unit Price (SAR)</th><th>Total Price (SAR)</th></tr></thead><tbody id="cplist"></tbody></table></div></div>
   </div>`;
@@ -1699,7 +1722,7 @@ function calcView(app,n){pwCss();const role=myRole();if(!canCalcEdit(role)){S.na
   const redraw=()=>{keep();const y=scrollY;render();scrollTo(0,y)};
   app.oninput=e=>{const t=e.target,d=t.dataset;if(d.ck){c[d.ck]=t.value}else if(d.ch){H[d.ch]=t.value}else if(d.pf){c.panels[+(d.p!=null?d.p:d.ptype)][d.pf]=t.value}else if(d.rf){c.panels[+d.p].rows[+d.r][d.rf]=t.value}else return;keep();refresh()};
   app.querySelectorAll("[data-ck='round']").forEach(s=>s.onchange=()=>{c.round=+s.value;keep();refresh()});
-  app.querySelectorAll("select[data-ck='sales'],select[data-ck='cat']").forEach(s=>s.onchange=()=>{c[s.dataset.ck]=s.value;keep()});
+  app.querySelectorAll("select[data-ck='sales'],select[data-ck='cat'],select[data-ck='city']").forEach(s=>s.onchange=()=>{c[s.dataset.ck]=s.value;if(s.dataset.ck!=="cat"){keep();const y=scrollY;render();scrollTo(0,y)}else keep()});
   app.querySelectorAll("[data-pf='lab'],[data-pf='pro']").forEach(s=>s.onchange=()=>setTimeout(redraw));
   app.querySelectorAll("[data-ptype]").forEach(s=>s.onchange=()=>{const p=c.panels[+s.dataset.ptype];p.type=s.value.trim();const d=cTypeDef(p.type);if(d){p.type=p.type.toUpperCase();Object.assign(p,d)}setTimeout(redraw)});
   app.querySelectorAll("[data-rsec]").forEach(s=>s.onchange=()=>{const [pi,ri]=s.dataset.rsec.split("_");c.panels[pi].rows[ri].sec=s.value;keep()});
@@ -1709,6 +1732,10 @@ function calcView(app,n){pwCss();const role=myRole();if(!canCalcEdit(role)){S.na
   app.querySelectorAll("[data-ra]").forEach(b=>b.onclick=()=>{const p=c.panels[+b.dataset.p],R=p.rows,i=+b.dataset.r,a=b.dataset.ra;const blank={ref:"",desc:"",unit:"Nos.",qty:1,mfr:"",net:0,df:0.55};
     if(a==="add"){let j=i+1;while(j<R.length&&!R[j].sec)j++;R.splice(j,0,blank)}else if(a==="addend")R.push(blank);else if(a==="sec"){const s=prompt("Section name",C_SEC[0]);if(!s)return;R.push({sec:s.toUpperCase()})}
     else if(a==="del")R.splice(i,1);else if(a==="cp")R.splice(i+1,0,JSON.parse(JSON.stringify(R[i])));else if(a==="up"&&i>0)[R[i-1],R[i]]=[R[i],R[i-1]];redraw()});
+  app.querySelectorAll("[data-aa]").forEach(b=>b.onclick=()=>{const pi=+b.dataset.aa,p=c.panels[pi];const d=app.querySelector(`[data-ad="${pi}"]`).value.trim();if(!d){toast("Type or pick the item");return}
+    const sec=app.querySelector(`[data-as="${pi}"]`).value,q=cNum(app.querySelector(`[data-aq="${pi}"]`).value)||1;const lib=cItemLib()[d]||{};
+    cAddToSec(p,sec,{ref:lib.ref&&!/^(BUSBAR|PAN ASSEMBLY)$/i.test(lib.ref)?lib.ref:"",desc:d,unit:lib.unit||"Nos.",qty:q,mfr:lib.mfr||"",net:lib.net||0,df:lib.df!=null?lib.df:0.55,lot:lib.lot?1:0});
+    toast(`Added under ${sec}`+(lib.net?` · price ${vnum(lib.net)}`:" — enter the price"));redraw()});
   app.querySelector("#cpadd").onclick=()=>{c.panels.push(cNewPanel("MDB","MDB-"+String.fromCharCode(65+c.panels.filter(p=>p.type==="MDB").length)));redraw()};
   app.querySelector("#cpaddb").onclick=()=>{c.panels.push(cNewPanel("DB","DB-"+(c.panels.length+1)));redraw()};
   app.querySelector("#cpaddo").onclick=()=>{const t=(prompt("Panel type (e.g. SMDB, ATS, MCC)","SMDB")||"").trim();if(!t)return;const p=cNewPanel("MDB",t.toUpperCase()+"-"+(c.panels.length+1));p.type=t;const d=cTypeDef(t);if(d){p.type=t.toUpperCase();Object.assign(p,d)}c.panels.push(p);redraw()};
@@ -1717,13 +1744,15 @@ function calcView(app,n){pwCss();const role=myRole();if(!canCalcEdit(role)){S.na
   const cc1=app.querySelector("#ccopy1");if(cc1)cc1.onclick=()=>cCopyNew(src);const cv1=app.querySelector("#cvoid1");if(cv1)cv1.onclick=()=>cVoidDialog(src);
   app.querySelector("#cdisc").onclick=()=>{if(!confirm("Discard all unsaved changes?"))return;try{localStorage.removeItem(key)}catch(e){}S.cdraft=null;render()};
   /* PDFs: the saved record as it is, or a DRAFT preview of what is on screen */
-  const pdfRec=()=>{if(src&&!c._dirty)return src;const x=cNextIds(c);const r={...JSON.parse(JSON.stringify(c)),hdr:JSON.parse(JSON.stringify(H)),prefix:x.pre,series:x.series,rev:x.rev,csno:x.csno+" (DRAFT)",round:cNum(c.round)};r.offer=cOfferSnap(r);r.offer.ref+=" (DRAFT)";return r};
+  const pdfRec=()=>{if(src&&!c._dirty)return src;const x=cNextIds(c);const r={...JSON.parse(JSON.stringify(c)),hdr:JSON.parse(JSON.stringify(H)),prefix:x.pre,series:x.series,code:x.code,seq:x.seq,rev:x.rev,csno:x.csno+" (DRAFT)",round:cNum(c.round)};r.offer=cOfferSnap(r);r.offer.ref+=" (DRAFT)";return r};
   app.querySelector("#coff").onclick=e=>{const r=pdfRec();vecSave(()=>offerPdfBlob(r),"Offer "+cRef(r)+(r===src?"":" DRAFT"),e.currentTarget)};
   app.querySelector("#cpdf").onclick=e=>{const r=pdfRec();vecSave(()=>calcPdfBlob(r),"Calculation Sheet "+r.csno,e.currentTarget)};
   app.querySelector("#csave").onclick=async e=>{const btn=e.currentTarget;if(!S.db||S.offline){toast("Saving works after you sign in");return}
     if(!(c.panels||[]).length){toast("Add at least one panel");return}if((c.panels||[]).some(p=>!String(p.name||"").trim())){toast("Enter a Panel Name for every panel");return}
     btn.disabled=true;try{const x=cNextIds(c);const now=new Date().toISOString();
-      const rec={id:x.id,yy:x.yy,no:x.no,csno:x.csno,prefix:x.pre,series:x.series,rev:x.rev,date:c.date||todayR(),round:cNum(c.round),notes:c.notes||"",sales:c.sales||"",cat:c.cat||"MDB",hdr:JSON.parse(JSON.stringify(H)),
+      if(src&&!c._dirty){toast("No changes to save");btn.disabled=false;return}
+      if(!c.city||!c.sales){toast("Select the City and the Salesperson — they are part of the number");btn.disabled=false;return}
+      const rec={id:x.id,yy:x.yy,no:x.no,csno:x.csno,code:x.code,seq:x.seq,city:c.city||"",prefix:x.pre,series:x.series,rev:x.rev,date:c.date||todayR(),round:cNum(c.round),notes:c.notes||"",sales:c.sales||"",cat:c.cat||"MDB",hdr:JSON.parse(JSON.stringify(H)),
         panels:JSON.parse(JSON.stringify(c.panels)),parent:c.base||"",copyOf:c.copyOf||"",by:S.uid,createdAt:now};
       rec.offer=cOfferSnap(rec);await S.db.doc("calc/"+x.id).set(rec);S.calc[x.id]=rec;
       logAct("quote",`Calculation Sheet ${rec.csno} — Offer ${cRef(rec)} — ${H.project||""} — ${vnum(rec.offer.tot)} SAR`);
