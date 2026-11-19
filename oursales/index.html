@@ -404,12 +404,38 @@ function kdScopeName(ids){const bs=[...new Set(ids.map(brOf))];const all=Object.
 const KD={score:["تقييم الأداء من 100",i=>R(i).perf?R(i).perf.score:0],msale:["صافي مبيعات الشهر",i=>R(i).kpi.mtdSale],mcol:["تحصيل الشهر",i=>R(i).kpi.mtdCol],ysale:["صافي مبيعات السنة",i=>R(i).kpi.ytdSale],ycol:["صافي التحصيل للسنة",i=>R(i).kpi.ytdCol],debt:["المديونية",i=>R(i).kpi.debt]};
 /* managers' scores: each manager = weighted score of the reps in her branches; heads (خالد) = score of their branch */
 const MGR_SC=[{n:"ندى الحازمي",t:"مديرة منطقة",a:"nada",own:1},{n:"نسرين الدوسري",t:"مديرة منطقة",a:"nesreen"},{n:"عيدة القحطاني",t:"مديرة منطقة",a:"eida"},{n:"خالد تقلو",t:"رئيس قسم — فرع جدة",b:["JE"]}];
+/* managers' score (approved 19/11/2026): reps 35 · electrician calls 10 · agreements + customer follow-up 20 · stagnant change 15 · debt & overdue change 10 · rep follow-up (targets + daily notes) 5 · rep route (weekly plan) 5. Khaled = Jeddah reps only. */
+const MGR_W=[["reps","تقييم مناديب فروعها",35],["calls","مكالمات الكهربائيين (10 يومياً)",10],["agr","الاتفاقيات ومتابعة العملاء",20],["stag","التغيير في الراكد (من بداية السنة)",15],["debt","تخفيض المديونية والمتأخرات (من بداية السنة)",10],["follow","متابعة المندوب: الأهداف والملاحظات",5],["route","متابعة خط سير المندوب",5]];
+const wDays=(a,b)=>{let n=0;for(let t=new Date(a+"T12:00:00");t<=new Date(b+"T12:00:00");t.setDate(t.getDate()+1)){const d=t.getDay();if(d!==5&&d!==6)n++}return n};
+/* change since the start of the year: no change = half the points, 20% better = full, 20% worse = none */
+const chgScore=(a,b)=>a>0?Math.max(0,Math.min(1,.5+2.5*(a-b)/a)):(b<=0?1:0);
+function mgrParts(m,ri){const t=todayR(),ms=t.slice(0,8)+"01",y0=t.slice(0,4)+"-01-01";const uid=Object.keys(S.members||{}).find(u=>(S.members[u]||{}).role===m.a);
+  const P={},X={};P.reps=(grpScore(ri)||0)/100;X.reps=grpScore(ri)??"—";
+  const wd=Math.max(1,wDays(ms,t));
+  const calls=uid?(S.elec||[]).reduce((n,e)=>n+(e.visits||[]).filter(v=>v.by===uid&&(v.d||"")>=ms).length,0):0;P.calls=Math.min(1,calls/(10*wd));X.calls=`${calls} مكالمة من ${10*wd} (${wd} يوم دوام)`;
+  const CT=(S.D.ctgt||{});const tc=[...new Set(ri.flatMap(i=>(R(i).customers||[]).map(c=>String(c[0]))))].filter(c=>+CT[c]>0);
+  const ag=new Set(Object.values(S.agr||{}).filter(a=>["pending","approved","accepted"].includes(a.status)&&(a.updatedAt||a.createdAt||t)>=y0).map(a=>String(a.cid)));
+  const d90=new Date(Date.now()-90*864e5).toISOString();const fu=tc.filter(c=>((S.cust||{})[c]||{}).notes&&S.cust[c].notes.some(n=>n.by===uid&&(n.at||"")>=d90));
+  const na=tc.filter(c=>ag.has(c)).length;P.agr=tc.length?(.5*na/tc.length+.5*fu.length/tc.length):0;X.agr=`اتفاقيات ${na} من ${tc.length} عميل له هدف · متابعة ${fu.length} منهم آخر 90 يوم`;
+  const B=m.bs.map(b=>(S.D.branches[b]||{}).budget||{}),b0=B.map(x=>x.base0||{});const s=k=>sum(B.map(x=>+x[k]||0)),s0=k=>sum(b0.map(x=>+x[k]||0));
+  P.stag=chgScore(s0("stagnant"),s("stagnant"));X.stag=`${fmtN(s0("stagnant"))} ← ${fmtN(s("stagnant"))}`;
+  P.debt=(chgScore(s0("debt"),s("debt"))+chgScore(s0("overdue"),s("overdue")))/2;X.debt=`الديون ${fmtN(s0("debt"))} ← ${fmtN(s("debt"))} · المتأخرات +90 ${fmtN(s0("overdue"))} ← ${fmtN(s("overdue"))}`;
+  const T=uid?((tgtOf(uid,monthOf())||{}).reps||{}):{};const wt=ri.filter(i=>T[i]&&(+T[i].sale||+T[i].col)).length;
+  const dr=uid?new Set((S.daily||[]).filter(d=>d.by===uid&&d.date>=ms&&d.date<=t).map(d=>d.date)).size:0;
+  P.follow=(ri.length?wt/ri.length:0)*.5+Math.min(1,dr/wd)*.5;X.follow=`أهداف الشهر ${wt} من ${ri.length} مندوب · تقرير يومي ${dr} من ${wd} يوم`;
+  const wks=[];for(let d=new Date(ms+"T12:00:00");d<=new Date(t+"T12:00:00");d.setDate(d.getDate()+7))wks.push(weekOf(d.toISOString().slice(0,10)));wks.push(weekOf(t));const W=[...new Set(wks)];
+  const filled=w=>w&&WP_DAYS.some(([dk])=>wpSum(w,dk).n>0);let ok=0;ri.forEach(i=>W.forEach(k=>{if(filled(wpOf(i,k)))ok++}));
+  P.route=ri.length&&W.length?ok/(ri.length*W.length):0;X.route=`خطط أسبوعية معبّاة ${ok} من ${ri.length*W.length}`;
+  const v=Math.round(sum(MGR_W.map(([k,,w])=>w*(P[k]||0))));return {v,P,X,uid}}
 function mgrScoreHtml(ids,kb){const A=S.D.areas||{};
-  const L=MGR_SC.map(m=>{const bs=m.b||((A[m.a]||{}).branches||[]).concat(m.own?[]:[]);const ri=ids.filter(i=>bs.includes(kb(i)));return {...m,bs,n2:ri.length,v:grpScore(ri)}}).filter(m=>m.n2);
-  if(!L.length)return "";const scCol=s=>s>=60?"#2E8B57":s>=40?"#E0A100":"#C0392B";
-  return `<div class="card" style="margin:0"><b>تقييم المديرات والمشرفين</b><div class="tbl" style="margin-top:6px"><table><thead><tr><th>الاسم</th><th>الفروع</th><th class="n">المناديب</th><th class="n">التقييم /100</th><th>التصنيف</th><th></th></tr></thead><tbody>
-   ${L.sort((a,b)=>(b.v||0)-(a.v||0)).map(m=>`<tr data-kdm="${m.bs.join(",")}" style="cursor:pointer"><td><b>${esc(m.n)}</b> <span class="small muted">${esc(m.t)}</span></td><td class="small">${m.bs.map(b=>esc(brLabel(b))).join("، ")}</td><td class="n">${m.n2}</td><td class="n"><b>${m.v??"—"}</b></td><td><span class="pill ${RPILL[scoreRating(m.v||0)]}">${scoreRating(m.v||0)}</span></td><td style="width:20%"><div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:${m.v||0}%;background:${scCol(m.v||0)}"></i></div></td></tr>`).join("")}
-  </tbody></table></div><p class="small muted" style="margin:4px 0 0">تقييم المديرة = متوسط تقييم مناديب فروعها موزون بمبيعات السنة. تقييم خالد = تقييم فرع جدة. اضغط على الاسم لتشوف الفروع والمناديب.</p></div>`}
+  const L=MGR_SC.map(m=>{const bs=m.b||((A[m.a]||{}).branches||[]);const ri=ids.filter(i=>bs.includes(kb(i)));const mm={...m,bs,n2:ri.length};
+    if(m.a){const r=mgrParts(mm,ri);return {...mm,v:r.v,P:r.P,X:r.X}}return {...mm,v:grpScore(ri)}}).filter(m=>m.n2);
+  if(!L.length)return "";const scCol=s=>s>=60?"#2E8B57":s>=40?"#E0A100":"#C0392B";S._mgrL=L;
+  return `<div class="card" style="margin:0"><b>تقييم المديرات والمشرفين</b><div class="tbl" style="margin-top:6px"><table><thead><tr><th>الاسم</th><th>الفروع</th><th class="n">المناديب</th>${MGR_W.map(([,l,w])=>`<th class="n" title="${esc(l)}">${esc(l.split(" (")[0])}<div class="small muted">${w}%</div></th>`).join("")}<th class="n">التقييم /100</th><th>التصنيف</th><th></th></tr></thead><tbody>
+   ${L.sort((a,b)=>(b.v||0)-(a.v||0)).map(m=>`<tr><td><button class="btn sm" data-kdm="${m.bs.join(",")}" title="الفروع والمناديب"><b>${esc(m.n)}</b></button> <span class="small muted">${esc(m.t)}</span></td><td class="small">${m.bs.map(b=>esc(brLabel(b))).join("، ")}</td><td class="n">${m.n2}</td>
+     ${MGR_W.map(([k,,w])=>m.P?`<td class="n" data-mgx="${esc(m.a)}|${k}" style="cursor:pointer" title="${esc(m.X[k])}"><b>${(w*(m.P[k]||0)).toFixed(1)}</b><div class="small muted">${Math.round(100*(m.P[k]||0))}%</div></td>`:(k==="reps"?`<td class="n"><b>${m.v??"—"}</b><div class="small muted">100%</div></td>`:`<td class="n muted">—</td>`)).join("")}
+     <td class="n"><b style="font-size:16px">${m.v??"—"}</b></td><td><span class="pill ${RPILL[scoreRating(m.v||0)]}">${scoreRating(m.v||0)}</span></td><td style="width:10%"><div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden"><div style="height:100%;width:${m.v||0}%;background:${scCol(m.v||0)}"></div></div></td></tr>`).join("")}
+  </tbody></table></div><p class="small muted" style="margin:4px 0 0">تقييم المديرة = مناديب فروعها 35% · مكالمات الكهربائيين 10% (10 مكالمات في اليوم بدون الجمعة والسبت) · الاتفاقيات ومتابعة العملاء 20% · الراكد 15% · المديونية والمتأخرات 10% (مقارنة ببداية السنة: بدون تغيير = نص الدرجة، تحسّن 20% = كاملة) · متابعة المندوب 5% · خط السير 5%. خالد تقلو = تقييم مناديب فرع جدة فقط. اضغط على أي رقم تشوف تفاصيله، وعلى الاسم تشوف الفروع والمناديب.</p></div>`}
 function kdDialog(kind,ids,br){
   const old=document.getElementById("kdDlg");if(old)old.remove();
   /* reps of «باقي المناديب» are counted under the branch they actually invoice through */
@@ -441,6 +467,7 @@ function kdDialog(kind,ids,br){
   document.body.append(d);d.addEventListener("close",()=>d.remove());d.showModal();
   d.querySelector("#kdX").onclick=()=>d.close();const bk=d.querySelector("#kdBack");if(bk)bk.onclick=()=>{d.close();kdDialog(kind,ids)};
   d.querySelectorAll("[data-kdb]").forEach(r=>r.onclick=()=>{d.close();kdDialog(kind,ids,r.dataset.kdb)});
+  d.querySelectorAll("[data-mgx]").forEach(c=>c.onclick=()=>{const [a,k]=c.dataset.mgx.split("|");const m=(S._mgrL||[]).find(z=>z.a===a);if(m)alert(m.n+" — "+MGR_W.find(z=>z[0]===k)[1]+"\n"+m.X[k])});
   d.querySelectorAll("[data-kdm]").forEach(r=>r.onclick=()=>{d.close();const bs=r.dataset.kdm.split(",");kdDialog(kind,ids.filter(i=>bs.includes(kb(i))),bs.length===1?bs[0]:undefined)});
   d.querySelectorAll("[data-kdr]").forEach(r=>r.onclick=()=>{d.close();go({t:"rep",id:r.dataset.kdr})});
   if(kind==="debt"){wirePdf(d,{kdAging:"أعمار الديون - "+scope});wireWaImg(d,{kdAging:"أعمار الديون - "+scope})}}
