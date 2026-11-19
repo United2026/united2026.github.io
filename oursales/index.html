@@ -510,8 +510,15 @@ function areaTile(a){
   const A=S.D.areas[a];const ids=repsOfBranches(A.branches);const k=agg(ids);const ra=repAlerts(ids).length;
   return `<button class="tile" data-area="${a}"><div class="t">${avatar(A.name,Object.keys(S.D.areas).indexOf(a))}<div><b>${esc(A.name)}</b><div class="small muted">${A.branches.map(b=>esc(S.D.branches[b].name)).join("، ")}</div></div>${ra?`<span class="pill s-bad" style="margin-inline-start:auto">${ra}</span>`:""}</div>
    <div class="meta"><div><span>بيع الشهر</span><b class="num">${fmt(k.mtdSale)}</b></div><div><span>تحصيل الشهر</span><b class="num">${fmt(k.mtdCol)}</b></div>
-   <div><span>مبيعات السنة</span><b class="num">${fmt(k.ytdSale)}</b></div><div><span>المديونية</span><b class="num">${fmt(k.debt)}</b></div></div></button>`;
+   <div><span>مبيعات السنة</span><b class="num">${fmt(k.ytdSale)}</b></div><div><span>المديونية</span><b class="num">${fmt(k.debt)}</b></div></div>${areaScore(a,ids)}</button>`;
 }
+/* the manager's score inside her card — shown to the sales manager and Nada */
+function areaScore(a,ids){if(!["sales_mgr","nada"].includes(myRole()))return "";const m=MGR_SC.find(x=>x.a===a);let v;
+  const bs=(S.D.areas[a]||{}).branches||[],kb=i=>brOf(i)==="DP"?(R(i).jb||"RI"):brOf(i);const ri=m?Object.keys(S.D.reps).filter(i=>bs.includes(kb(i))):ids;
+  try{v=m?mgrParts({...m,bs},ri).v:grpScore(ids)}catch(e){return ""}if(v==null)return "";
+  const c=v>=60?"#2E8B57":v>=40?"#E0A100":"#C0392B";
+  return `<div style="margin-top:8px;border-top:1px solid var(--line);padding-top:8px;display:flex;align-items:center;gap:8px"><span class="small muted">تقييم الأداء</span><b style="font-size:18px;color:${c}">${v}/100</b><span class="pill ${RPILL[scoreRating(v)]}">${scoreRating(v)}</span>
+    <div style="flex:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden"><div style="height:100%;width:${v}%;background:${c}"></div></div></div>`}
 function wireTiles(app){
   app.querySelectorAll("[data-br]").forEach(b=>b.onclick=()=>go({t:"branch",id:b.dataset.br}));
   app.querySelectorAll("[data-area]").forEach(b=>b.onclick=()=>go({t:"area",id:b.dataset.area}));
