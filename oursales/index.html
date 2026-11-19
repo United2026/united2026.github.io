@@ -300,7 +300,12 @@ async function names(ids){
 const pname=id=>(S.people[id]&&S.people[id].name)||"مستخدم";
 
 /* ---------- shell ---------- */
-function render(){const _a=document.getElementById("app");if(_a)_a.oninput=null;
+/* keep the place on the page (window + scrolling tables) when the same screen is drawn again, e.g. after saving a note */
+function render(){const key=JSON.stringify((S.nav||[]).slice(-1));const same=S._rkey===key;S._rkey=key;
+  const T=same?[...document.querySelectorAll("#app .tbl")].map(e=>[e.scrollTop,e.scrollLeft]):null;const wy=scrollY;
+  _render();
+  if(same&&T&&T.length){const N=[...document.querySelectorAll("#app .tbl")];if(N.length===T.length)N.forEach((e,i)=>{e.scrollTop=T[i][0];e.scrollLeft=T[i][1]});if(Math.abs(scrollY-wy)>2)scrollTo(0,wy)}}
+function _render(){const _a=document.getElementById("app");if(_a)_a.oninput=null;
   if(!S.D)return;
   const role=myRole();
   const w=$("#who");w.innerHTML="";w.append(langPicker());
