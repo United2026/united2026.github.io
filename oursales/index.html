@@ -2891,6 +2891,7 @@ function rStock(box,{br,sc}){
 }
 
 /* ---------- report: customers ---------- */
+const TGG=["background:#1e6b34;color:#fff","background:#4caf50;color:#fff","background:#c8e6c9;color:#123",""];/* أعلى 4 أهداف أخضر غامق، بعدها 4 متوسط، بعدها 4 فاتح */
 function rCust(box,{sc,ids,who}){
   const f=S.opt.rt||"";const q=(S.opt.q||"").trim();
   const RO={"قوي":0,"جيد":1,"يحتاج متابعة":2,"ضعيف":3,"متوقف":4};
@@ -2904,7 +2905,7 @@ function rCust(box,{sc,ids,who}){
   ${S.opt.tgv?(()=>{const T=ids.flatMap(i=>R(i).customers.filter(c=>c[7]>0).map(c=>[...c,i])).sort((a,b)=>b[7]-a[7]||b[6]-a[6]);const ts=sum(T.map(c=>c[7])),ns=sum(T.map(c=>c[6]));
    return `<div class="card" id="tgc"><div class="row"><h3 style="margin:0;margin-inline-end:auto">العملاء اللي لهم هدف (${T.length}) — الهدف المرسوم من بداية السنة ومبيعاتهم حتى ${fd(S.D.asof)}</h3><button class="btn sm" id="tgw">📲 واتساب (JPG)</button><button class="btn sm" id="tgx">إغلاق</button></div>
    ${T.length?`<div class="tbl"><table><thead><tr><th>#</th><th>العميل</th>${many?"<th>المندوب</th>":""}<th>المدينة</th><th class="n">الهدف المرسوم (السنة)</th><th class="n">صافي المبيعات حتى اليوم</th><th class="n">% التحقيق</th><th class="n">المتبقي</th><th>التصنيف</th></tr></thead><tbody>
-   ${T.map((c,i)=>{const a=c[7]?c[6]/c[7]:0;return `<tr><td>${i+1}</td><td class="wrap"><b>${esc(c[1])}</b></td>${many?`<td>${esc(R(c[23]).name)}</td>`:""}<td>${esc(c[2])}</td><td class="n"><b>${fmt(c[7])}</b></td><td class="n">${fmt(c[6])}</td><td class="n ${a<.3?"neg":""}">${pct(a)}</td><td class="n">${fmt(Math.max(0,c[7]-c[6]))}</td><td>${esc(c[5])}</td></tr>`}).join("")}
+   ${T.map((c,i)=>{const a=c[7]?c[6]/c[7]:0;const ti=i<4?0:i<8?1:i<12?2:3,g=TGG[ti],nst=ti<2&&a<.3?` style="color:#ffe082;font-weight:800"`:"";return `<tr${g?` data-g="1" style="${g}"`:""}><td>${i+1}</td><td class="wrap"><b>${esc(c[1])}</b></td>${many?`<td>${esc(R(c[23]).name)}</td>`:""}<td>${esc(c[2])}</td><td class="n"><b>${fmt(c[7])}</b></td><td class="n">${fmt(c[6])}</td><td class="n ${a<.3&&ti>1?"neg":""}"${nst}>${pct(a)}</td><td class="n">${fmt(Math.max(0,c[7]-c[6]))}</td><td>${esc(c[5])}</td></tr>`}).join("")}
    <tr class="tot"><td></td><td>الإجمالي</td>${many?"<td></td>":""}<td></td><td class="n">${fmt(ts)}</td><td class="n">${fmt(ns)}</td><td class="n">${pct(ts?ns/ts:null)}</td><td class="n">${fmt(sum(T.map(c=>Math.max(0,c[7]-c[6]))))}</td><td></td></tr></tbody></table></div>`:'<div class="empty">ما فيه عملاء لهم هدف.</div>'}
    <p class="small muted" style="margin:0">الهدف من ملف أهداف العملاء، والمبيعات صافية بعد المرتجعات وبدون ضريبة من 1 يناير لليوم. الترتيب من الأكبر هدفاً للأصغر.</p></div>`})():""}
   <div class="row"><div class="seg" role="group" aria-label="التصنيف"><button data-rt="" aria-pressed="${!f}">الكل</button>${["قوي","جيد","يحتاج متابعة","ضعيف","متوقف"].map(k=>`<button data-rt="${k}" aria-pressed="${f===k}">${k} (${counts[k]||0})</button>`).join("")}</div><input id="sq" type="search" placeholder="بحث باسم العميل" value="${esc(q)}"></div>
@@ -2921,7 +2922,7 @@ function rCust(box,{sc,ids,who}){
     w.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1f5c8b;padding-bottom:10px;margin-bottom:12px"><div><div style="font-size:24px;font-weight:800;color:#1f5c8b">${esc(ttl)}</div><div style="font-size:14px;color:#555">العملاء اللي لهم هدف — الهدف المرسوم للسنة ومبيعاتهم من 1 يناير حتى ${fd(S.D.asof)} · مرتبة من الأكبر هدفاً</div></div><div style="font-size:13px;color:#555">${esc(COMP.ar)}</div></div>`;
     const t=src.cloneNode(true);t.style.cssText="width:100%;border-collapse:collapse;font-size:14px;color:#111";
     t.querySelectorAll("th,td").forEach(c=>{c.style.cssText+=";border:1px solid #cfd8e3;padding:6px 8px;color:#111;background:#fff;position:static;white-space:"+(c.classList.contains("wrap")?"normal":"nowrap")});
-    t.querySelectorAll("th").forEach(c=>{c.style.background="#1f5c8b";c.style.color="#fff"});
+    t.querySelectorAll("th").forEach(c=>{c.style.background="#1f5c8b";c.style.color="#fff"});t.querySelectorAll("tr[data-g]").forEach(r=>{const b=r.style.background,f=r.style.color;r.querySelectorAll("td").forEach(c=>{const k=c.style.fontWeight==="800";c.style.background=b;if(!k)c.style.color=f;else c.style.color="#ffe082"})});
     t.querySelectorAll("tr.tot td").forEach(c=>{c.style.background="#e8eef5";c.style.fontWeight="800"});
     t.querySelectorAll("td.neg").forEach(c=>c.style.color="#c0392b");
     w.append(t);document.body.append(w);
