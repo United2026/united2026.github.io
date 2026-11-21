@@ -172,8 +172,6 @@ function langPicker(){const s=document.createElement("select");s.setAttribute("a
   s.onchange=()=>{try{localStorage.setItem("us_lang",s.value)}catch(e){}location.reload()};return s}
 
 /*I18N_END*/</script>
-<script src="api.js"></script>
-<script src="runtime.js"></script>
 <script>
 "use strict";
 const $=s=>document.querySelector(s);
@@ -3130,6 +3128,31 @@ function rAlert(box,{sc,ids}){
 
 i18nInit();
 boot();
+</script>
+<style>
+#wm{position:fixed;inset:0;pointer-events:none;z-index:2147483000;background-repeat:repeat}
+body.shield #app,body.shield header.top{filter:blur(18px)!important}
+@media print{#app,header.top{display:none!important}body::before{content:"الطباعة من الشاشة غير مسموحة";display:block;padding:40px;font-size:22px}}
+</style>
+<script src="api.js"></script>
+<script src="runtime.js"></script>
+<script>
+/* حماية من التصوير: علامة مائية باسم المستخدم والوقت فوق الشاشة + تغبيش لمن يطلع من التطبيق أو يضغط مفتاح لقطة الشاشة */
+(()=>{const wm=document.createElement("div");wm.id="wm";document.body.append(wm);let last="";
+ const draw=()=>{try{let who="";try{who=((document.querySelector("#acctbar span")||{}).textContent||"").replace("👤","").trim();if(!who&&S.uid){const n=pname(S.uid);if(n!=="مستخدم")who=n}}catch(x){}const d=new Date();const t=d.toLocaleDateString("en-GB")+" "+d.toTimeString().slice(0,5);
+  const txt=(who?who+" · ":"")+t;const dark=matchMedia("(prefers-color-scheme: dark)").matches||document.documentElement.dataset.theme==="dark";const key=txt+dark;if(key===last)return;last=key;
+  const col=dark?"rgba(255,255,255,.08)":"rgba(0,0,0,.08)";const e=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="440" height="220"><text x="220" y="115" fill="${col}" font-size="16" font-family="sans-serif" font-weight="700" text-anchor="middle" transform="rotate(-20 220 110)">${e(txt)}</text></svg>`;
+  wm.style.backgroundImage=`url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`}catch(e){}};
+ draw();setInterval(draw,15000);
+ let tm=0;const sh=ms=>{document.body.classList.add("shield");clearTimeout(tm);if(ms)tm=setTimeout(()=>document.body.classList.remove("shield"),ms)};
+ const un=()=>{clearTimeout(tm);document.body.classList.remove("shield")};
+ document.addEventListener("visibilitychange",()=>document.hidden?sh():un());
+ addEventListener("blur",()=>sh());addEventListener("focus",un);addEventListener("pagehide",()=>sh());
+ addEventListener("keydown",e=>{if(e.metaKey&&e.shiftKey&&/^Digit[345]$/.test(e.code)||(e.shiftKey&&e.code==="KeyS"&&(e.metaKey||e.getModifierState("OS"))))sh(2500)},true);
+ addEventListener("keyup",e=>{if(e.key==="PrintScreen"||e.key==="Snapshot"){sh(2500);try{navigator.clipboard.writeText("")}catch(x){}}},true);
+ addEventListener("beforeprint",()=>sh());addEventListener("afterprint",un);
+})();
 </script>
 </body>
 </html>
