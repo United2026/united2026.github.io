@@ -27,7 +27,7 @@ header.top{position:sticky;top:0;z-index:5;background:var(--surface);border-bott
 #hgrip::before{content:"";display:block;width:100%;height:4px;background:linear-gradient(90deg,var(--accent),var(--signal))}
 #hgrip::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:12px;border-radius:8px;background:var(--surface);border:1px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.18);background-image:repeating-linear-gradient(0deg,transparent 0 3px,var(--muted) 3px 4px);background-size:28px 9px;background-repeat:no-repeat;background-position:center}
 #hgrip:hover::after{border-color:var(--accent)}
-header.top>.wrap{overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}header.top>.wrap>*{flex-shrink:0}
+header.top>.wrap{overflow:hidden;will-change:max-height;contain:paint;display:flex;flex-direction:column;justify-content:flex-end}header.top>.wrap>*{flex-shrink:0}
 .bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px}
 .brand{display:flex;flex-direction:column;margin-inline-end:auto;min-width:0}
 .brand b{font-family:var(--display);font-size:20px}
@@ -128,10 +128,14 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 (()=>{const g=document.getElementById("hgrip"),w=document.getElementById("hwrap");const K="hdrH";
   const set=h=>{if(h==null){w.style.maxHeight="";return}w.style.maxHeight=Math.max(0,h)+"px"};
   try{const v=localStorage.getItem(K);if(v!==null&&v!=="")set(+v)}catch(e){}
-  let y0=0,h0=0,drag=false;
-  g.addEventListener("pointerdown",e=>{drag=true;y0=e.clientY;h0=w.getBoundingClientRect().height;g.setPointerCapture(e.pointerId);e.preventDefault()});
-  g.addEventListener("pointermove",e=>{if(!drag)return;const full=w.scrollHeight;let h=h0+(e.clientY-y0);h=Math.min(full,Math.max(0,h));set(h>=full-2?null:h)});
-  const end=()=>{if(!drag)return;drag=false;try{const m=w.style.maxHeight;localStorage.setItem(K,m?parseFloat(m):"")}catch(e){}};
+  /* smooth drag: one layout change per frame, no scroll anchoring jumps, no text selection while dragging */
+  let y0=0,h0=0,full=0,drag=false,want=null,raf=0;
+  const apply=()=>{raf=0;if(want==null)return;const h=Math.round(want);w.style.maxHeight=(h>=full-1?full:h)+"px"};
+  g.addEventListener("pointerdown",e=>{drag=true;y0=e.clientY;h0=w.getBoundingClientRect().height;full=w.scrollHeight;w.style.maxHeight=h0+"px";
+    document.documentElement.style.overflowAnchor="none";document.body.style.userSelect="none";document.body.style.cursor="ns-resize";g.setPointerCapture(e.pointerId);e.preventDefault()});
+  g.addEventListener("pointermove",e=>{if(!drag)return;want=Math.min(full,Math.max(0,h0+(e.clientY-y0)));if(!raf)raf=requestAnimationFrame(apply)});
+  const end=()=>{if(!drag)return;drag=false;if(raf){cancelAnimationFrame(raf);apply()}document.documentElement.style.overflowAnchor="";document.body.style.userSelect="";document.body.style.cursor="";
+    const h=parseFloat(w.style.maxHeight);if(h>=full-1)w.style.maxHeight="";try{localStorage.setItem(K,h>=full-1?"":Math.round(h))}catch(e){}};
   g.addEventListener("pointerup",end);g.addEventListener("pointercancel",end);
   g.addEventListener("dblclick",()=>{const shut=w.style.maxHeight&&parseFloat(w.style.maxHeight)<8;set(shut?null:0);try{localStorage.setItem(K,shut?"":0)}catch(e){}});
 })();</script>
