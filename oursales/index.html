@@ -285,7 +285,8 @@ const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة"
 
 /* ---------- boot ---------- */
 async function boot(){
-  try{const r=await fetch("data.json",{cache:"no-store"});S.D=await r.json()}catch(e){$("#app").innerHTML='<div class="empty"><h3>تعذّر تحميل البيانات</h3><p>أعد فتح الصفحة.</p></div>';return}
+  {let ok=false;for(let k=0;k<12&&!ok;k++){try{const r=await fetch("data.json",{cache:"no-store"});if(!r.ok)throw 0;S.D=await r.json();ok=true}catch(e){$("#app").innerHTML=`<div class="empty"><h3>جاري تحديث النظام…</h3><p>نعيد المحاولة تلقائياً (${k+1})، لا تسكّر الصفحة.</p></div>`;await new Promise(z=>setTimeout(z,5000))}}
+   if(!ok){$("#app").innerHTML='<div class="empty"><h3>تعذّر تحميل البيانات</h3><p>تأكد من الإنترنت وأعد فتح الصفحة.</p></div>';return}}
   try{const r=await fetch("prod.json",{cache:"no-store"});if(r.ok)S.prod=await r.json()}catch(e){}
   try{const r=await fetch("elec.json",{cache:"no-store"});if(r.ok){S.elecBase=await r.json();mergeElec()}}catch(e){}
   $("#sub").textContent="البيانات حتى "+fd(S.D.asof);
