@@ -2776,7 +2776,7 @@ function perfCard(i){
   const p=R(i).perf;
   return `<div class="card"><div class="row"><h2 style="margin-inline-end:auto">${esc(R(i).name)}</h2><span class="score">${p.score}</span><span class="pill ${RPILL[p.rating]}">${esc(p.rating)}</span></div>
    ${Object.entries(PL).map(([k,[l,mx]])=>{const v=p.pts[k];return `<div><div class="row small" style="justify-content:space-between"><span>${l}</span><b>${v==null?"لا يوجد هدف":fmt(v,1)+" / "+mx}</b></div><div class="meter"><i style="width:${v==null?0:v/mx*100}%"></i></div></div>`}).join("")}
-   <div class="small muted">الهدف السنوي (ملف أهداف المناديب): ${fmt(p.annualTarget)} · التحقيق حتى اليوم: ${pct(p.ach)} · التحصيل ÷ المبيعات شامل الضريبة: ${pct(p.colRatio)} · ديون أكثر من 90 يوم: ${pct(p.oldDebtRatio)} · متوسط تقييم العملاء: ${p.avgCust}/100 · أسابيع فيها بيع من آخر 12: ${p.weeksActive}${p.mixShares?` · تنوع الأصناف: ${(S.D.mixMin||[]).map(([g,m])=>`${esc(g)} ${pct(p.mixShares[g]||0)} (الحد ${pct(m)})`).join("، ")}`:""}</div>
+   <div class="small muted">الهدف السنوي (مجموع ورقة المندوب في ملف أهداف المناديب): ${p.annualTarget?fmt(p.annualTarget)+" · التحقيق حتى اليوم: "+pct(p.ach):"ما له ورقة أهداف في الملف — التقييم من 80 محوّل إلى 100"} · التحصيل ÷ المبيعات شامل الضريبة: ${pct(p.colRatio)} · ديون أكثر من 90 يوم: ${pct(p.oldDebtRatio)} · متوسط تقييم العملاء: ${p.avgCust}/100 · أسابيع فيها بيع من آخر 12: ${p.weeksActive}${p.mixShares?` · تنوع الأصناف: ${(S.D.mixMin||[]).map(([g,m])=>`${esc(g)} ${pct(p.mixShares[g]||0)} (الحد ${pct(m)})`).join("، ")}`:""}</div>
    <div class="row small">${Object.entries(p.counts).map(([k,v])=>`<span class="pill ${RPILL[k]}">${k}: ${v}</span>`).join("")}</div></div>`;
 }
 function rPerf(box,{sc,ids}){
