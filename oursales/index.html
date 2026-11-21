@@ -2891,7 +2891,7 @@ function rStock(box,{br,sc}){
 }
 
 /* ---------- report: customers ---------- */
-function rCust(box,{sc,ids}){
+function rCust(box,{sc,ids,who}){
   const f=S.opt.rt||"";const q=(S.opt.q||"").trim();
   const RO={"قوي":0,"جيد":1,"يحتاج متابعة":2,"ضعيف":3,"متوقف":4};
   let rows=ids.flatMap(i=>R(i).customers.map(c=>[...c,i])).sort((a,b)=>RO[a[5]]-RO[b[5]]||b[4]-a[4]||b[6]-a[6]);
@@ -2902,7 +2902,7 @@ function rCust(box,{sc,ids}){
   const many=ids.length>1;
   box.innerHTML=`<div class="kpis"><div class="kpi"><span>العملاء النشطون</span><b>${act.length}</b></div><div class="kpi"><span>صافي المبيعات هذه السنة</span><b>${fmt(net)}</b></div><div class="kpi kpi-btn" id="tgk" role="button" tabindex="0" style="cursor:pointer" title="اضغط لعرض العملاء اللي لهم هدف"><span>أهداف العملاء (ملف الأهداف) ${S.opt.tgv?"▾":"▸"}</span><b>${fmt(tg)}</b><small>التحقيق ${pct(tg?net/tg:null)}</small></div><div class="kpi"><span>الذمم</span><b>${fmt(recv)}</b></div><div class="kpi bad"><span>المتأخر عن الاستحقاق</span><b>${fmt(od)}</b><small>${pct(recv?od/recv:0)}</small></div><div class="kpi"><span>متوسط التقييم</span><b>${act.length?Math.round(sum(act.map(c=>c[4]))/act.length):0}/100</b></div></div>
   ${S.opt.tgv?(()=>{const T=ids.flatMap(i=>R(i).customers.filter(c=>c[7]>0).map(c=>[...c,i])).sort((a,b)=>b[7]-a[7]||b[6]-a[6]);const ts=sum(T.map(c=>c[7])),ns=sum(T.map(c=>c[6]));
-   return `<div class="card" id="tgc"><div class="row"><h3 style="margin:0;margin-inline-end:auto">العملاء اللي لهم هدف (${T.length}) — الهدف المرسوم من بداية السنة ومبيعاتهم حتى ${fd(S.D.asof)}</h3><button class="btn sm" id="tgx">إغلاق</button></div>
+   return `<div class="card" id="tgc"><div class="row"><h3 style="margin:0;margin-inline-end:auto">العملاء اللي لهم هدف (${T.length}) — الهدف المرسوم من بداية السنة ومبيعاتهم حتى ${fd(S.D.asof)}</h3><button class="btn sm" id="tgw">📲 واتساب (JPG)</button><button class="btn sm" id="tgx">إغلاق</button></div>
    ${T.length?`<div class="tbl"><table><thead><tr><th>#</th><th>العميل</th>${many?"<th>المندوب</th>":""}<th>المدينة</th><th class="n">الهدف المرسوم (السنة)</th><th class="n">صافي المبيعات حتى اليوم</th><th class="n">% التحقيق</th><th class="n">المتبقي</th><th>التصنيف</th></tr></thead><tbody>
    ${T.map((c,i)=>{const a=c[7]?c[6]/c[7]:0;return `<tr><td>${i+1}</td><td class="wrap"><b>${esc(c[1])}</b></td>${many?`<td>${esc(R(c[23]).name)}</td>`:""}<td>${esc(c[2])}</td><td class="n"><b>${fmt(c[7])}</b></td><td class="n">${fmt(c[6])}</td><td class="n ${a<.3?"neg":""}">${pct(a)}</td><td class="n">${fmt(Math.max(0,c[7]-c[6]))}</td><td>${esc(c[5])}</td></tr>`}).join("")}
    <tr class="tot"><td></td><td>الإجمالي</td>${many?"<td></td>":""}<td></td><td class="n">${fmt(ts)}</td><td class="n">${fmt(ns)}</td><td class="n">${pct(ts?ns/ts:null)}</td><td class="n">${fmt(sum(T.map(c=>Math.max(0,c[7]-c[6]))))}</td><td></td></tr></tbody></table></div>`:'<div class="empty">ما فيه عملاء لهم هدف.</div>'}
@@ -2915,6 +2915,18 @@ function rCust(box,{sc,ids}){
   const sq=box.querySelector("#sq");sq.oninput=()=>{S.opt.q=sq.value;render();const n=$("#sq");n.focus();n.setSelectionRange(n.value.length,n.value.length)};
   const tgT=()=>{S.opt.tgv=!S.opt.tgv;render();if(S.opt.tgv){const c=$("#tgc");if(c)c.scrollIntoView({behavior:"smooth",block:"start"})}};
   const tk=box.querySelector("#tgk");if(tk){tk.onclick=tgT;tk.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();tgT()}}}
+  const tw=box.querySelector("#tgw");if(tw)tw.onclick=()=>busy(tw,async()=>{
+    const src=box.querySelector("#tgc table");const ttl=`أهداف العملاء — ${who||""}`;
+    const w=document.createElement("div");w.dir="rtl";w.style.cssText="position:fixed;left:-20000px;top:0;width:1100px;background:#fff;color:#111;padding:22px;font-family:inherit";
+    w.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1f5c8b;padding-bottom:10px;margin-bottom:12px"><div><div style="font-size:24px;font-weight:800;color:#1f5c8b">${esc(ttl)}</div><div style="font-size:14px;color:#555">العملاء اللي لهم هدف — الهدف المرسوم للسنة ومبيعاتهم من 1 يناير حتى ${fd(S.D.asof)} · مرتبة من الأكبر هدفاً</div></div><div style="font-size:13px;color:#555">${esc(COMP.ar)}</div></div>`;
+    const t=src.cloneNode(true);t.style.cssText="width:100%;border-collapse:collapse;font-size:14px;color:#111";
+    t.querySelectorAll("th,td").forEach(c=>{c.style.cssText+=";border:1px solid #cfd8e3;padding:6px 8px;color:#111;background:#fff;position:static;white-space:"+(c.classList.contains("wrap")?"normal":"nowrap")});
+    t.querySelectorAll("th").forEach(c=>{c.style.background="#1f5c8b";c.style.color="#fff"});
+    t.querySelectorAll("tr.tot td").forEach(c=>{c.style.background="#e8eef5";c.style.fontWeight="800"});
+    t.querySelectorAll("td.neg").forEach(c=>c.style.color="#c0392b");
+    w.append(t);document.body.append(w);
+    try{await loadLibs();const c=await html2canvas(w,{scale:2,backgroundColor:"#ffffff",useCORS:true});const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.92));
+      await shareFile(new File([blob],fname(ttl+" "+S.D.asof)+".jpg",{type:"image/jpeg"}),ttl)}finally{w.remove()}});
   const tx=box.querySelector("#tgx");if(tx)tx.onclick=()=>{S.opt.tgv=false;render()};
 }
 
