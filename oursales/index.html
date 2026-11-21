@@ -2332,7 +2332,7 @@ function branchView(app,n){
 function repView(app,n){
   const r=R(n.id);
   app.innerHTML=`<div class="stack"><div class="row">${avatar(r.name,repsOfBranch(brOf(n.id)).indexOf(n.id))}<div><h1>${esc(r.name)}</h1><div class="muted small">${esc(brLabel(brOf(n.id)))} · آخر بيع ${fd(r.kpi.lastSale)} · آخر تحصيل ${fd(r.kpi.lastCol)}</div></div></div>
-   ${alertBar([n.id],"تنبيه")}${kpiRow(r.kpi,[n.id],`<div class="kpi ${r.perf.score>=60?"ok":r.perf.score<40?"bad":""}"><span>تقييم الأداء</span><b>${r.perf.score}/100</b><small>${esc(r.perf.rating)}</small></div>`)}
+   ${alertBar([n.id],"تنبيه")}${kpiRow(r.kpi,[n.id],`<div class="kpi kpi-btn ${r.perf.score>=60?"ok":r.perf.score<40?"bad":""}" role="button" tabindex="0" data-rp="perf" title="اضغط لعرض التقييم" style="cursor:pointer"><span>تقييم الأداء ▸</span><b>${r.perf.score}/100</b><small>${esc(r.perf.rating)}</small></div>`)}
    ${S.isOwner&&!S.preview&&S.db?`<div class="card"><div class="row"><b style="margin-inline-end:auto">نقل المندوب إلى فرع آخر</b><select id="mv">${Object.entries(S.D.branches).map(([k,b])=>`<option value="${k}" ${brOf(n.id)===k?"selected":""}>${esc(b.name)} — ${esc(S.D.areas[areaOfBranch(k)].name)}</option>`).join("")}</select><button class="btn sm pri" id="mvb">نقل</button>${S.repmap[n.id]?`<button class="btn sm" id="mvr">رجوع للفرع الأصلي (${esc(S.D.branches[r.br].name)})</button>`:""}</div><p class="small muted" style="margin:0">ينتقل المندوب بكل تقاريره، ويظهر للمديرة المسؤولة عن الفرع الجديد.</p></div>`:""}
    <h2>تقارير المندوب</h2>${reportIcons({t:"rep",id:n.id})}</div>`;
   const saveMap=async m=>{try{await S.db.doc("config/repmap").set({map:m,at:new Date().toISOString()});toast("تم النقل")}catch(e){toast("تعذّر الحفظ")}};
