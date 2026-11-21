@@ -27,7 +27,7 @@ header.top{position:sticky;top:0;z-index:5;background:var(--surface);border-bott
 #hgrip::before{content:"";display:block;width:100%;height:4px;background:linear-gradient(90deg,var(--accent),var(--signal))}
 #hgrip::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:12px;border-radius:8px;background:var(--surface);border:1px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.18);background-image:repeating-linear-gradient(0deg,transparent 0 3px,var(--muted) 3px 4px);background-size:28px 9px;background-repeat:no-repeat;background-position:center}
 #hgrip:hover::after{border-color:var(--accent)}
-header.top>.wrap{overflow:hidden}
+header.top>.wrap{overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}header.top>.wrap>*{flex-shrink:0}
 .bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px}
 .brand{display:flex;flex-direction:column;margin-inline-end:auto;min-width:0}
 .brand b{font-family:var(--display);font-size:20px}
