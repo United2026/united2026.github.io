@@ -172,6 +172,8 @@ function langPicker(){const s=document.createElement("select");s.setAttribute("a
   s.onchange=()=>{try{localStorage.setItem("us_lang",s.value)}catch(e){}location.reload()};return s}
 
 /*I18N_END*/</script>
+<script src="api.js"></script>
+<script src="runtime.js"></script>
 <script>
 "use strict";
 const $=s=>document.querySelector(s);
@@ -3142,9 +3144,7 @@ boot();
 body.shield #app,body.shield header.top{filter:blur(18px)!important}
 @media print{#app,header.top{display:none!important}body::before{content:"الطباعة من الشاشة غير مسموحة";display:block;padding:40px;font-size:22px}}
 </style>
-<script src="api.js"></script>
-<script src="runtime.js"></script>
-<script>
+<script data-shield="1">
 /* حماية من التصوير: علامة مائية باسم المستخدم والوقت فوق الشاشة + تغبيش لمن يطلع من التطبيق أو يضغط مفتاح لقطة الشاشة */
 (()=>{const wm=document.createElement("div");wm.id="wm";document.body.append(wm);let last="";
  const draw=()=>{try{let who="";try{who=((document.querySelector("#acctbar span")||{}).textContent||"").replace("👤","").trim();if(!who&&S.uid){const n=pname(S.uid);if(n!=="مستخدم")who=n}}catch(x){}const d=new Date();const t=d.toLocaleDateString("en-GB")+" "+d.toTimeString().slice(0,5);
