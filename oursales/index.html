@@ -117,6 +117,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 .score{font-family:var(--display);font-size:34px;font-weight:700}
 .meter{height:10px;background:var(--sunk);border-radius:6px;overflow:hidden}
 .meter i{display:block;height:100%;background:var(--accent)}
+.fvb{border:1px solid var(--line,#ccd);background:transparent;border-radius:6px;padding:1px 6px;cursor:pointer;font-size:14px;margin-inline-end:4px;vertical-align:middle}.fvb:hover{background:var(--info-bg,#eef)}
 </style>
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="img/icon-180.png"><meta name="theme-color" content="#1F4E79"><meta name="apple-mobile-web-app-capable" content="yes"></head>
 <body>
@@ -2920,7 +2921,8 @@ function rCust(box,{sc,ids,who}){
    <p class="small muted" style="margin:0">الهدف من ملف أهداف العملاء، والمبيعات صافية بعد المرتجعات وبدون ضريبة من 1 يناير لليوم. الترتيب من الأكبر هدفاً للأصغر.</p></div>`})():""}
   <div class="row"><div class="seg" role="group" aria-label="التصنيف"><button data-rt="" aria-pressed="${!f}">الكل</button>${["قوي","جيد","يحتاج متابعة","ضعيف","متوقف"].map(k=>`<button data-rt="${k}" aria-pressed="${f===k}">${k} (${counts[k]||0})</button>`).join("")}</div><input id="sq" type="search" placeholder="بحث باسم العميل" value="${esc(q)}"></div>
   <div class="card"><div class="tbl"><table><thead><tr><th>#</th><th>العميل</th><th class="n">التقييم /100</th><th>التصنيف</th>${many?"<th>المندوب</th>":""}<th>المدينة</th><th class="n">الهدف</th><th class="n">صافي المبيعات</th><th class="n">صافي التحصيل</th><th class="n">% التحقيق</th><th class="n">النمو</th><th class="n">العوائل</th><th class="n">الفواتير</th><th class="n">% المرتجعات</th><th class="n">تكرار /10</th><th class="n">تنوع /10</th><th class="n">هدف /25</th><th class="n">نمو /10</th><th class="n">سداد /35</th><th class="n">مرتجعات /10</th><th class="n">الذمم</th><th class="n">المتأخر</th><th class="n">في الوقت</th><th class="n">متوسط التأخير</th><th>آخر شراء</th><th>آخر سداد</th><th>العوائل</th></tr></thead><tbody>
-  ${rows.map((c,i)=>`<tr class="${RCLS[c[5]]}"><td>${i+1}</td><td class="wrap"><b>${esc(c[1])}</b></td><td class="n"><b>${c[4]}</b></td><td>${esc(c[5])}</td>${many?`<td>${esc(R(c[23]).name)}</td>`:""}<td>${esc(c[2])}</td><td class="n">${c[7]?fmt(c[7]):"—"}</td><td class="n">${fmt(c[6])}</td><td class="n">${fmt(((S.D.cinfo||{})[c[0]]||{}).col||0)}</td><td class="n">${pct(c[8])}</td><td class="n">${c[9]==null?(c[6]>0?"جديد":"—"):pct(c[9])}</td><td class="n">${c[10]}</td><td class="n">${c[11]}</td><td class="n">${pct(c[12])}</td>${c[13].map(v=>`<td class="n">${v<0?"—":fmt(v,1)}</td>`).join("")}<td class="n">${fmt(c[16])}</td><td class="n ${c[17]>0?"neg":""}">${fmt(c[17])}</td><td class="n">${pct(c[19])}</td><td class="n">${c[20]==null?"—":c[20]+" يوم"}</td><td>${fd(c[14])}</td><td>${fd(c[15])}</td><td class="wrap small">${esc(c[22])}</td></tr>`).join("")}</tbody></table></div>
+  ${rows.map((c,i)=>`<tr class="${RCLS[c[5]]}"><td>${i+1}</td><td class="wrap"><b>${esc(c[1])}</b></td><td class="n"><b>${c[4]}</b></td><td>${esc(c[5])}</td>${many?`<td>${esc(R(c[23]).name)}</td>`:""}<td>${esc(c[2])}</td><td class="n">${c[7]?fmt(c[7]):"—"}</td><td class="n">${fmt(c[6])}</td><td class="n">${fmt(((S.D.cinfo||{})[c[0]]||{}).col||0)}</td><td class="n">${pct(c[8])}</td><td class="n">${c[9]==null?(c[6]>0?"جديد":"—"):pct(c[9])}</td><td class="n">${c[10]}</td><td class="n">${c[11]}</td><td class="n">${pct(c[12])}</td>${c[13].map(v=>`<td class="n">${v<0?"—":fmt(v,1)}</td>`).join("")}<td class="n">${fmt(c[16])}</td><td class="n ${c[17]>0?"neg":""}">${fmt(c[17])}</td><td class="n">${pct(c[19])}</td><td class="n">${c[20]==null?"—":c[20]+" يوم"}</td><td>${fd(c[14])}</td><td>${fd(c[15])}</td><td class="wrap small">${(S.D.famv||{})[c[0]]?`<button class="fvb" data-fv="${c[0]}" data-fvr="${c[23]??""}" title="رسمة البيع بالعوائل" aria-label="رسمة البيع بالعوائل">📊</button> `:""}${esc(c[22])}</td></tr>`).join("")}</tbody></table></div>
+  <dialog id="fvd" style="max-width:760px;width:calc(100% - 24px)"><div class="stack"><div class="row"><h2 style="margin-inline-end:auto">البيع بالعوائل</h2><button class="btn sm pri" id="fvw">📲 واتساب (JPG)</button><button class="btn sm" id="fvc">إغلاق</button></div><div id="fvb" style="max-height:72vh;overflow:auto"></div></div></dialog>
   <p class="small muted" style="margin:0">نفس معايير تقرير «تصنيف العملاء»: تكرار الطلب 10 · تنوع البضائع 10 · تحقيق الهدف 25 · النمو 10 · السداد 35 · المرتجعات 10. الفترة من 1 يناير حتى اليوم. قوي 80+ · جيد 60–79 · يحتاج متابعة 40–59 · ضعيف أقل من 40. الأهداف من ملف أهداف المناديب (نفس ملف تقرير التصنيف الأسبوعي)؛ المندوب اللي ما له ورقة أهداف يُقيَّم بدون معيار الهدف.</p></div>`;
   box.querySelectorAll("[data-rt]").forEach(b=>b.onclick=()=>{S.opt.rt=b.dataset.rt;render()});
   const sq=box.querySelector("#sq");sq.oninput=()=>{S.opt.q=sq.value;render();const n=$("#sq");n.focus();n.setSelectionRange(n.value.length,n.value.length)};
@@ -2938,6 +2940,25 @@ function rCust(box,{sc,ids,who}){
     w.append(t);document.body.append(w);
     try{await loadLibs();const c=await html2canvas(w,{scale:2,backgroundColor:"#ffffff",useCORS:true});const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.92));
       await shareFile(new File([blob],fname(ttl+" "+S.D.asof)+".jpg",{type:"image/jpeg"}),ttl)}finally{w.remove()}});
+  const fvd=box.querySelector("#fvd");
+  box.querySelectorAll("[data-fv]").forEach(b=>b.onclick=e=>{e.stopPropagation();const id=b.dataset.fv;const L=(S.D.famv||{})[id]||[];
+    const c=ids.flatMap(x=>R(x).customers).find(z=>String(z[0])===id)||[];const rep=b.dataset.fvr?R(b.dataset.fvr).name:(ids.length===1?R(ids[0]).name:(who||""));
+    const tot=L.reduce((a,x)=>a+x[1],0),pos=L.filter(x=>x[1]>0),mx=Math.max(1,...pos.map(x=>x[1]));
+    const PAL=["#1F5C8B","#2E8B57","#E0A100","#C0392B","#7B4FA0","#2A9D8F","#D2691E","#5B7DB1","#8C6D46","#3E7C59","#B5651D","#6C7A89"];
+    box.querySelector("#fvb").innerHTML=`<div id="fvdoc" dir="rtl" style="background:#fff;color:#111;padding:18px;border-radius:10px;min-width:560px">
+     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1f5c8b;padding-bottom:8px;margin-bottom:12px;gap:12px">
+      <div><div style="font-size:20px;font-weight:800;color:#1f5c8b">${esc(c[1]||"")}</div><div style="font-size:13px;color:#555">البيع بالعوائل من 1 يناير حتى ${fd(S.D.asof)}${rep?" · المندوب: "+esc(rep):""}${c[2]?" · "+esc(c[2]):""}</div></div>
+      <div style="text-align:left;font-size:13px;color:#555;white-space:nowrap">صافي المبيعات<br><b style="font-size:18px;color:#111">${fmt(tot)}</b></div></div>
+     ${pos.map((x,k)=>`<div style="display:grid;grid-template-columns:minmax(150px,230px) 1fr 120px;gap:10px;align-items:center;margin:7px 0">
+       <div style="font-size:13px;font-weight:700">${esc(x[0])}</div>
+       <div style="height:22px;background:#eef2f6;border-radius:6px;overflow:hidden;position:relative"><div style="position:absolute;right:0;top:0;height:100%;width:${(x[1]/mx*100).toFixed(1)}%;background:${PAL[k%PAL.length]};border-radius:6px"></div></div>
+       <div style="font-size:13px;white-space:nowrap;text-align:left"><b>${fmt(x[1])}</b> <span style="color:#666">(${tot>0?Math.round(x[1]/tot*100):0}%)</span></div></div>`).join("")}
+     ${L.filter(x=>x[1]<0).map(x=>`<div style="font-size:12px;color:#c0392b;margin-top:4px">مرتجعات أكثر من البيع في «${esc(x[0])}»: ${fmt(x[1])}</div>`).join("")}
+     <div style="font-size:11px;color:#777;margin-top:10px">المبالغ صافية بعد المرتجعات وبدون ضريبة · ${esc(COMP.ar)}</div></div>`;
+    fvd.dataset.nm=(c[1]||"عميل")+" - البيع بالعوائل";fvd.showModal()});
+  const fvc=box.querySelector("#fvc");if(fvc)fvc.onclick=()=>fvd.close();
+  const fvw=box.querySelector("#fvw");if(fvw)fvw.onclick=()=>busy(fvw,async()=>{const c=await elCanvas(box.querySelector("#fvdoc"));const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.92));
+    await shareFile(new File([blob],fname(fvd.dataset.nm+" "+S.D.asof)+".jpg",{type:"image/jpeg"}),fvd.dataset.nm)});
   const tx=box.querySelector("#tgx");if(tx)tx.onclick=()=>{S.opt.tgv=false;render()};
 }
 
