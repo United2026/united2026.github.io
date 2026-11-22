@@ -2876,6 +2876,10 @@ function rBudget(box,{br,sc}){
 }
 
 /* ---------- report: stock ---------- */
+/* المجموعة الأربع لصنف في المخزون: من الأصناف المباعة بالكود، وإلا من عائلته (الشفاطات الحديد بالاسم) */
+let _CG=null;function stockGrp(x){if(!_CG){_CG={code:{},fam:{}};const fc={};Object.values(S.D.products||{}).forEach(v=>{_CG.code[v[0]]=v[3];const o=fc[v[2]]=fc[v[2]]||{};o[v[3]]=(o[v[3]]||0)+1});
+  for(const f in fc)_CG.fam[f]=Object.entries(fc[f]).sort((a,b)=>b[1]-a[1])[0][0]}
+  return _CG.code[x[0]]||(x[2]==="شفاطات هواء"?(/حديد/.test(x[1])?"مراوح حديد":"مراوح بلاستيك"):_CG.fam[x[2]])||"طبالين"}
 function rStock(box,{br,sc}){
   const B=S.D.branches[br];const q=(S.opt.q||"").trim();const wsel=S.opt.wh||"";
   let items=B.wh.filter(w=>!wsel||String(w)===wsel).flatMap(w=>(B.stock[w]||[]).map(s=>[...s,w]));
@@ -2892,7 +2896,20 @@ function rStock(box,{br,sc}){
    <div class="card">${items.length?`<div class="tbl"><table><thead><tr><th style="width:34px"></th><th>العائلة / الصنف</th><th>الكود</th><th>الوحدة</th><th class="n">الكمية</th><th class="n">سعر البيع</th><th class="n">القيمة</th><th>المستودع</th></tr></thead><tbody>
    ${fams.map(f=>{const L=G[f];const op=allOpen||FO.has(f);return `<tr data-fam="${esc(f)}" style="cursor:pointer;background:var(--info-bg)" aria-expanded="${op}"><td><button class="btn sm" aria-label="عرض الأصناف" style="padding:2px 8px">${op?"▴":"▾"}</button></td><td colspan="3"><b>${esc(f)}</b> <span class="small muted">(${L.length} صنف)</span></td><td class="n"><b>${fmt(sum(L.map(s=>s[4])))}</b></td><td></td><td class="n"><b>${fmt(sum(L.map(s=>s[4]*s[5])))}</b></td><td></td></tr>
     ${op?L.map(s=>`<tr><td></td><td class="wrap" style="padding-inline-start:22px">${esc(s[1])}</td><td class="ltr">${esc(s[0])}</td><td>${esc(s[3])}</td><td class="n">${fmt(s[4],2)}</td><td class="n">${fmt(s[5],2)}</td><td class="n">${fmt(s[4]*s[5])}</td><td>${esc(S.D.whn[s[10]])}</td></tr>`).join(""):""}`}).join("")}
-   <tr class="tot"><td></td><td colspan="3">الإجمالي</td><td class="n">${fmt(sum(items.map(s=>s[4])))}</td><td></td><td class="n">${fmt(tv)}</td><td></td></tr></tbody></table></div>`:'<div class="empty">لا توجد بضائع.</div>'}</div>`;
+   <tr class="tot"><td></td><td colspan="3">الإجمالي</td><td class="n">${fmt(sum(items.map(s=>s[4])))}</td><td></td><td class="n">${fmt(tv)}</td><td></td></tr></tbody></table></div>`:'<div class="empty">لا توجد بضائع.</div>'}</div>
+   ${items.length?(()=>{const GV={},GQ={};items.forEach(x=>{const g=stockGrp(x);GV[g]=(GV[g]||0)+x[4]*x[5];GQ[g]=(GQ[g]||0)+x[4]});
+    const gs=S.D.mixMin.map(([g])=>g);const whl=wsel?S.D.whn[wsel]:"كل مستودعات الفرع";
+    return `<div class="card"><div class="row"><h3 style="margin:0;margin-inline-end:auto">البضائع حسب المجموعات الأربع</h3><button class="btn sm pri" id="stgw">📲 واتساب (JPG)</button></div>
+    <div id="stgdoc" dir="rtl" style="background:#fff;color:#111;padding:18px;border-radius:10px">
+     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1f5c8b;padding-bottom:8px;margin-bottom:10px;gap:12px"><div><div style="font-size:20px;font-weight:800;color:#1f5c8b">بضائع المستودع — فرع ${esc(B.name)}</div><div style="font-size:13px;color:#555">${esc(whl)} · حسب المجموعات الأربع · بسعر البيع · ${fd(S.D.asof)}${q?" · بحث: "+esc(q):""}</div></div><div style="text-align:left;font-size:13px;color:#555;white-space:nowrap">قيمة البضائع<br><b style="font-size:18px;color:#111">${fmt(tv)}</b></div></div>
+     <div style="text-align:center">${pieSvg(gs.map(g=>GV[g]||0),gs.map(g=>MIXC[g]),gs.map(()=>"#000"),320)}</div>
+     ${legendHtml(gs,gs.map(g=>MIXC[g]))}
+     <table style="width:100%;border-collapse:collapse;margin-top:12px;font-size:14px;color:#111"><thead><tr>${["المجموعة","الكمية","القيمة بسعر البيع","النسبة"].map(h=>`<th style="border:1px solid #000;padding:6px;background:#1f5c8b;color:#fff">${h}</th>`).join("")}</tr></thead><tbody>
+     ${gs.map(g=>{const c='style="border:1px solid #000;padding:6px;text-align:center"';return `<tr><td ${c}><span style="display:inline-block;width:11px;height:11px;background:${MIXC[g]};margin-inline-end:6px;border:1px solid #666"></span>${g}</td><td ${c}>${fmt(GQ[g]||0)}</td><td ${c}><b>${fmt(GV[g]||0)}</b></td><td ${c}>${tv?Math.round((GV[g]||0)/tv*100):0}%</td></tr>`}).join("")}
+     <tr>${["الإجمالي",fmt(sum(items.map(x=>x[4]))),fmt(tv),"100%"].map(v=>`<td style="border:1px solid #000;padding:6px;text-align:center;font-weight:800;background:#e8eef5">${v}</td>`).join("")}</tr></tbody></table>
+     <div style="font-size:11px;color:#777;margin-top:8px">${esc(COMP.ar)}</div></div></div>`})():""}`;
+  const stgw=box.querySelector("#stgw");if(stgw)stgw.onclick=()=>busy(stgw,async()=>{const c=await elCanvas(box.querySelector("#stgdoc"));const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.92));
+    const nm="بضائع فرع "+B.name+" حسب المجموعات";await shareFile(new File([blob],fname(nm+" "+S.D.asof)+".jpg",{type:"image/jpeg"}),nm)});
   box.querySelectorAll("[data-fam]").forEach(r=>r.onclick=()=>{const f=r.dataset.fam;FO.has(f)?FO.delete(f):FO.add(f);render()});
   const fall=box.querySelector("#fall");if(fall)fall.onclick=()=>{if(fams.every(f=>FO.has(f)))fams.forEach(f=>FO.delete(f));else fams.forEach(f=>FO.add(f));render()};
   const sq=box.querySelector("#sq");sq.oninput=()=>{S.opt.q=sq.value;render();const n=$("#sq");n.focus();n.setSelectionRange(n.value.length,n.value.length)};
