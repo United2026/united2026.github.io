@@ -284,7 +284,7 @@ function back(i){S.nav=S.nav.slice(0,i+1);S.opt={};render();window.scrollTo(0,0)
 const PB={1:"RI",25:"RI",64:"RI",30:"JE",36:"JE",31:"KH",32:"DA",35:"DA",27:"SA",28:"TA",29:"MA",26:"QA"};
 const prodOf=b=>S.prod?(S.prod.items||[]).filter(x=>PB[x.branch]===b):(S.D.branches[b].prod||[]);
 const brLabel=b=>(b==="DP"?"":"فرع ")+S.D.branches[b].name;
-const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة":" "+((S[(DOCK[n.k]||{}).col]||{})[n.id]||{}).no):n.t==="subm"?(n.id==="new"?"تقديم جديد":"تقديم"):n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="calc"?(n.id==="new"?"New Calculation Sheet":"Calculation Sheet "+(((S.calc||{})[n.id]||{}).csno||"")):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="past"?({s:"المبيعات",c:"التحصيل",y:"المبيعات والتحصيل والفرق",d:"تفاصيل سنة"}[n.k]||"مبيعات السنوات الماضية"):n.t==="visits"?(n.br?"زيارات "+brLabel(n.br):"زيارات الفروع"):n.t==="branches"?"الفروع":"";
+const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة":" "+((S[(DOCK[n.k]||{}).col]||{})[n.id]||{}).no):n.t==="subm"?(n.id==="new"?"تقديم جديد":"تقديم"):n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="calc"?(n.id==="new"?"New Calculation Sheet":"Calculation Sheet "+(((S.calc||{})[n.id]||{}).csno||"")):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="past"?({s:"المبيعات",c:"التحصيل",y:"المبيعات والتحصيل والفرق",d:"تفاصيل سنة"}[n.k]||"مبيعات السنوات الماضية"):n.t==="visits"?(n.m==="new"?"زيارة جديدة":n.m?"الزيارات السابقة":n.br?"زيارات "+brLabel(n.br):"زيارات الفروع"):n.t==="branches"?"الفروع":"";
 
 /* ---------- boot ---------- */
 async function boot(){
@@ -318,6 +318,7 @@ async function boot(){
   db.collection("tgt").onSnapshot(s=>{S.tgt={};s.docs.forEach(d=>S.tgt[d.id]=d.data());render()},()=>{});
   db.collection("wplan").onSnapshot(s=>{S.wplan={};s.docs.forEach(d=>S.wplan[d.id]={id:d.id,...d.data()});render()},()=>{});
   db.collection("vrate").onSnapshot(s=>{S.vrate={};s.docs.forEach(d=>S.vrate[d.id]=d.data());render()},()=>{});
+  db.collection("vnew").onSnapshot(s=>{S.vnew={};s.docs.forEach(d=>S.vnew[d.id]={id:d.id,...d.data()});render()},()=>{});
   db.collection("daily").onSnapshot(s=>{S.daily=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("elec").onSnapshot(s=>{S.elecDb=s.docs.map(d=>({id:d.id,...d.data()}));mergeElec();render()},()=>toast("تعذّر تحميل الكهربائيين"));
   render();
@@ -500,14 +501,29 @@ let _vrep=null;function vRepOf(br,c){if(!_vrep)_vrep={};if(!_vrep[br]){const ids
   const o=_vrep[br];if(o.ids.length===1)return o.ids[0];const n=vNorm(c.n);
   if(n.length>=3){const ks=new Set(o.cands.filter(([cn])=>cn&&(cn===n||(n.length>=4&&cn.includes(n))||(cn.length>=4&&n.includes(cn)))).map(x=>x[1]));if(ks.size===1)return [...ks][0]}
   const sh=c.v.map(v=>v[2]).filter(Boolean).pop();if(sh&&VSHEET[sh])return VSHEET[sh];return ""}
-function visitsView(app,n){const V=S.D.visits||{};const YS=[2026,2025,2024,2023,2022];
+/* visits from the Excel files + visits added in the app (db «vnew»), merged per branch */
+function vMerge(br){const o0=(S.D.visits||{})[br]||{trips:[],cust:[]};const add=Object.values(S.vnew||{}).filter(x=>x.br===br);if(!add.length)return o0;
+  const cust=o0.cust.map(c=>({...c,ct:[...c.ct],v:[...c.v]})),trips=[...o0.trips];const idx={};cust.forEach((c,i)=>idx[vNorm(c.n)]=i);
+  add.sort((a,b)=>(a.y*100+a.m)-(b.y*100+b.m)||String(a.at).localeCompare(String(b.at))).forEach(x=>{const k=vNorm(x.n);let c=idx[k]!=null?cust[idx[k]]:null;
+    if(!c){c={n:x.n,city:x.city||"",ct:[],v:[]};idx[k]=cust.length;cust.push(c)}else if(!c.city&&x.city)c.city=x.city;
+    (x.ct||[]).forEach(t=>{if(t[1]&&!c.ct.some(z=>z[1]===t[1]))c.ct.push(t);else if(!t[1]&&t[0]&&!c.ct.some(z=>z[0]===t[0]))c.ct.push(t)});
+    c.v.push([x.y,x.m,x.rep&&S.D.reps[x.rep]?R(x.rep).name:"",x.note||"",x.id]);c.v.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    if(!trips.some(t=>t[0]===x.y&&t[1]===x.m))trips.push([x.y,x.m,""])});
+  return {trips,cust}}
+function visitsView(app,n){const V={};Object.keys(S.D.visits||{}).forEach(b=>V[b]=vMerge(b));Object.values(S.vnew||{}).forEach(x=>{if(!V[x.br]&&S.D.branches[x.br])V[x.br]=vMerge(x.br)});
   if(myRole()!=="sales_mgr"){app.innerHTML='<div class="empty">هذي الصفحة لمدير المبيعات.</div>';return}
   if(!n.br){const bs=Object.keys(V);
     app.innerHTML=`<div class="stack"><h1>زيارات الفروع</h1><p class="muted small" style="margin:0">رحلات زيارة العملاء في الفروع من 2022 لين 2026. اضغط الفرع تشوف كل عميل ووش صار معه في كل سنة.</p>
      <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${bs.map(b=>{const o=V[b];const ys=[...new Set(o.trips.map(t=>t[0]))].sort((x,y)=>y-x);
       return `<button class="tile" data-vb="${b}" style="align-items:flex-start"><b style="font-size:19px">${esc(brLabel(b))}</b><span class="small muted">${o.cust.length} عميل · ${new Set(o.trips.map(t=>t[0]+"-"+t[1])).size} رحلة</span><span class="small">${ys.join(" · ")}</span></button>`}).join("")}</div></div>`;
     app.querySelectorAll("[data-vb]").forEach(b=>b.onclick=()=>go({t:"visits",br:b.dataset.vb}));return}
-  const o=V[n.br]||{trips:[],cust:[]};const q=(S.opt.vq||"").trim(),vc=S.opt.vcity||"",vr=S.opt.vrf||"",vp=S.opt.vrep||"";
+  if(!n.m){const o=V[n.br]||{trips:[],cust:[]};const mine=Object.values(S.vnew||{}).filter(x=>x.br===n.br).length;
+    app.innerHTML=`<div class="stack"><h1>زيارات ${esc(brLabel(n.br))}</h1><div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))">
+      <button class="tile" data-vm="old" style="align-items:center;text-align:center;padding:22px 14px"><span style="font-size:34px;line-height:1" aria-hidden="true">📋</span><b style="font-size:18px">الزيارات السابقة</b><span class="small muted">${o.cust.length} عميل · كل عميل ووش صار معه في كل سنة</span></button>
+      <button class="tile" data-vm="new" style="align-items:center;text-align:center;padding:22px 14px"><span style="font-size:34px;line-height:1" aria-hidden="true">➕</span><b style="font-size:18px">زيارة جديدة</b><span class="small muted">سجّل زيارة عميل وتنضاف تلقائياً للزيارات السابقة${mine?` · مسجّل ${mine} زيارة`:""}</span></button></div></div>`;
+    app.querySelectorAll("[data-vm]").forEach(b=>b.onclick=()=>go({t:"visits",br:n.br,m:b.dataset.vm}));return}
+  if(n.m==="new")return vNewView(app,n,V[n.br]||{trips:[],cust:[]});
+  const o=V[n.br]||{trips:[],cust:[]};const YS=[...new Set([new Date().getFullYear(),2022,2023,2024,2025,2026,...o.cust.flatMap(c=>c.v.map(v=>v[0]))])].sort((a,b)=>b-a);const q=(S.opt.vq||"").trim(),vc=S.opt.vcity||"",vr=S.opt.vrf||"",vp=S.opt.vrep||"";
   const brIds=Object.keys(S.D.reps).filter(k=>S.D.reps[k].br===n.br);const vdoc=c=>(S.vrate||{})[vKey(n.br,c.n)]||{};const rp=c=>{const d=vdoc(c);return d.rep!=null?d.rep:vRepOf(n.br,c)};const repN=id=>id&&S.D.reps[id]?R(id).name:"غير محدد";const repIds=[...new Set(o.cust.map(rp))].sort((a,b)=>repN(a).localeCompare(repN(b),"ar"));
   const trips=[...new Set(o.trips.map(t=>t[0]*100+t[1]))].sort((x,y)=>y-x);
   const rt=c=>((S.vrate||{})[vKey(n.br,c.n)]||{}).r||0;
@@ -541,6 +557,57 @@ function visitsView(app,n){const V=S.D.visits||{};const YS=[2026,2025,2024,2023,
   app.querySelectorAll("[data-vrs]").forEach(sel=>sel.onchange=async()=>{const k=sel.dataset.vrs;if(!S.db||S.offline)return toast("يحتاج اتصال");S.vrate=S.vrate||{};
     S.vrate[k]={br:n.br,n:sel.dataset.vn,r:((S.vrate[k]||{}).r)||0,...(S.vrate[k]||{}),rep:sel.value,by:S.uid,at:new Date().toISOString()};render();
     try{await S.db.doc("vrate/"+k).set(S.vrate[k])}catch(e){toast("ما انحفظ المندوب")}})}
+/* new branch visit: rep of the branch, customer from the visits table or from the system, info shown only here */
+function vNewView(app,n,o){const f=S.opt.vf||(S.opt.vf={y:new Date().getFullYear(),m:new Date().getMonth()+1,rep:"",src:"",cn:"",oid:"",city:"",note:"",ct:[["",""]],r:0});
+  const brIds=Object.keys(S.D.reps).filter(k=>S.D.reps[k].br===n.br).sort((a,b)=>R(a).name.localeCompare(R(b).name,"ar"));
+  const repN=id=>id&&S.D.reps[id]?R(id).name:"";
+  const tCust=[...o.cust].sort((a,b)=>a.n.localeCompare(b.n,"ar"));
+  const oCust=(f.rep?[f.rep]:brIds).flatMap(id=>(S.D.reps[id].customers||[]).map(x=>({id:String(x[0]),n:x[1],city:x[2]||"",rep:id,x}))).sort((a,b)=>a.n.localeCompare(b.n,"ar"));
+  const allO=brIds.flatMap(id=>(S.D.reps[id].customers||[]).map(x=>({id:String(x[0]),n:x[1],rep:id,x})));
+  const pickO=f.oid?allO.find(c=>c.id===f.oid):(f.cn?allO.find(c=>vNorm(c.n)===vNorm(f.cn)||(vNorm(f.cn).length>=4&&vNorm(c.n).includes(vNorm(f.cn)))):null);
+  const tc=f.cn?o.cust.find(c=>vNorm(c.n)===vNorm(f.cn)):null;const k=f.cn?vKey(n.br,tc?tc.n:f.cn):"";const r0=k?(((S.vrate||{})[k]||{}).r||0):0;const r=f.r||r0;
+  const info=pickO?(()=>{const x=pickO.x,ci=(S.D.cinfo||{})[pickO.id]||{};const C=S.D.custCols,gi=nm=>x[C.indexOf(nm)];
+    return `<div class="row" style="gap:18px;flex-wrap:wrap"><div><span class="small muted">المبيعات هذي السنة</span><br><b>${fmt(gi("net")||0)}</b></div><div><span class="small muted">التحصيل هذي السنة</span><br><b>${fmt(ci.col||0)}</b></div><div><span class="small muted">المديونية</span><br><b>${fmt(gi("recv")||0)}</b></div><div><span class="small muted">تصنيف النظام</span><br><b>${esc(String(gi("score")??"—"))} · ${esc(gi("rating")||"")}</b></div><div><span class="small muted">مندوبه في النظام</span><br><b>${esc(repN(pickO.rep))}</b></div><div><span class="small muted">آخر شراء</span><br><b>${esc(gi("lastBuy")||"—")}</b></div></div>`})():(f.cn?'<span class="small muted">العميل مو موجود في عملاء النظام لهذا الفرع، فما فيه مبيعات وتحصيل.</span>':"");
+  const prevV=tc?tc.v.filter(v=>v[3]).slice(-1)[0]:null;
+  const mine=Object.values(S.vnew||{}).filter(x=>x.br===n.br).sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  const yrs=[];for(let y=new Date().getFullYear()+1;y>=2022;y--)yrs.push(y);
+  app.innerHTML=`<div class="stack"><h1>➕ زيارة جديدة — ${esc(brLabel(n.br))}</h1>
+   <p class="small muted" style="margin:0">اختر المندوب والعميل واكتب وش صار في الزيارة. بعد الحفظ تنضاف تلقائياً للزيارات السابقة تحت سنتها. المبيعات والتحصيل تظهر هنا بس للمساعدة ولا تظهر في التقارير.</p>
+   <div class="card stack">
+    <div class="row" style="gap:10px;flex-wrap:wrap;align-items:end">
+     <label class="stack" style="gap:2px">الشهر<select id="vfm">${MON_AR.map((mn,i)=>`<option value="${i+1}" ${i+1===f.m?"selected":""}>${mn}</option>`).join("")}</select></label>
+     <label class="stack" style="gap:2px">السنة<select id="vfy">${yrs.map(y=>`<option ${y===f.y?"selected":""}>${y}</option>`).join("")}</select></label>
+     <label class="stack" style="gap:2px">المندوب<select id="vfrep"><option value="">— اختر المندوب —</option>${brIds.map(id=>`<option value="${id}" ${id===f.rep?"selected":""}>${esc(repN(id))}</option>`).join("")}</select></label></div>
+    <div class="row" style="gap:10px;flex-wrap:wrap;align-items:end">
+     <label class="stack" style="gap:2px;flex:1;min-width:230px">عميل من جدول الزيارات (${tCust.length})<select id="vft"><option value="">— اختر —</option>${tCust.map(c=>`<option value="${esc(c.n)}" ${f.src==="t"&&c.n===f.cn?"selected":""}>${esc(c.n)}${c.city?" — "+esc(c.city):""}</option>`).join("")}</select></label>
+     <span class="muted" style="padding-bottom:8px">أو</span>
+     <label class="stack" style="gap:2px;flex:1;min-width:230px">عميل من عملاء النظام${f.rep?" للمندوب":" للفرع"} (${oCust.length})<select id="vfo"><option value="">— اختر —</option>${oCust.map(c=>`<option value="${c.id}" ${f.src==="o"&&c.id===f.oid?"selected":""}>${esc(c.n)}${c.city?" — "+esc(c.city):""}</option>`).join("")}</select></label></div>
+    ${f.cn?`<div class="card" style="background:var(--info-bg,rgba(31,92,139,.08))"><b>${esc(f.cn)}</b>
+      <div class="row" style="gap:6px;align-items:center;margin:6px 0"><span class="small muted">التقييم:</span><span style="font-size:22px">${[1,2,3,4,5].map(i=>`<button type="button" data-vfr="${i}" aria-label="${i} من 5" style="background:none;border:0;padding:0 1px;cursor:pointer;color:${i<=r?"#E0A100":"var(--line,#bbb)"}">${i<=r?"★":"☆"}</button>`).join("")}</span></div>
+      ${info}${prevV?`<div class="small" style="margin-top:8px"><span class="muted">آخر زيارة (${MON_AR[prevV[1]-1]} ${prevV[0]}):</span> ${esc(prevV[3])}</div>`:""}</div>`:""}
+    <div class="row" style="gap:10px;flex-wrap:wrap"><label class="stack" style="gap:2px">المدينة<input id="vfc" value="${esc(f.city)}" style="min-width:160px"></label></div>
+    <div class="stack" style="gap:4px"><span>المسؤول وجواله</span>${f.ct.map((c,i)=>`<div class="row" style="gap:6px;flex-wrap:wrap"><input data-vfct="${i}" data-p="0" placeholder="الاسم — الصفة (مثلاً: شهاب — مشتريات)" value="${esc(c[0])}" style="min-width:230px"><input data-vfct="${i}" data-p="1" placeholder="الجوال" inputmode="tel" dir="ltr" value="${esc(c[1])}" style="width:150px"></div>`).join("")}<button class="btn sm" id="vfadd" style="align-self:flex-start">+ مسؤول آخر</button></div>
+    <label class="stack" style="gap:2px">وش صار في الزيارة<textarea id="vfn" rows="5" placeholder="الملاحظة">${esc(f.note)}</textarea></label>
+    <div class="row" style="gap:8px"><button class="btn pri" id="vfsave">💾 حفظ الزيارة</button><button class="btn" id="vfclr">مسح</button></div></div>
+   ${mine.length?`<div class="card"><h2 style="margin:0 0 6px">زيارات مسجّلة من التطبيق (${mine.length})</h2><div class="tbl"><table><thead><tr><th>التاريخ</th><th>العميل</th><th>المندوب</th><th>الملاحظة</th><th></th></tr></thead><tbody>${mine.map(x=>`<tr><td style="white-space:nowrap">${MON_AR[x.m-1]} ${x.y}</td><td class="wrap">${esc(x.n)}</td><td>${esc(repN(x.rep))}</td><td class="wrap small">${esc(x.note||"")}</td><td><button class="btn sm" data-vfdel="${x.id}" aria-label="حذف الزيارة">🗑</button></td></tr>`).join("")}</tbody></table></div></div>`:""}
+   </div>`;
+  const keep=()=>{f.city=$("#vfc").value;f.note=$("#vfn").value;app.querySelectorAll("[data-vfct]").forEach(e=>f.ct[+e.dataset.vfct][+e.dataset.p]=e.value)};
+  $("#vfm").onchange=e=>{keep();f.m=+e.target.value};$("#vfy").onchange=e=>{keep();f.y=+e.target.value};
+  $("#vfrep").onchange=e=>{keep();f.rep=e.target.value;if(f.src==="o"&&f.oid&&!(S.D.reps[f.rep]?.customers||[]).some(x=>String(x[0])===f.oid)&&f.rep){f.src="";f.oid="";f.cn=""}render()};
+  const fillCt=c=>{if(c&&c.ct&&c.ct.length&&!f.ct.some(x=>x[0]||x[1]))f.ct=c.ct.map(x=>[x[0],x[1]])};
+  $("#vft").onchange=e=>{keep();const c=o.cust.find(x=>x.n===e.target.value);f.src=c?"t":"";f.cn=c?c.n:"";f.oid="";f.r=0;if(c){f.city=f.city||c.city||"";fillCt(c);const po=allO.find(z=>vNorm(z.n)===vNorm(c.n));if(po){f.oid=po.id;if(!f.rep)f.rep=po.rep}else if(!f.rep){const rr=((S.vrate||{})[vKey(n.br,c.n)]||{}).rep;f.rep=rr||vRepOf(n.br,c)||""}}render()};
+  $("#vfo").onchange=e=>{keep();const c=allO.find(x=>x.id===e.target.value);f.src=c?"o":"";f.oid=c?c.id:"";f.cn=c?c.n:"";f.r=0;if(c){if(!f.rep)f.rep=c.rep;const ci=(S.D.cinfo||{})[c.id]||{};f.city=f.city||ci.city||c.x[2]||"";const tcc=o.cust.find(x=>vNorm(x.n)===vNorm(c.n));if(tcc){f.cn=tcc.n;fillCt(tcc)}else if(!f.ct.some(x=>x[0]||x[1])&&(ci.ph||c.x[3]))f.ct=[["",ci.ph||c.x[3]]]}render()};
+  app.querySelectorAll("[data-vfr]").forEach(b=>b.onclick=()=>{keep();const v=+b.dataset.vfr;f.r=(f.r||r0)===v?0:v;if(!f.r)f.r=-1;render()});
+  $("#vfadd").onclick=()=>{keep();f.ct.push(["",""]);render()};
+  $("#vfclr").onclick=()=>{S.opt.vf=null;render()};
+  $("#vfsave").onclick=async()=>{keep();if(!f.rep)return toast("اختر المندوب");if(!f.cn)return toast("اختر العميل");if(!f.note.trim())return toast("اكتب وش صار في الزيارة");
+    if(!S.db||S.offline)return toast("الحفظ يحتاج اتصال");const id="v"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    const d={br:n.br,n:f.cn,oid:f.oid||"",city:f.city.trim(),rep:f.rep,y:f.y,m:f.m,note:f.note.trim(),ct:f.ct.map(c=>[c[0].trim(),c[1].trim()]).filter(c=>c[0]||c[1]),by:S.uid||"",at:new Date().toISOString()};
+    const rk=vKey(n.br,f.cn),rv=f.r>0?f.r:f.r<0?0:null;
+    try{await S.db.doc("vnew/"+id).set(d);S.vnew=S.vnew||{};S.vnew[id]={id,...d};
+      const cur=(S.vrate||{})[rk]||{};const nv={...cur,br:n.br,n:f.cn,r:rv!=null?rv:(cur.r||0),rep:f.rep,by:S.uid,at:d.at};S.vrate=S.vrate||{};S.vrate[rk]=nv;await S.db.doc("vrate/"+rk).set(nv);
+      toast("انحفظت الزيارة");S.opt.vf=null;render()}catch(e){toast("ما انحفظت الزيارة")}};
+  app.querySelectorAll("[data-vfdel]").forEach(b=>b.onclick=async()=>{if(!confirm("تحذف هذي الزيارة؟"))return;try{await S.db.doc("vnew/"+b.dataset.vfdel).delete();delete S.vnew[b.dataset.vfdel];render()}catch(e){toast("ما انحذفت")}})}
 /* ---------- shared bits ---------- */
 const initials=n=>n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("");
 const avatar=(n,i)=>`<span class="av" style="background:${AVC[i%AVC.length]}" aria-hidden="true">${esc(initials(n))}</span>`;
