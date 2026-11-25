@@ -317,6 +317,7 @@ async function boot(){
   db.collection("agr").onSnapshot(s=>{S.agr={};s.docs.forEach(d=>S.agr[d.id]={id:d.id,...d.data()});render()},()=>{});
   db.collection("tgt").onSnapshot(s=>{S.tgt={};s.docs.forEach(d=>S.tgt[d.id]=d.data());render()},()=>{});
   db.collection("wplan").onSnapshot(s=>{S.wplan={};s.docs.forEach(d=>S.wplan[d.id]={id:d.id,...d.data()});render()},()=>{});
+  db.collection("vrate").onSnapshot(s=>{S.vrate={};s.docs.forEach(d=>S.vrate[d.id]=d.data());render()},()=>{});
   db.collection("daily").onSnapshot(s=>{S.daily=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("elec").onSnapshot(s=>{S.elecDb=s.docs.map(d=>({id:d.id,...d.data()}));mergeElec();render()},()=>toast("تعذّر تحميل الكهربائيين"));
   render();
@@ -459,28 +460,42 @@ if(!window._histL){window._histL=1;const h=e=>{const c=e.target.closest&&e.targe
 
 /* ---------- branch trips (زيارات الفروع): customers visited per branch, what happened each year (from the trip Excel files) ---------- */
 const MON_AR=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-function visitsView(app,n){const V=S.D.visits||{};const YS=[2022,2023,2024,2025,2026];
+const vKey=(br,n)=>{let h=5381;const t=String(n).replace(/\s+/g,"");for(let i=0;i<t.length;i++)h=((h*33)^t.charCodeAt(i))>>>0;return br+"_"+h.toString(36)};
+function visitsView(app,n){const V=S.D.visits||{};const YS=[2026,2025,2024,2023,2022];
   if(myRole()!=="sales_mgr"){app.innerHTML='<div class="empty">هذي الصفحة لمدير المبيعات.</div>';return}
   if(!n.br){const bs=Object.keys(V);
-    app.innerHTML=`<div class="stack"><h1>زيارات الفروع</h1><p class="muted small" style="margin:0">رحلات زيارة العملاء في الفروع من ${YS[0]} لين ${YS[YS.length-1]}. اضغط الفرع تشوف كل عميل ووش صار معه في كل سنة.</p>
-     <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${bs.map(b=>{const o=V[b];const ys=[...new Set(o.trips.map(t=>t[0]))].sort();
+    app.innerHTML=`<div class="stack"><h1>زيارات الفروع</h1><p class="muted small" style="margin:0">رحلات زيارة العملاء في الفروع من 2022 لين 2026. اضغط الفرع تشوف كل عميل ووش صار معه في كل سنة.</p>
+     <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${bs.map(b=>{const o=V[b];const ys=[...new Set(o.trips.map(t=>t[0]))].sort((x,y)=>y-x);
       return `<button class="tile" data-vb="${b}" style="align-items:flex-start"><b style="font-size:19px">${esc(brLabel(b))}</b><span class="small muted">${o.cust.length} عميل · ${new Set(o.trips.map(t=>t[0]+"-"+t[1])).size} رحلة</span><span class="small">${ys.join(" · ")}</span></button>`}).join("")}</div></div>`;
     app.querySelectorAll("[data-vb]").forEach(b=>b.onclick=()=>go({t:"visits",br:b.dataset.vb}));return}
-  const o=V[n.br]||{trips:[],cust:[]};const q=(S.opt.vq||"").trim();
-  const trips=[...new Set(o.trips.map(t=>t[0]*100+t[1]))].sort();
-  const L=o.cust.filter(c=>!q||(c.n+" "+c.city).includes(q));
+  const o=V[n.br]||{trips:[],cust:[]};const q=(S.opt.vq||"").trim(),vc=S.opt.vcity||"",vr=S.opt.vrf||"";
+  const trips=[...new Set(o.trips.map(t=>t[0]*100+t[1]))].sort((x,y)=>y-x);
+  const rt=c=>((S.vrate||{})[vKey(n.br,c.n)]||{}).r||0;
+  const cities=[...new Set(o.cust.map(c=>c.city||""))].filter(Boolean).sort();
+  const L=o.cust.filter(c=>(!q||(c.n+" "+c.city).includes(q))&&(!vc||c.city===vc)&&(!vr||(vr==="0"?!rt(c):rt(c)===+vr)))
+    .sort((a,b)=>rt(b)-rt(a)||(a.city||"").localeCompare(b.city||"","ar")||a.n.localeCompare(b.n,"ar"));
   const cell=(c,y)=>{const vs=c.v.filter(v=>v[0]===y);if(!vs.length)return '<span class="muted">—</span>';
-    const months=[...new Set(vs.map(v=>v[1]))];const prev=c.v.filter(v=>v[0]<y).map(v=>v[3]).filter(Boolean).pop()||"";
+    const months=[...new Set(vs.map(v=>v[1]))].sort((x,z)=>z-x);const prev=c.v.filter(v=>v[0]<y).map(v=>v[3]).filter(Boolean).pop()||"";
     return months.map(m=>{const vm=vs.filter(v=>v[1]===m);const notes=[...new Set(vm.map(v=>v[3]).filter(Boolean))];const reps=[...new Set(vm.map(v=>v[2]).filter(Boolean))];
       const head=months.length>1?`<b>${MON_AR[m-1]} ${y}</b>${reps.length?" · ":""}`:"";
       return `<div style="margin-bottom:6px">${head}${reps.length?`<span class="small muted">${esc(reps.join("، "))}</span><br>`:(head?"<br>":"")}${notes.length?notes.map(t=>esc(t)+(t===prev?' <span class="small muted">(نفس ملاحظة الزيارة اللي قبلها)</span>':"")).join("<br>"):'<span class="muted">زيارة بدون ملاحظة</span>'}</div>`}).join("")};
+  const stars=c=>{const r=rt(c),k=vKey(n.br,c.n);return `<div class="vstars" role="radiogroup" aria-label="تقييم العميل" style="white-space:nowrap;font-size:20px;line-height:1">${[1,2,3,4,5].map(i=>`<button type="button" data-vs="${k}" data-vn="${esc(c.n)}" data-vr="${i}" role="radio" aria-checked="${r===i}" aria-label="${i} من 5" title="${i} من 5" style="background:none;border:0;padding:0 1px;cursor:pointer;color:${i<=r?"#E0A100":"var(--line,#bbb)"}">${i<=r?"★":"☆"}</button>`).join("")}</div>`};
+  const cnt=[5,4,3,2,1].map(i=>[i,o.cust.filter(c=>rt(c)===i).length]);
   app.innerHTML=`<div class="stack"><h1>زيارات ${esc(brLabel(n.br))}</h1>
-   <div class="row"><input id="vq" type="search" placeholder="بحث باسم العميل أو المدينة" value="${esc(q)}" style="min-width:240px"><span class="small muted">${L.length} عميل · الرحلات: ${trips.map(t=>MON_AR[t%100-1]+" "+Math.floor(t/100)).join("، ")}</span></div>
-   <div class="card"><div class="tbl"><table><thead><tr><th>#</th><th>العميل</th><th>المدينة</th>${YS.map(y=>`<th style="min-width:200px">${y}</th>`).join("")}</tr></thead><tbody>
-   ${L.map((c,i)=>`<tr><td>${i+1}</td><td class="wrap" style="min-width:160px"><b>${esc(c.n)}</b>${c.ct.length?`<div class="small muted">${c.ct.map(x=>esc(x[0])+(x[1]?` <span class="ltr">${esc(x[1])}</span>`:"")).join("<br>")}</div>`:""}</td><td>${esc(c.city||"")}</td>${YS.map(y=>`<td class="wrap small" style="vertical-align:top">${cell(c,y)}</td>`).join("")}</tr>`).join("")}
+   <div class="row" style="gap:8px;flex-wrap:wrap"><input id="vq" type="search" placeholder="بحث باسم العميل أو المدينة" value="${esc(q)}" style="min-width:220px">
+    <select id="vcity" aria-label="المدينة"><option value="">كل المدن ▾</option>${cities.map(ci=>`<option ${ci===vc?"selected":""}>${esc(ci)}</option>`).join("")}</select>
+    <select id="vrf" aria-label="التقييم"><option value="">كل التقييمات ▾</option>${cnt.map(([i,k])=>`<option value="${i}" ${String(i)===vr?"selected":""}>${"★".repeat(i)}${"☆".repeat(5-i)} (${k})</option>`).join("")}<option value="0" ${vr==="0"?"selected":""}>بدون تقييم (${o.cust.filter(c=>!rt(c)).length})</option></select>
+    <span class="small muted">${L.length} عميل · الرحلات: ${trips.map(t=>MON_AR[t%100-1]+" "+Math.floor(t/100)).join("، ")}</span></div>
+   <p class="small muted" style="margin:0">قيّم العميل بالنجوم: 5 ممتاز و1 سيئ. الترتيب من الأعلى تقييماً.</p>
+   <div class="card"><div class="tbl"><table><thead><tr><th>#</th><th>العميل</th><th>التقييم</th><th>المدينة</th>${YS.map(y=>`<th style="min-width:200px">${y}</th>`).join("")}</tr></thead><tbody>
+   ${L.map((c,i)=>`<tr><td>${i+1}</td><td class="wrap" style="min-width:160px"><b>${esc(c.n)}</b>${c.ct.length?`<div class="small muted">${c.ct.map(x=>esc(x[0])+(x[1]?` <span class="ltr">${esc(x[1])}</span>`:"")).join("<br>")}</div>`:""}</td><td>${stars(c)}</td><td>${esc(c.city||"")}</td>${YS.map(y=>`<td class="wrap small" style="vertical-align:top">${cell(c,y)}</td>`).join("")}</tr>`).join("")||`<tr><td colspan="${4+YS.length}" class="empty">ما فيه عملاء بهذا الفلتر.</td></tr>`}
    </tbody></table></div></div></div>`;
-  const vq=app.querySelector("#vq");vq.oninput=()=>{S.opt.vq=vq.value;render();const e=$("#vq");e.focus();e.setSelectionRange(e.value.length,e.value.length)}}
-
+  const vq=app.querySelector("#vq");vq.oninput=()=>{S.opt.vq=vq.value;render();const e=$("#vq");e.focus();e.setSelectionRange(e.value.length,e.value.length)};
+  app.querySelector("#vcity").onchange=e=>{S.opt.vcity=e.target.value;render()};
+  app.querySelector("#vrf").onchange=e=>{S.opt.vrf=e.target.value;render()};
+  app.querySelectorAll("[data-vs]").forEach(b=>b.onclick=async()=>{const k=b.dataset.vs,r=+b.dataset.vr;const cur=((S.vrate||{})[k]||{}).r||0;const nr=cur===r?0:r;
+    if(!S.db||S.offline)return toast("التقييم يحتاج اتصال");S.vrate=S.vrate||{};S.vrate[k]={br:n.br,n:b.dataset.vn,r:nr,by:S.uid,at:new Date().toISOString()};render();
+    try{await S.db.doc("vrate/"+k).set(S.vrate[k])}catch(e){toast("ما انحفظ التقييم")}})}
 /* ---------- shared bits ---------- */
 const initials=n=>n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("");
 const avatar=(n,i)=>`<span class="av" style="background:${AVC[i%AVC.length]}" aria-hidden="true">${esc(initials(n))}</span>`;
