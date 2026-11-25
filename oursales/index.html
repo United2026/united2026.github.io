@@ -424,14 +424,17 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
   const matrix=(years,fn,what)=>{const M=new Map(),T={};years.forEach(y=>{T[y]=0;fn(y).forEach(([k,rg,lb,v])=>{if(!M.has(k))M.set(k,{rg,lb,v:{}});const o=M.get(k);o.v[y]=(o.v[y]||0)+v;T[y]+=v})});
     const cellv=(o,y,i,b,bg)=>{const v=o[y],pv=i?o[years[i-1]]:undefined;const d=v!=null&&pv!=null&&i?v-pv:null;
       return td(v==null||!Math.round(v)?"—":`<div>${fmt(v)}</div>${d==null||!Math.round(d)?"":`<div style="border-top:1px solid currentColor;margin-top:2px;padding-top:1px;font-size:11px;font-weight:700;color:${d<0?"#c0392b":"#1e7b34"}"><span dir="ltr">(${d>0?"+":""}${fmt(d)})</span></div>`}`,b,bg)};
-    const order=[...regs,"~",""];const rows=[...M.values()];
-    const body=order.map(rg=>{const A=rows.filter(o=>o.rg===rg);if(!A.length)return "";const sub={};years.forEach(y=>{const s=A.filter(o=>o.v[y]!=null);if(s.length)sub[y]=s.reduce((a,o)=>a+o.v[y],0)});
-      const head=rg===""?`<tr><td colspan="${years.length+1}" style="font-weight:800;background:rgba(224,161,0,.18)">مبيعات مناديب خارجيين (خارج المملكة) — داخلة في المجموع</td></tr>`:"";
-      return head+A.map(o=>`<tr>${td(esc(o.lb))}${years.map((y,i)=>cellv(o.v,y,i)).join("")}</tr>`).join("")+(rg&&rg!=="~"&&A.length>1||rg===""&&A.length>1?`<tr>${td(rg?"إجمالي "+esc(rg):"إجمالي الخارجيين",1,"#e8eef5")}${years.map((y,i)=>cellv(sub,y,i,1,"#e8eef5")).join("")}</tr>`:"")}).join("");
+    const order=[...regs,"~",""];const rows=[...M.values()];const ex=S.opt.pexp||(S.opt.pexp={});
+    const rank=o=>{for(let i=years.length-1;i>=0;i--){const v=o.v[years[i]];if(v!=null&&Math.round(v))return [i,v]}return [-1,0]};
+    const best=(a,b)=>{const ra=rank(a),rb=rank(b);return rb[0]-ra[0]||rb[1]-ra[1]};
+    const body=order.map(rg=>{const A=rows.filter(o=>o.rg===rg).sort(best);if(!A.length)return "";const sub={};years.forEach(y=>{const s=A.filter(o=>o.v[y]!=null);if(s.length)sub[y]=s.reduce((a,o)=>a+o.v[y],0)});
+      const gk=rg||"_x",open=!!ex[gk];const lbl=rg==="~"?"بدون مندوب في القائمة":rg===""?"مبيعات مناديب خارجيين (خارج المملكة) — داخلة في المجموع":"إجمالي "+esc(rg);
+      return `<tr><td class="n" style="white-space:nowrap;font-weight:800;background:var(--info-bg,rgba(31,92,139,.12))"><button class="btn sm" data-pg="${esc(gk)}" aria-expanded="${open}" style="margin-inline-end:6px">${open?"▾":"▸"}</button>${lbl} <span class="small muted">(${A.length})</span></td>${years.map((y,i)=>cellv(sub,y,i,1,1)).join("")}</tr>`
+       +(open?A.map((o,i)=>`<tr>${td(`<span class="small muted">${i+1}.</span> ${esc(o.lb)}`)}${years.map((y,i)=>cellv(o.v,y,i)).join("")}</tr>`).join(""):"")}).join("");
     return `<div class="tbl"><table><thead><tr>${th("المندوب")}${years.map(y=>th(y===TY?y+" حتى اليوم":y)).join("")}</tr></thead><tbody>${body}
       <tr>${td("الإجمالي",1,"#cfe0f0")}${years.map((y,i)=>cellv(T,y,i,1,"#cfe0f0")).join("")}</tr>
       <tr>${td("النمو عن السنة قبلها",1)}${years.map((y,i)=>td(i?(y===TY?gp(g(what==="s"?all[3]:all[4],what==="s"?all[2]:null))+'<div style="font-size:10px;color:#666">عن نفس الفترة</div>':gp(g(T[y],T[years[i-1]]))):"—",1)).join("")}</tr></tbody></table></div>
-      <div class="small muted" style="margin-top:4px">الرقم بين قوسين تحت كل مبلغ = الفرق عن السنة اللي قبلها: بالموجب إذا السنة الحالية أعلى، وبالسالب إذا اللي قبلها أعلى. ${TY} حتى اليوم مقارنة بسنة ${LY} كاملة.</div>`};
+      <div class="small muted" style="margin-top:4px">اضغط ▸ جنب الفرع تشوف مناديبه من الأفضل للأقل. الرقم بين قوسين تحت كل مبلغ = الفرق عن السنة اللي قبلها: بالموجب إذا السنة الحالية أعلى، وبالسالب إذا اللي قبلها أعلى. ${TY} حتى اليوم مقارنة بسنة ${LY} كاملة.</div>`};
   const SY=[LY-5,LY-4,LY-3,LY-2,LY-1,LY,TY],CY=Object.keys(YR).map(Number).sort();CY.push(TY);
   const sTot=y=>salesRows(y).reduce((a,r)=>a+r[3],0);
   /* yearly summary with VAT and the year detail */
@@ -448,7 +451,9 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
     const tr=(r,b,bg)=>`<tr>${td(esc(r[1]),b,bg)}${td(n0(r[2]),b,bg)}${td(n0(r[3]),b,bg)}${td(n0(r[4]),b,bg)}${td(n0(r[3]-r[4]),b,bg)}${td(pc(r[4],r[2],r[3]),b,bg)}</tr>`;
     const sm=(A,lb)=>["",lb,A.reduce((a,r)=>a+r[2],0),A.reduce((a,r)=>a+r[3],0),A.reduce((a,r)=>a+r[4],0)];
     return `<div class="tbl"><table><thead><tr>${th("المندوب")}${th("رصيد مرحل من "+(y-1))}${th("مبيعات "+y+" شامل الضريبة")}${th("تحصيل "+y)}${th("الفرق")}${th("نسبة التحصيل")}</tr></thead><tbody>
-     ${order.map(rg=>{const A=L.filter(r=>r[0]===rg);if(!A.length)return "";return (rg===""?`<tr><td colspan="6" style="font-weight:800;background:rgba(224,161,0,.18)">مناديب خارجيين (خارج المملكة) — داخلين في المجموع</td></tr>`:"")+A.map(r=>tr(r)).join("")+(rg&&rg!=="~"?tr(sm(A,"إجمالي "+rg),1,"#e8eef5"):"")}).join("")}
+     ${order.map(rg=>{const A=L.filter(r=>r[0]===rg).sort((a,b)=>b[3]-a[3]);if(!A.length)return "";const ex=S.opt.pexp||(S.opt.pexp={});const gk=rg||"_x",open=!!ex[gk];
+       const lbl=rg==="~"?"بدون مندوب في القائمة":rg===""?"مناديب خارجيين (خارج المملكة) — داخلين في المجموع":"إجمالي "+rg;const t=sm(A,lbl);
+       return `<tr>${td(`<button class="btn sm" data-pg="${esc(gk)}" aria-expanded="${open}" style="margin-inline-end:6px">${open?"▾":"▸"}</button>${esc(lbl)} <span class="small muted">(${A.length})</span>`,1,1)}${[2,3,4].map(i=>td(n0(t[i]),1,1)).join("")}${td(n0(t[3]-t[4]),1,1)}${td(pc(t[4],t[2],t[3]),1,1)}</tr>`+(open?A.map((r,i)=>tr([r[0],(i+1)+". "+r[1],r[2],r[3],r[4]])).join(""):"")}).join("")}
      ${tr(sm(L,"الإجمالي"),1,"#cfe0f0")}</tbody></table></div>`};
   /* chart: sales w/o VAT per year incl. foreign reps */
   const bars=SY.map(y=>[y===TY?y+" حتى اليوم":String(y),sTot(y)]);const mx=Math.max(1,...bars.map(b=>b[1]));
@@ -472,7 +477,8 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
     <div class="card">${h}</div>${foot}
     <div class="row" style="justify-content:space-between">${prev?`<button class="btn" data-pk="${prev[0]}">→ ${prev[2]}</button>`:"<span></span>"}${next?`<button class="btn" data-pk="${next[0]}">${next[2]} ←</button>`:"<span></span>"}</div></div>`;
   app.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>{S.nav[S.nav.length-1]={t:"past",k:b.dataset.pk};S.opt={};render();window.scrollTo(0,0)});
-  app.querySelectorAll("[data-py]").forEach(b=>b.onclick=()=>{S.nav[S.nav.length-1]={t:"past",k:"d",y:+b.dataset.py};render()})}
+  app.querySelectorAll("[data-py]").forEach(b=>b.onclick=()=>{const ex=S.opt.pexp;S.nav[S.nav.length-1]={t:"past",k:"d",y:+b.dataset.py};S.opt.pexp=ex;render()});
+  app.querySelectorAll("[data-pg]").forEach(b=>b.onclick=()=>{const ex=S.opt.pexp||(S.opt.pexp={});ex[b.dataset.pg]=!ex[b.dataset.pg];render()})}
 if(!window._histL){window._histL=1;const h=e=>{const c=e.target.closest&&e.target.closest("[data-hist]");if(!c)return;if(e.type==="keydown"&&e.key!=="Enter"&&e.key!==" ")return;e.preventDefault();if(myRole()==="sales_mgr")go({t:"past"})};document.addEventListener("click",h);document.addEventListener("keydown",h)}
 
 /* ---------- branch trips (زيارات الفروع): customers visited per branch, what happened each year (from the trip Excel files) ---------- */
