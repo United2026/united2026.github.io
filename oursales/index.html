@@ -405,14 +405,14 @@ function usersView(app){
 
 /* ---------- past years (sales manager only): chart + 4 tabs (sales, collection, yearly summary incl. VAT, one year in detail) ---------- */
 function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.innerHTML='<div class="empty">هذي الصفحة لمدير المبيعات.</div>';return}
-  const LY=P.ly,TY=LY+1,FY=P.fy||LY,OY=P.oy||{},oyv=(y,id,k)=>((OY[y]||{})[id]||[0,0])[k],O=P.odoo||{},oz=[0,0,0,0,0],od=id=>O[id]||oz,all=O.all||oz,YR=P.yrs||{},EX=P.ext||{};
+  const LY=P.ly,TY=LY+1,FY=P.fy||LY,OY=P.oy||{},oyv0=(y,id,k)=>((OY[y]||{})[id]||[0,0])[k],PMRG={1877:[2815]},oyv=(y,id,k)=>oyv0(y,id,k)+(PMRG[id]||[]).reduce((a,j)=>a+oyv0(y,j,k),0),O=P.odoo||{},oz=[0,0,0,0,0],od=id=>O[id]||oz,all=O.all||oz,YR=P.yrs||{},EX=P.ext||{};
   const EXN={"Bateyah Yemen":"اليمن (بتيّه)","Awida / shannor":"عويضة / شاهنور"};const exl=k=>EXN[k]||k;
   const g=(a,b)=>b>0?a/b-1:null,gp=v=>v==null?"—":`<span dir="ltr" style="color:${v<0?"#c0392b":"#1e7b34"};font-weight:700">${v>0?"+":""}${Math.round(v*100)}%</span>`;
   const n0=v=>v?fmt(v):"—";const regs=[...new Set(P.rows.map(x=>x.reg))];
   const th=h=>`<th style="white-space:nowrap">${h}</th>`;
   const td=(v,b,bg)=>`<td class="n" style="white-space:nowrap;${b?"font-weight:800;":""}${bg?"background:var(--info-bg,rgba(31,92,139,.12))":""}">${v}</td>`;
   const lst=P.rows.filter(x=>x.id);const ext=(y,k)=>(EX[y]&&EX[y][k])||{};const extSum=(y,k)=>Object.values(ext(y,k)).reduce((a,b)=>a+b,0);
-  const nmId=(id,n,reg)=>id&&S.D.reps[id]?R(id).name:(n||(reg?"مناديب سابقين / غير محدد":"بدون مندوب في القائمة / تسويات"));
+  const nmId=(id,n,reg)=>id&&S.D.reps[id]?R(id).name+(PMRG[id]||[]).map(j=>S.D.reps[j]?" / "+R(j).name:"").join(""):(n||(reg?"مناديب سابقين / غير محدد":"بدون مندوب في القائمة / تسويات"));
   /* rows of one measure for one year: [key, region, label, value] (region "" = foreign reps / unassigned) */
   const salesRows=y=>{const L=[];if(y<=FY)P.rows.forEach(x=>{if(x.y[y])L.push([x.id?"i"+x.id:x.reg+"|"+x.n,x.reg,nmId(x.id,x.n,x.reg),x.y[y]])});
     else{lst.forEach(x=>L.push(["i"+x.id,x.reg,nmId(x.id),oyv(y,x.id,0)]));L.push(["oth","~","مبيعات بدون مندوب في القائمة",oyv(y,"all",0)-lst.reduce((a,x)=>a+oyv(y,x.id,0),0)])}
