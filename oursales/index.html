@@ -433,7 +433,8 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
        +(open?A.map((o,i)=>`<tr><td style="text-align:start;white-space:normal;min-width:170px;max-width:240px"><span class="small muted">${i+1}.</span> ${esc(o.lb)}</td>${years.map((y,i)=>cellv(o.v,y,i)).join("")}</tr>`).join(""):"")}).join("");
     return `<div class="tbl"><table><thead><tr>${th("المندوب")}${years.map(y=>th(y===TY?y+" حتى اليوم":y)).join("")}</tr></thead><tbody>${body}
       <tr>${td("الإجمالي",1,"#cfe0f0")}${years.map((y,i)=>cellv(T,y,i,1,"#cfe0f0")).join("")}</tr>
-      <tr>${td("النمو عن السنة قبلها",1)}${years.map((y,i)=>td(i?(y===TY?gp(g(what==="s"?all[3]:all[4],what==="s"?all[2]:null))+'<div style="font-size:10px;color:#666">عن نفس الفترة</div>':gp(g(T[y],T[years[i-1]]))):"—",1)).join("")}</tr></tbody></table></div>
+      <tr>${td("النمو عن السنة قبلها",1)}${years.map((y,i)=>td(i?(y===TY?gp(g(what==="s"?all[3]:all[4],what==="s"?all[2]:null))+'<div style="font-size:10px;color:#666">عن نفس الفترة</div>':gp(g(T[y],T[years[i-1]]))):"—",1)).join("")}</tr>
+      <tr>${td("نمو "+LYR+" مقارنة بكل سنة",1)}${years.map(y=>td(y===LYR?"—":gp(g(T[LYR],T[y])),1)).join("")}</tr></tbody></table></div>
       <div class="small muted" style="margin-top:4px">اضغط ▸ جنب الفرع تشوف مناديبه من الأفضل للأقل. الرقم الملوّن بين قوسين تحت كل سنة = الفرق بين ${TY} وهذي السنة، وجنبه معدل النمو %: بالموجب (أخضر) إذا ${TY} أعلى، وبالسالب (أحمر) إذا هذي السنة أعلى. ${TY} حتى اليوم.</div>`};
   const SY=[LY-5,LY-4,LY-3,LY-2,LY-1,LY,TY],CY=Object.keys(YR).map(Number).sort();CY.push(TY);
   const sTot=y=>salesRows(y).reduce((a,r)=>a+r[3],0);
