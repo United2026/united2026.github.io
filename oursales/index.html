@@ -284,7 +284,7 @@ function back(i){S.nav=S.nav.slice(0,i+1);S.opt={};render();window.scrollTo(0,0)
 const PB={1:"RI",25:"RI",64:"RI",30:"JE",36:"JE",31:"KH",32:"DA",35:"DA",27:"SA",28:"TA",29:"MA",26:"QA"};
 const prodOf=b=>S.prod?(S.prod.items||[]).filter(x=>PB[x.branch]===b):(S.D.branches[b].prod||[]);
 const brLabel=b=>(b==="DP"?"":"فرع ")+S.D.branches[b].name;
-const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة":" "+((S[(DOCK[n.k]||{}).col]||{})[n.id]||{}).no):n.t==="subm"?(n.id==="new"?"تقديم جديد":"تقديم"):n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="calc"?(n.id==="new"?"New Calculation Sheet":"Calculation Sheet "+(((S.calc||{})[n.id]||{}).csno||"")):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="branches"?"الفروع":"";
+const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة":" "+((S[(DOCK[n.k]||{}).col]||{})[n.id]||{}).no):n.t==="subm"?(n.id==="new"?"تقديم جديد":"تقديم"):n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="calc"?(n.id==="new"?"New Calculation Sheet":"Calculation Sheet "+(((S.calc||{})[n.id]||{}).csno||"")):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="visits"?(n.br?"زيارات "+brLabel(n.br):"زيارات الفروع"):n.t==="branches"?"الفروع":"";
 
 /* ---------- boot ---------- */
 async function boot(){
@@ -362,7 +362,7 @@ function _render(){const _a=document.getElementById("app");if(_a)_a.oninput=null
   if(["projects","proj","quote","calc","pdoc","subm"].includes(n.t)&&!canProj(role)||["forecast","exports"].includes(n.t)&&role!=="sales_mgr"){S.nav=[{t:"home"}];return render()}
   const ok=allowedBranches();
   if((n.t==="branch"&&!ok.includes(n.id))||(n.t==="rep"&&!ok.includes(brOf(n.id)))||(n.t==="items"&&!ok.includes(n.scope.t==="rep"?brOf(n.scope.id):n.scope.id))||(n.t==="area"&&!areasFor(role).includes(n.id))){S.nav=[{t:"home"}];return render()}
-  ({agrs:agrsView,agr:agrView,sales:salesView,projects:projectsView,proj:projView,quote:quoteView,calc:calcView,pdoc:pdocView,subm:submView,forecast:forecastView,exports:exportsView,targets:targetsView,daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
+  ({agrs:agrsView,agr:agrView,sales:salesView,projects:projectsView,proj:projView,quote:quoteView,calc:calcView,pdoc:pdocView,subm:submView,forecast:forecastView,exports:exportsView,targets:targetsView,daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,visits:visitsView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
 }
 
 /* ---------- join ---------- */
@@ -426,27 +426,60 @@ function histDialog(){const P=S.D.past;if(!P)return toast("ما فيه بيان�
    <tr>${td("مبيعات بدون مندوب في القائمة",0)}${YS.map(()=>td("—")).join("")}${td(n0(oth(3)))}${td("—")}${td("—")}</tr>
    <tr>${td("الإجمالي",1,"#cfe0f0")}${YS.map(y=>td(fmt(T[y]),1,"#cfe0f0")).join("")}${td(fmt(all[3]),1,"#cfe0f0")}${td(gp(g(all[3],all[2])),1,"#cfe0f0")}${td(gp(g(T[LY],T[LY-1])),1,"#cfe0f0")}</tr>
    <tr>${td("النمو عن السنة قبلها",1)}${YS.map((y,i)=>td(i?gp(g(T[y],T[YS[i-1]])):"—",1)).join("")}${td(gp(g(all[3],all[2])),1)}${td("")}${td("")}</tr></tbody></table>`;
-  const rowB=(x,label,bold,bg,v)=>{v=v||(()=>{const o=x.id?od(x.id):oz;return [x.car||0,x.y[LY]||0,o[1],o[3],o[4]]})();const [car,s5,c5,s6,c6]=v;const due=car+s6;
-    return `<tr>${td(esc(label),bold,bg)}${td(n0(s5),bold,bg)}${td(n0(c5),bold,bg)}${td(n0(s5-c5),bold,bg)}${td(n0(car),bold,bg)}${td(n0(s6),bold,bg)}${td(n0(c6),bold,bg)}${td(n0(s6-c6),bold,bg)}${td(due?Math.round(c6/due*100)+"%":"—",bold,bg)}</tr>`};
-  const vB=L=>{const a=[0,0,0,0,0];L.forEach(x=>{const o=x.id?od(x.id):oz;a[0]+=x.car||0;a[1]+=x.y[LY]||0;a[2]+=o[1];a[3]+=o[3];a[4]+=o[4]});return a};
-  const tot=vB(P.rows);tot[2]=all[1];tot[3]=all[3];tot[4]=all[4];
-  const tabB=`<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("المندوب")}${th("مبيعات "+LY)}${th("تحصيل "+LY)}${th("الفرق "+LY)}${th("رصيد مرحل من "+LY)}${th("مبيعات "+TY)}${th("تحصيل "+TY)}${th("الفرق "+TY)}${th("نسبة التحصيل من (المرحل + مبيعات "+TY+")")}</tr></thead><tbody>
-   ${regs.map(rg=>{const L=P.rows.filter(x=>x.reg===rg);return L.filter(x=>{const o=x.id?od(x.id):oz;return x.car||x.y[LY]||o[1]||o[3]||o[4]}).map(x=>rowB(x,nm(x))).join("")+rowB(null,"إجمالي "+rg,1,"#e8eef5",vB(L))}).join("")}
-   ${rowB(null,"بدون مندوب في القائمة / تسويات",0,"",[0,0,oth(1),oth(3),oth(4)])}
-   ${rowB(null,"الإجمالي",1,"#cfe0f0",tot)}</tbody></table>`;
+  /* section B: per year (carried in, sales, collection, difference) — past years from each year's sales file, this year from Odoo */
+  const YR=P.yrs||{};const yB=Object.keys(YR).map(Number).sort();yB.push(TY);
+  const rowsOf=y=>y===TY?P.rows.filter(x=>x.id||x.car).map(x=>{const o=x.id?od(x.id):oz;return [x.reg,x.n,x.id,x.car||0,o[3],o[4]]}).concat([["","",null,0,oth(3),oth(4)]]):(YR[y]||[]);
+  const totOf=y=>{const L=rowsOf(y);return [sum(L.map(r=>r[3])),sum(L.map(r=>r[4])),sum(L.map(r=>r[5]))]};
+  const TT={};yB.forEach(y=>TT[y]=totOf(y));
+  const pc=(c,car,sl)=>car+sl>0?Math.round(c/(car+sl)*100)+"%":"—";
+  const sumTab=`<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("السنة")}${th("رصيد مرحل من السنة اللي قبلها")}${th("المبيعات")}${th("التحصيل")}${th("الفرق (مبيعات − تحصيل)")}${th("نسبة التحصيل من (المرحل + المبيعات)")}${th("نمو التحصيل")}</tr></thead><tbody>
+    ${yB.map((y,i)=>{const [c0,s0,c1]=TT[y];return `<tr>${td(y===TY?y+" حتى اليوم":y,1)}${td(n0(c0))}${td(n0(s0))}${td(n0(c1),1)}${td(n0(s0-c1))}${td(pc(c1,c0,s0))}${td(i?gp(y===TY?null:g(c1,TT[yB[i-1]][2])):"—")}</tr>`}).join("")}</tbody></table>`;
+  const tabYear=y=>{const L=rowsOf(y);const regs2=[...new Set(L.map(r=>r[0]))];const nmY=r=>r[2]&&S.D.reps[r[2]]?R(r[2]).name:(r[1]||(r[0]?"مناديب سابقين / غير محدد":"بدون مندوب في القائمة / تسويات"));
+    const tr=(r,label,b,bg)=>`<tr>${td(esc(label),b,bg)}${td(n0(r[3]),b,bg)}${td(n0(r[4]),b,bg)}${td(n0(r[5]),b,bg)}${td(n0(r[4]-r[5]),b,bg)}${td(pc(r[5],r[3],r[4]),b,bg)}</tr>`;
+    const sm=A=>["","",null,sum(A.map(r=>r[3])),sum(A.map(r=>r[4])),sum(A.map(r=>r[5]))];
+    return `<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("المندوب")}${th("رصيد مرحل من "+(y-1))}${th("مبيعات "+y)}${th("تحصيل "+y)}${th("الفرق")}${th("نسبة التحصيل")}</tr></thead><tbody>
+     ${regs2.map(rg=>{const A=L.filter(r=>r[0]===rg);return A.map(r=>tr(r,nmY(r))).join("")+(rg?tr(sm(A),"إجمالي "+rg,1,"#e8eef5"):"")}).join("")}
+     ${tr(sm(L),"الإجمالي",1,"#cfe0f0")}</tbody></table>`};
+  const tabB=`${sumTab}<div class="row" id="histyb" style="margin:12px 0 6px;gap:6px" data-html2canvas-ignore="true">${yB.map(y=>`<button class="btn sm" data-hy="${y}">${y===TY?y+" حتى اليوم":y}</button>`).join("")}</div><div id="histyt"></div>`;
   let d=document.getElementById("histd");if(!d){d=document.createElement("dialog");d.id="histd";d.style.cssText="max-width:1200px;width:calc(100% - 16px)";document.body.append(d)}
   d.innerHTML=`<div class="stack"><div class="row"><h2 style="margin-inline-end:auto">مبيعات السنوات الماضية</h2><button class="btn sm pri" id="histw">📲 واتساب (JPG)</button><button class="btn sm" id="histc">إغلاق</button></div>
    <div style="max-height:78vh;overflow:auto"><div id="histdoc" dir="rtl" style="background:#fff;color:#111;padding:16px;border-radius:10px;min-width:900px">
-    <div style="border-bottom:3px solid #1f5c8b;padding-bottom:8px;margin-bottom:10px"><div style="font-size:20px;font-weight:800;color:#1f5c8b">مبيعات السنوات الماضية — ${esc(COMP.ar)}</div><div style="font-size:12px;color:#555">المبيعات بدون ضريبة · ${YS[0]}–${LY} من ملف المبيعات السنوية، والتحصيل ${LY} و${TY} من النظام حتى ${fd(S.D.asof)}</div></div>
+    <div style="border-bottom:3px solid #1f5c8b;padding-bottom:8px;margin-bottom:10px"><div style="font-size:20px;font-weight:800;color:#1f5c8b">مبيعات السنوات الماضية — ${esc(COMP.ar)}</div><div style="font-size:12px;color:#555">المبيعات بدون ضريبة · ${YS[0]}–${LY} من ملفات المبيعات السنوية، و${TY} من النظام حتى ${fd(S.D.asof)}</div></div>
     ${chart}
     <div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:14px 0 6px">المبيعات السنوية لكل مندوب</div>${tabA}
-    <div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:16px 0 6px">المبيعات والتحصيل والفرق، والرصيد المرحل من ${LY}</div>${tabB}
-    <div style="font-size:11px;color:#666;margin-top:6px">الفرق = المبيعات − التحصيل (التحصيل يشمل الضريبة لأنه مبالغ مقبوضة، والمبيعات بدونها) · الرصيد المرحل من ${LY} من ملف «المبالغ المرحلة» · «مناديب سابقين» = مبيعات صفوف بدون اسم مندوب في الملف</div></div></div></div>`;
+    <div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:16px 0 6px">المبيعات والتحصيل والفرق والرصيد المرحل لكل سنة</div>${tabB}
+    <div style="font-size:11px;color:#666;margin-top:6px">الفرق = المبيعات − التحصيل (التحصيل يشمل الضريبة لأنه مبالغ مقبوضة، والمبيعات بدونها) · جدول السنوات: كل سنة من ملف مبيعاتها (Target sell) — الرصيد المرحل والمبيعات والتحصيل، و${TY} من النظام مع الرصيد المرحل من ملف ${TY} · «مناديب سابقين» = صفوف بدون اسم مندوب في الملف</div></div></div></div>`;
+  const showY=y=>{d.querySelector("#histyt").innerHTML=`<div style="font-size:14px;font-weight:800;margin:4px 0">${y===TY?y+" حتى اليوم":y}</div>`+tabYear(y);d.querySelectorAll("[data-hy]").forEach(b=>b.classList.toggle("pri",+b.dataset.hy===y))};
+  d.querySelectorAll("[data-hy]").forEach(b=>b.onclick=()=>showY(+b.dataset.hy));showY(TY);
   d.querySelector("#histc").onclick=()=>d.close();
   const w=d.querySelector("#histw");w.onclick=()=>busy(w,async()=>{const c=await elCanvas(d.querySelector("#histdoc"));const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.9));
     await shareFile(new File([blob],fname("مبيعات السنوات الماضية "+S.D.asof)+".jpg",{type:"image/jpeg"}),"مبيعات السنوات الماضية")});
   d.showModal()}
 if(!window._histL){window._histL=1;const h=e=>{const c=e.target.closest&&e.target.closest("[data-hist]");if(!c)return;if(e.type==="keydown"&&e.key!=="Enter"&&e.key!==" ")return;e.preventDefault();if(myRole()==="sales_mgr")histDialog()};document.addEventListener("click",h);document.addEventListener("keydown",h)}
+
+/* ---------- branch trips (زيارات الفروع): customers visited per branch, what happened each year (from the trip Excel files) ---------- */
+const MON_AR=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+function visitsView(app,n){const V=S.D.visits||{};const YS=[2022,2023,2024,2025,2026];
+  if(myRole()!=="sales_mgr"){app.innerHTML='<div class="empty">هذي الصفحة لمدير المبيعات.</div>';return}
+  if(!n.br){const bs=Object.keys(V);
+    app.innerHTML=`<div class="stack"><h1>زيارات الفروع</h1><p class="muted small" style="margin:0">رحلات زيارة العملاء في الفروع من ${YS[0]} لين ${YS[YS.length-1]}. اضغط الفرع تشوف كل عميل ووش صار معه في كل سنة.</p>
+     <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${bs.map(b=>{const o=V[b];const ys=[...new Set(o.trips.map(t=>t[0]))].sort();
+      return `<button class="tile" data-vb="${b}" style="align-items:flex-start"><b style="font-size:19px">${esc(brLabel(b))}</b><span class="small muted">${o.cust.length} عميل · ${new Set(o.trips.map(t=>t[0]+"-"+t[1])).size} رحلة</span><span class="small">${ys.join(" · ")}</span></button>`}).join("")}</div></div>`;
+    app.querySelectorAll("[data-vb]").forEach(b=>b.onclick=()=>go({t:"visits",br:b.dataset.vb}));return}
+  const o=V[n.br]||{trips:[],cust:[]};const q=(S.opt.vq||"").trim();
+  const trips=[...new Set(o.trips.map(t=>t[0]*100+t[1]))].sort();
+  const L=o.cust.filter(c=>!q||(c.n+" "+c.city).includes(q));
+  const cell=(c,y)=>{const vs=c.v.filter(v=>v[0]===y);if(!vs.length)return '<span class="muted">—</span>';
+    const months=[...new Set(vs.map(v=>v[1]))];const prev=c.v.filter(v=>v[0]<y).map(v=>v[3]).filter(Boolean).pop()||"";
+    return months.map(m=>{const vm=vs.filter(v=>v[1]===m);const notes=[...new Set(vm.map(v=>v[3]).filter(Boolean))];const reps=[...new Set(vm.map(v=>v[2]).filter(Boolean))];
+      const head=months.length>1?`<b>${MON_AR[m-1]} ${y}</b>${reps.length?" · ":""}`:"";
+      return `<div style="margin-bottom:6px">${head}${reps.length?`<span class="small muted">${esc(reps.join("، "))}</span><br>`:(head?"<br>":"")}${notes.length?notes.map(t=>esc(t)+(t===prev?' <span class="small muted">(نفس ملاحظة الزيارة اللي قبلها)</span>':"")).join("<br>"):'<span class="muted">زيارة بدون ملاحظة</span>'}</div>`}).join("")};
+  app.innerHTML=`<div class="stack"><h1>زيارات ${esc(brLabel(n.br))}</h1>
+   <div class="row"><input id="vq" type="search" placeholder="بحث باسم العميل أو المدينة" value="${esc(q)}" style="min-width:240px"><span class="small muted">${L.length} عميل · الرحلات: ${trips.map(t=>MON_AR[t%100-1]+" "+Math.floor(t/100)).join("، ")}</span></div>
+   <div class="card"><div class="tbl"><table><thead><tr><th>#</th><th>العميل</th><th>المدينة</th>${YS.map(y=>`<th style="min-width:200px">${y}</th>`).join("")}</tr></thead><tbody>
+   ${L.map((c,i)=>`<tr><td>${i+1}</td><td class="wrap" style="min-width:160px"><b>${esc(c.n)}</b>${c.ct.length?`<div class="small muted">${c.ct.map(x=>esc(x[0])+(x[1]?` <span class="ltr">${esc(x[1])}</span>`:"")).join("<br>")}</div>`:""}</td><td>${esc(c.city||"")}</td>${YS.map(y=>`<td class="wrap small" style="vertical-align:top">${cell(c,y)}</td>`).join("")}</tr>`).join("")}
+   </tbody></table></div></div></div>`;
+  const vq=app.querySelector("#vq");vq.oninput=()=>{S.opt.vq=vq.value;render();const e=$("#vq");e.focus();e.setSelectionRange(e.value.length,e.value.length)}}
 
 /* ---------- shared bits ---------- */
 const initials=n=>n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("");
@@ -2340,7 +2373,7 @@ function salesView(app){
     const nb=areas.flatMap(branchesOfArea).length;
     body=`<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
       <button class="tile" data-go="mgrs" style="align-items:center;text-align:center;padding:26px 14px"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/><circle cx="17.5" cy="9" r="2.8"/><path d="M15.5 13.8c.6-.2 1.3-.3 2-.3 2.8 0 5 2.2 5 5"/></svg><b style="font-family:var(--display);font-size:20px">المديرات</b><span class="small muted">${areas.map(a=>esc(S.D.areas[a].name)).join("، ")}</span></button>
-      <button class="tile" data-go="branches" style="align-items:center;text-align:center;padding:26px 14px"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11"/><path d="M9 21v-6h6v6"/></svg><b style="font-family:var(--display);font-size:20px">الفروع</b><span class="small muted">${nb} فروع ومجموعات — كل فرع بمناديبه وتقاريره</span></button></div>`;
+      <button class="tile" data-go="branches" style="align-items:center;text-align:center;padding:26px 14px"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V10l7-6 7 6v11"/><path d="M9 21v-6h6v6"/></svg><b style="font-family:var(--display);font-size:20px">الفروع</b><span class="small muted">${nb} فروع ومجموعات — كل فرع بمناديبه وتقاريره</span></button>${role==="sales_mgr"&&S.D.visits?`<button class="tile" data-go="visits" style="align-items:center;text-align:center;padding:26px 14px"><svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><b style="font-family:var(--display);font-size:20px">زيارات الفروع</b><span class="small muted">رحلات العملاء ${Object.keys(S.D.visits).length} فروع — 2022 لين 2026</span></button>`:""}</div>`;
   }else if(role==="nada"){
     body=`<h2>فروعي</h2><div class="tiles">${branchesOfArea("nada").map(branchTile).join("")}</div>
       <h2>المديرات</h2><div class="tiles">${S.D.areas.nada.subs.map(areaTile).join("")}</div>`;
