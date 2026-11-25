@@ -474,9 +474,9 @@ function visitsView(app,n){const V=S.D.visits||{};const YS=[2026,2025,2024,2023,
   const cities=[...new Set(o.cust.map(c=>c.city||""))].filter(Boolean).sort();
   const L=o.cust.filter(c=>(!q||(c.n+" "+c.city).includes(q))&&(!vc||c.city===vc)&&(!vr||(vr==="0"?!rt(c):rt(c)===+vr)))
     .sort((a,b)=>rt(b)-rt(a)||(a.city||"").localeCompare(b.city||"","ar")||a.n.localeCompare(b.n,"ar"));
-  const cell=(c,y)=>{const vs=c.v.filter(v=>v[0]===y);if(!vs.length)return '<span class="muted">—</span>';
+  const cell=(c,y)=>{const vs=c.v.filter(v=>v[0]===y);if(!vs.length||vs.every(v=>!v[3]))return '<span class="muted">لم تتم الزيارة</span>';
     const months=[...new Set(vs.map(v=>v[1]))].sort((x,z)=>z-x);const prev=c.v.filter(v=>v[0]<y).map(v=>v[3]).filter(Boolean).pop()||"";
-    const out=months.map(m=>{const vm=vs.filter(v=>v[1]===m);const notes=[...new Set(vm.map(v=>v[3]).filter(t=>t&&t!==prev))];if(!notes.length)return "";const reps=[...new Set(vm.map(v=>v[2]).filter(Boolean))];
+    const out=months.map(m=>{const vm=vs.filter(v=>v[1]===m);if(vm.every(v=>!v[3]))return months.length>1?`<div style="margin-bottom:6px"><b>${MON_AR[m-1]} ${y}</b><br><span class="muted">لم تتم الزيارة</span></div>`:"";const notes=[...new Set(vm.map(v=>v[3]).filter(t=>t&&t!==prev))];if(!notes.length)return "";const reps=[...new Set(vm.map(v=>v[2]).filter(Boolean))];
       const head=months.length>1?`<b>${MON_AR[m-1]} ${y}</b>${reps.length?" · ":""}`:"";
       return `<div style="margin-bottom:6px">${head}${reps.length?`<span class="small muted">${esc(reps.join("، "))}</span><br>`:(head?"<br>":"")}${notes.map(t=>esc(t)).join("<br>")}</div>`}).join("");return out||'<span class="muted">—</span>'};
   const stars=c=>{const r=rt(c),k=vKey(n.br,c.n);return `<div class="vstars" role="radiogroup" aria-label="تقييم العميل" style="white-space:nowrap;font-size:20px;line-height:1">${[1,2,3,4,5].map(i=>`<button type="button" data-vs="${k}" data-vn="${esc(c.n)}" data-vr="${i}" role="radio" aria-checked="${r===i}" aria-label="${i} من 5" title="${i} من 5" style="background:none;border:0;padding:0 1px;cursor:pointer;color:${i<=r?"#E0A100":"var(--line,#bbb)"}">${i<=r?"★":"☆"}</button>`).join("")}</div>`};
