@@ -405,7 +405,7 @@ function usersView(app){
 
 /* ---------- past years (sales manager only): chart + 4 tabs (sales, collection, yearly summary incl. VAT, one year in detail) ---------- */
 function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.innerHTML='<div class="empty">هذي الصفحة لمدير المبيعات.</div>';return}
-  const LY=P.ly,TY=LY+1,O=P.odoo||{},oz=[0,0,0,0,0],od=id=>O[id]||oz,all=O.all||oz,YR=P.yrs||{},EX=P.ext||{};
+  const LY=P.ly,TY=LY+1,FY=P.fy||LY,OY=P.oy||{},oyv=(y,id,k)=>((OY[y]||{})[id]||[0,0])[k],O=P.odoo||{},oz=[0,0,0,0,0],od=id=>O[id]||oz,all=O.all||oz,YR=P.yrs||{},EX=P.ext||{};
   const EXN={"Bateyah Yemen":"اليمن (بتيّه)","Awida / shannor":"عويضة / شاهنور"};const exl=k=>EXN[k]||k;
   const g=(a,b)=>b>0?a/b-1:null,gp=v=>v==null?"—":`<span dir="ltr" style="color:${v<0?"#c0392b":"#1e7b34"};font-weight:700">${v>0?"+":""}${Math.round(v*100)}%</span>`;
   const n0=v=>v?fmt(v):"—";const regs=[...new Set(P.rows.map(x=>x.reg))];
@@ -414,11 +414,11 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
   const lst=P.rows.filter(x=>x.id);const ext=(y,k)=>(EX[y]&&EX[y][k])||{};const extSum=(y,k)=>Object.values(ext(y,k)).reduce((a,b)=>a+b,0);
   const nmId=(id,n,reg)=>id&&S.D.reps[id]?R(id).name:(n||(reg?"مناديب سابقين / غير محدد":"بدون مندوب في القائمة / تسويات"));
   /* rows of one measure for one year: [key, region, label, value] (region "" = foreign reps / unassigned) */
-  const salesRows=y=>{const L=[];if(y<=LY)P.rows.forEach(x=>{if(x.y[y])L.push([x.id?"i"+x.id:x.reg+"|"+x.n,x.reg,nmId(x.id,x.n,x.reg),x.y[y]])});
-    else{lst.forEach(x=>L.push(["i"+x.id,x.reg,nmId(x.id),od(x.id)[3]]));L.push(["oth","~","مبيعات بدون مندوب في القائمة",all[3]-lst.reduce((a,x)=>a+od(x.id)[3],0)-extSum(y,"sale")])}
+  const salesRows=y=>{const L=[];if(y<=FY)P.rows.forEach(x=>{if(x.y[y])L.push([x.id?"i"+x.id:x.reg+"|"+x.n,x.reg,nmId(x.id,x.n,x.reg),x.y[y]])});
+    else{lst.forEach(x=>L.push(["i"+x.id,x.reg,nmId(x.id),oyv(y,x.id,0)]));L.push(["oth","~","مبيعات بدون مندوب في القائمة",oyv(y,"all",0)-lst.reduce((a,x)=>a+oyv(y,x.id,0),0)])}
     Object.entries(ext(y,"sale")).forEach(([k,v])=>L.push(["x"+k,"",exl(k),v]));return L};
-  const colRows=y=>{const L=[];if(y<=LY)(YR[y]||[]).forEach(r=>{if(r[5])L.push([r[2]?"i"+r[2]:r[0]+"|"+r[1],r[0],nmId(r[2],r[1],r[0]),r[5]])});
-    else{lst.forEach(x=>L.push(["i"+x.id,x.reg,nmId(x.id),od(x.id)[4]]));L.push(["oth","~","تحصيل بدون مندوب في القائمة / تسويات",all[4]-lst.reduce((a,x)=>a+od(x.id)[4],0)-extSum(y,"col")])}
+  const colRows=y=>{const L=[];if(y<=FY)(YR[y]||[]).forEach(r=>{if(r[5])L.push([r[2]?"i"+r[2]:r[0]+"|"+r[1],r[0],nmId(r[2],r[1],r[0]),r[5]])});
+    else{lst.forEach(x=>L.push(["i"+x.id,x.reg,nmId(x.id),oyv(y,x.id,1)]));L.push(["oth","~","تحصيل بدون مندوب في القائمة / تسويات",oyv(y,"all",1)-lst.reduce((a,x)=>a+oyv(y,x.id,1),0)])}
     Object.entries(ext(y,"col")).forEach(([k,v])=>{if(v)L.push(["x"+k,"",exl(k),v])});return L};
   /* matrix: one row per rep, a column per year, the change vs the year before under each number */
   const matrix=(years,fn,what)=>{const M=new Map(),T={};years.forEach(y=>{T[y]=0;fn(y).forEach(([k,rg,lb,v])=>{if(!M.has(k))M.set(k,{rg,lb,v:{}});const o=M.get(k);o.v[y]=(o.v[y]||0)+v;T[y]+=v})});
@@ -433,16 +433,15 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
        +(open?A.map((o,i)=>`<tr><td style="text-align:start;white-space:normal;min-width:170px;max-width:240px"><span class="small muted">${i+1}.</span> ${esc(o.lb)}</td>${years.map((y,i)=>cellv(o.v,y,i)).join("")}</tr>`).join(""):"")}).join("");
     return `<div class="tbl"><table><thead><tr>${th("المندوب")}${years.map(y=>th(y===TY?y+" حتى اليوم":y)).join("")}</tr></thead><tbody>${body}
       <tr>${td("الإجمالي",1,"#cfe0f0")}${years.map((y,i)=>cellv(T,y,i,1,"#cfe0f0")).join("")}</tr>
-      <tr>${td("النمو عن السنة قبلها",1)}${years.map((y,i)=>td(i?(y===TY?gp(g(what==="s"?all[3]:all[4],what==="s"?all[2]:null))+'<div style="font-size:10px;color:#666">عن نفس الفترة</div>':gp(g(T[y],T[years[i-1]]))):"—",1)).join("")}</tr>
-      <tr>${td("نمو "+LYR+" مقارنة بكل سنة",1)}${years.map(y=>td(y===LYR?"—":gp(g(T[LYR],T[y])),1)).join("")}</tr></tbody></table></div>
+      <tr>${td("النمو عن السنة قبلها",1)}${years.map((y,i)=>td(i?(y===TY?gp(g(what==="s"?all[3]:all[4],what==="s"?all[2]:null))+'<div style="font-size:10px;color:#666">عن نفس الفترة</div>':gp(g(T[y],T[years[i-1]]))):"—",1)).join("")}</tr></tbody></table></div>
       <div class="small muted" style="margin-top:4px">اضغط ▸ جنب الفرع تشوف مناديبه من الأفضل للأقل. الرقم الملوّن بين قوسين تحت كل سنة = الفرق بين ${TY} وهذي السنة، وجنبه معدل النمو %: بالموجب (أخضر) إذا ${TY} أعلى، وبالسالب (أحمر) إذا هذي السنة أعلى. ${TY} حتى اليوم.</div>`};
-  const SY=[LY-5,LY-4,LY-3,LY-2,LY-1,LY,TY],CY=Object.keys(YR).map(Number).sort();CY.push(TY);
+  const SY=[];for(let y=FY-5;y<=TY;y++)SY.push(y);const CY=Object.keys(YR).map(Number).sort();for(let y=FY+1;y<=TY;y++)CY.push(y);
   const sTot=y=>salesRows(y).reduce((a,r)=>a+r[3],0);
   /* yearly summary with VAT and the year detail */
-  const vatRows=y=>{const L=[];if(y<=LY)(YR[y]||[]).forEach(r=>L.push([r[0],nmId(r[2],r[1],r[0]),r[3],r[6]||0,r[5]]));
-    else{P.rows.filter(x=>x.id||x.car).forEach(x=>{const o=x.id?od(x.id):oz;L.push([x.reg,nmId(x.id,x.n,x.reg),x.car||0,Math.round(o[3]*1.15),o[4]])});
-      L.push(["~","بدون مندوب في القائمة / تسويات",0,Math.round((all[3]-lst.reduce((a,x)=>a+od(x.id)[3],0)-extSum(y,"sale"))*1.15),all[4]-lst.reduce((a,x)=>a+od(x.id)[4],0)-extSum(y,"col")])}
-    const xs=new Set([...Object.keys(ext(y,"vat")),...Object.keys(ext(y,"col"))]);xs.forEach(k=>L.push(["",exl(k),0,y<=LY?(ext(y,"vat")[k]||0):Math.round((ext(y,"sale")[k]||0)*1.15),ext(y,"col")[k]||0]));return L};
+  const vatRows=y=>{const L=[];if(y<=FY)(YR[y]||[]).forEach(r=>L.push([r[0],nmId(r[2],r[1],r[0]),r[3],r[6]||0,r[5]]));
+    else{P.rows.filter(x=>x.id||(x.car&&y===FY+1)).forEach(x=>L.push([x.reg,nmId(x.id,x.n,x.reg),y===FY+1?(x.car||0):0,Math.round(oyv(y,x.id,0)*1.15),oyv(y,x.id,1)]));
+      L.push(["~","بدون مندوب في القائمة / تسويات",0,Math.round((oyv(y,"all",0)-lst.reduce((a,x)=>a+oyv(y,x.id,0),0))*1.15),oyv(y,"all",1)-lst.reduce((a,x)=>a+oyv(y,x.id,1),0)])}
+    const xs=new Set([...Object.keys(ext(y,"vat")),...Object.keys(ext(y,"col"))]);xs.forEach(k=>L.push(["",exl(k),0,y<=FY||ext(y,"vat")[k]?(ext(y,"vat")[k]||0):Math.round((ext(y,"sale")[k]||0)*1.15),ext(y,"col")[k]||0]));return L};
   const VT={};CY.forEach(y=>{const L=vatRows(y);VT[y]=[L.reduce((a,r)=>a+r[2],0),L.reduce((a,r)=>a+r[3],0),L.reduce((a,r)=>a+r[4],0)]});
   const pc=(c,car,sl)=>car+sl>0?Math.round(c/(car+sl)*100)+"%":"—";
   const sumTab=()=>`<div class="tbl"><table><thead><tr>${th("السنة")}${th("رصيد مرحل من السنة اللي قبلها")}${th("المبيعات شامل الضريبة")}${th("التحصيل")}${th("الفرق (مبيعات − تحصيل)")}${th("نسبة التحصيل من (المرحل + المبيعات)")}${th("نمو التحصيل")}</tr></thead><tbody>
