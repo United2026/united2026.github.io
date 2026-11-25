@@ -414,10 +414,11 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
   const lst=P.rows.filter(x=>x.id);const ext=(y,k)=>(EX[y]&&EX[y][k])||{};const extSum=(y,k)=>Object.values(ext(y,k)).reduce((a,b)=>a+b,0);
   const nmId=(id,n,reg)=>id&&S.D.reps[id]?R(id).name+(PMRG[id]||[]).map(j=>S.D.reps[j]?" / "+R(j).name:"").join(""):(n||(reg?"مناديب سابقين / غير محدد":"بدون مندوب في القائمة / تسويات"));
   /* rows of one measure for one year: [key, region, label, value] (region "" = foreign reps / unassigned) */
-  const salesRows=y=>{const L=[];if(y<=FY)P.rows.forEach(x=>{if(x.y[y])L.push([x.id?"i"+x.id:x.reg+"|"+x.n,x.reg,nmId(x.id,x.n,x.reg),x.y[y]])});
+  const cur=id=>id&&S.D.reps[id];/* reps no longer in the list → one «مناديب سابقين» row per branch */
+  const salesRows=y=>{const L=[];if(y<=FY)P.rows.forEach(x=>{if(x.y[y])L.push([cur(x.id)?"i"+x.id:x.reg+"|",x.reg,nmId(cur(x.id)?x.id:0,"",x.reg),x.y[y]])});
     else{lst.forEach(x=>L.push(["i"+x.id,x.reg,nmId(x.id),oyv(y,x.id,0)]));L.push(["oth","~","مبيعات بدون مندوب في القائمة",oyv(y,"all",0)-lst.reduce((a,x)=>a+oyv(y,x.id,0),0)])}
     Object.entries(ext(y,"sale")).forEach(([k,v])=>L.push(["x"+k,"",exl(k),v]));return L};
-  const colRows=y=>{const L=[];if(y<=FY)(YR[y]||[]).forEach(r=>{if(r[5])L.push([r[2]?"i"+r[2]:r[0]+"|"+r[1],r[0],nmId(r[2],r[1],r[0]),r[5]])});
+  const colRows=y=>{const L=[];if(y<=FY)(YR[y]||[]).forEach(r=>{if(r[5])L.push([cur(r[2])?"i"+r[2]:r[0]+"|",r[0],nmId(cur(r[2])?r[2]:0,"",r[0]),r[5]])});
     else{lst.forEach(x=>L.push(["i"+x.id,x.reg,nmId(x.id),oyv(y,x.id,1)]));L.push(["oth","~","تحصيل بدون مندوب في القائمة / تسويات",oyv(y,"all",1)-lst.reduce((a,x)=>a+oyv(y,x.id,1),0)])}
     Object.entries(ext(y,"col")).forEach(([k,v])=>{if(v)L.push(["x"+k,"",exl(k),v])});return L};
   /* matrix: one row per rep, a column per year, the change vs the year before under each number */
@@ -441,7 +442,7 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
   const ybar=`<div class="row" style="gap:6px;flex-wrap:wrap;align-items:center"><span class="small muted">السنوات المعروضة (اضغط على السنة تخفيها أو تظهرها):</span>${AY.map(y=>{const h=HID.has(y);return `<button class="btn sm" data-phy="${y}" aria-pressed="${!h}" title="${h?"إظهار":"إخفاء"} ${y}" style="${h?"opacity:.55;text-decoration:line-through":""}">${h?"🙈":"👁"} ${y}</button>`}).join("")}${HID.size?`<button class="btn sm" data-phy="all">إظهار الكل</button>`:""}</div>`;
   const sTot=y=>salesRows(y).reduce((a,r)=>a+r[3],0);
   /* yearly summary with VAT and the year detail */
-  const vatRows=y=>{const L=[];if(y<=FY)(YR[y]||[]).forEach(r=>L.push([r[0],nmId(r[2],r[1],r[0]),r[3],r[6]||0,r[5]]));
+  const vatRows=y=>{const L=[];if(y<=FY){const F={};(YR[y]||[]).forEach(r=>{if(cur(r[2]))L.push([r[0],nmId(r[2]),r[3],r[6]||0,r[5]]);else{const o=F[r[0]]=F[r[0]]||[r[0],nmId(0,"",r[0]),0,0,0];o[2]+=r[3];o[3]+=r[6]||0;o[4]+=r[5]}});L.push(...Object.values(F))}
     else{P.rows.filter(x=>x.id||(x.car&&y===FY+1)).forEach(x=>L.push([x.reg,nmId(x.id,x.n,x.reg),y===FY+1?(x.car||0):0,Math.round(oyv(y,x.id,0)*1.15),oyv(y,x.id,1)]));
       L.push(["~","بدون مندوب في القائمة / تسويات",0,Math.round((oyv(y,"all",0)-lst.reduce((a,x)=>a+oyv(y,x.id,0),0))*1.15),oyv(y,"all",1)-lst.reduce((a,x)=>a+oyv(y,x.id,1),0)])}
     const xs=new Set([...Object.keys(ext(y,"vat")),...Object.keys(ext(y,"col"))]);xs.forEach(k=>L.push(["",exl(k),0,y<=FY||ext(y,"vat")[k]?(ext(y,"vat")[k]||0):Math.round((ext(y,"sale")[k]||0)*1.15),ext(y,"col")[k]||0]));return L};
