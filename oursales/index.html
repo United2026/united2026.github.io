@@ -402,6 +402,52 @@ function usersView(app){
       r.querySelector("button").onclick=()=>{S.people[h.id]=h;const m=clone();m[h.id]={role:r.querySelector("select").value,at:new Date().toISOString()};save(m)};ur.append(r)})};
 }
 
+/* ---------- past years (sales manager only): 2020-2025 sales from the user's file, 2025 collection + this year from Odoo ---------- */
+function histDialog(){const P=S.D.past;if(!P)return toast("ما فيه بيانات سنوات سابقة");
+  const LY=P.ly,TY=LY+1,YS=[LY-5,LY-4,LY-3,LY-2,LY-1,LY],O=P.odoo||{},oz=[0,0,0,0,0],od=id=>O[id]||oz,all=O.all||oz;
+  const nm=x=>x.id&&S.D.reps[x.id]?R(x.id).name:(x.n?x.n:"مناديب سابقين");
+  const g=(a,b)=>b>0?a/b-1:null,gp=v=>v==null?"—":`<span style="color:${v<0?"#c0392b":"#1e7b34"};font-weight:700">${v>0?"+":""}${Math.round(v*100)}%</span>`;
+  const n0=v=>v?fmt(v):"—";const regs=[...new Set(P.rows.map(x=>x.reg))];
+  const tY=y=>sum(P.rows.map(x=>x.y[y]||0));const T={};YS.forEach(y=>T[y]=tY(y));
+  const lst=P.rows.filter(x=>x.id);const sumO=k=>sum(lst.map(x=>od(x.id)[k]));const oth=k=>all[k]-sumO(k);
+  const th=h=>`<th style="border:1px solid #9aa;padding:5px 6px;background:#1f5c8b;color:#fff;white-space:nowrap">${h}</th>`;
+  const td=(v,b,bg)=>`<td style="border:1px solid #cfd8e3;padding:5px 6px;text-align:center;white-space:nowrap;${b?"font-weight:800;":""}${bg?"background:"+bg:""}">${v}</td>`;
+  const mx=Math.max(1,...YS.map(y=>T[y]),all[3]);
+  const bars=[...YS.map(y=>[String(y),T[y],null]),[TY+" حتى اليوم",all[3],g(all[3],all[2])]];
+  const chart=`<div style="display:flex;align-items:flex-end;gap:14px;height:210px;padding:8px 4px 0;border-bottom:2px solid #1f5c8b">${bars.map((b,i)=>{const pv=i>0&&i<YS.length?g(b[1],bars[i-1][1]):b[2];
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><div style="font-size:11px">${gp(pv)}</div><div style="font-size:12px;font-weight:800;margin:2px 0">${fmt(b[1])}</div><div style="width:70%;height:${(b[1]/mx*150).toFixed(0)}px;background:${i===bars.length-1?"#E0A100":"#1f5c8b"};border-radius:5px 5px 0 0"></div></div>`}).join("")}</div>
+    <div style="display:flex;gap:14px;padding:4px">${bars.map(b=>`<div style="flex:1;text-align:center;font-size:12px;font-weight:700">${b[0]}</div>`).join("")}</div>
+    <div style="font-size:11px;color:#666">النسبة فوق كل عمود = النمو عن السنة اللي قبلها · ${TY} مقارنة بنفس الفترة من ${LY}</div>`;
+  const rowA=(x,label,bold,bg)=>{const o=x.id?od(x.id):null;const t26=o?o[3]:null;
+    return `<tr>${td(esc(label),bold,bg)}${YS.map(y=>td(n0(x.y[y]),bold,bg)).join("")}${td(t26==null?"—":n0(t26),bold,bg)}${td(o?gp(g(o[3],o[2])):"—",bold,bg)}${td(gp(g(x.y[LY]||0,x.y[LY-1]||0)),bold,bg)}</tr>`};
+  const tabA=`<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("المندوب")}${YS.map(y=>th(y)).join("")}${th(TY+" حتى اليوم")}${th("نمو "+TY+" عن نفس الفترة")}${th("نمو "+LY+" عن "+(LY-1))}</tr></thead><tbody>
+   ${regs.map(rg=>{const L=P.rows.filter(x=>x.reg===rg);const sy={};YS.forEach(y=>sy[y]=sum(L.map(x=>x.y[y]||0)));const ids=L.filter(x=>x.id);const s26=sum(ids.map(x=>od(x.id)[3])),s25p=sum(ids.map(x=>od(x.id)[2]));
+     return L.map(x=>rowA(x,nm(x))).join("")+`<tr>${td("إجمالي "+esc(rg),1,"#e8eef5")}${YS.map(y=>td(n0(sy[y]),1,"#e8eef5")).join("")}${td(n0(s26),1,"#e8eef5")}${td(gp(g(s26,s25p)),1,"#e8eef5")}${td(gp(g(sy[LY],sy[LY-1])),1,"#e8eef5")}</tr>`}).join("")}
+   <tr>${td("مبيعات بدون مندوب في القائمة",0)}${YS.map(()=>td("—")).join("")}${td(n0(oth(3)))}${td("—")}${td("—")}</tr>
+   <tr>${td("الإجمالي",1,"#cfe0f0")}${YS.map(y=>td(fmt(T[y]),1,"#cfe0f0")).join("")}${td(fmt(all[3]),1,"#cfe0f0")}${td(gp(g(all[3],all[2])),1,"#cfe0f0")}${td(gp(g(T[LY],T[LY-1])),1,"#cfe0f0")}</tr>
+   <tr>${td("النمو عن السنة قبلها",1)}${YS.map((y,i)=>td(i?gp(g(T[y],T[YS[i-1]])):"—",1)).join("")}${td(gp(g(all[3],all[2])),1)}${td("")}${td("")}</tr></tbody></table>`;
+  const rowB=(x,label,bold,bg,v)=>{v=v||(()=>{const o=x.id?od(x.id):oz;return [x.car||0,x.y[LY]||0,o[1],o[3],o[4]]})();const [car,s5,c5,s6,c6]=v;const due=car+s6;
+    return `<tr>${td(esc(label),bold,bg)}${td(n0(s5),bold,bg)}${td(n0(c5),bold,bg)}${td(n0(s5-c5),bold,bg)}${td(n0(car),bold,bg)}${td(n0(s6),bold,bg)}${td(n0(c6),bold,bg)}${td(n0(s6-c6),bold,bg)}${td(due?Math.round(c6/due*100)+"%":"—",bold,bg)}</tr>`};
+  const vB=L=>{const a=[0,0,0,0,0];L.forEach(x=>{const o=x.id?od(x.id):oz;a[0]+=x.car||0;a[1]+=x.y[LY]||0;a[2]+=o[1];a[3]+=o[3];a[4]+=o[4]});return a};
+  const tot=vB(P.rows);tot[2]=all[1];tot[3]=all[3];tot[4]=all[4];
+  const tabB=`<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("المندوب")}${th("مبيعات "+LY)}${th("تحصيل "+LY)}${th("الفرق "+LY)}${th("رصيد مرحل من "+LY)}${th("مبيعات "+TY)}${th("تحصيل "+TY)}${th("الفرق "+TY)}${th("نسبة التحصيل من (المرحل + مبيعات "+TY+")")}</tr></thead><tbody>
+   ${regs.map(rg=>{const L=P.rows.filter(x=>x.reg===rg);return L.filter(x=>{const o=x.id?od(x.id):oz;return x.car||x.y[LY]||o[1]||o[3]||o[4]}).map(x=>rowB(x,nm(x))).join("")+rowB(null,"إجمالي "+rg,1,"#e8eef5",vB(L))}).join("")}
+   ${rowB(null,"بدون مندوب في القائمة / تسويات",0,"",[0,0,oth(1),oth(3),oth(4)])}
+   ${rowB(null,"الإجمالي",1,"#cfe0f0",tot)}</tbody></table>`;
+  let d=document.getElementById("histd");if(!d){d=document.createElement("dialog");d.id="histd";d.style.cssText="max-width:1200px;width:calc(100% - 16px)";document.body.append(d)}
+  d.innerHTML=`<div class="stack"><div class="row"><h2 style="margin-inline-end:auto">مبيعات السنوات الماضية</h2><button class="btn sm pri" id="histw">📲 واتساب (JPG)</button><button class="btn sm" id="histc">إغلاق</button></div>
+   <div style="max-height:78vh;overflow:auto"><div id="histdoc" dir="rtl" style="background:#fff;color:#111;padding:16px;border-radius:10px;min-width:900px">
+    <div style="border-bottom:3px solid #1f5c8b;padding-bottom:8px;margin-bottom:10px"><div style="font-size:20px;font-weight:800;color:#1f5c8b">مبيعات السنوات الماضية — ${esc(COMP.ar)}</div><div style="font-size:12px;color:#555">المبيعات بدون ضريبة · ${YS[0]}–${LY} من ملف المبيعات السنوية، والتحصيل ${LY} و${TY} من النظام حتى ${fd(S.D.asof)}</div></div>
+    ${chart}
+    <div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:14px 0 6px">المبيعات السنوية لكل مندوب</div>${tabA}
+    <div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:16px 0 6px">المبيعات والتحصيل والفرق، والرصيد المرحل من ${LY}</div>${tabB}
+    <div style="font-size:11px;color:#666;margin-top:6px">الفرق = المبيعات − التحصيل (التحصيل يشمل الضريبة لأنه مبالغ مقبوضة، والمبيعات بدونها) · الرصيد المرحل من ${LY} من ملف «المبالغ المرحلة» · «مناديب سابقين» = مبيعات صفوف بدون اسم مندوب في الملف</div></div></div></div>`;
+  d.querySelector("#histc").onclick=()=>d.close();
+  const w=d.querySelector("#histw");w.onclick=()=>busy(w,async()=>{const c=await elCanvas(d.querySelector("#histdoc"));const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.9));
+    await shareFile(new File([blob],fname("مبيعات السنوات الماضية "+S.D.asof)+".jpg",{type:"image/jpeg"}),"مبيعات السنوات الماضية")});
+  d.showModal()}
+if(!window._histL){window._histL=1;const h=e=>{const c=e.target.closest&&e.target.closest("[data-hist]");if(!c)return;if(e.type==="keydown"&&e.key!=="Enter"&&e.key!==" ")return;e.preventDefault();if(myRole()==="sales_mgr")histDialog()};document.addEventListener("click",h);document.addEventListener("keydown",h)}
+
 /* ---------- shared bits ---------- */
 const initials=n=>n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("");
 const avatar=(n,i)=>`<span class="av" style="background:${AVC[i%AVC.length]}" aria-hidden="true">${esc(initials(n))}</span>`;
@@ -419,6 +465,7 @@ function kpiRow(k,ids,extra=""){
    <div ${ck("mcol")}><span>تحصيل الشهر${mgr?" ▸":""}</span><b>${fmt(k.mtdCol)}</b></div>
    <div ${ck("ysale")}><span>صافي مبيعات السنة${mgr?" ▸":""}</span><b>${fmt(k.ytdSale)}</b><small>نمو ${growth==null?"—":`<span class="${growth<0?"neg":""}">${pct(growth)}</span>`} عن نفس الفترة</small></div>
    <div ${ck("ycol")}><span>صافي التحصيل للسنة${mgr?" ▸":""}</span><b>${fmt(k.ytdCol)}</b></div>
+   ${mgr&&S.D.past&&kdScopeName(ids)==="الشركة"?`<div class="kpi kpi-btn" data-hist="1" role="button" tabindex="0" title="مبيعات 2020 وما بعدها"><span>مبيعات السنوات الماضية ▸</span><b>${S.D.past.ly-5}–${S.D.past.ly}</b><small>المبيعات والتحصيل والفرق والمقارنات</small></div>`:""}
    <div ${ck("debt")}><span>المديونية${mgr?" ▸":""}</span><b>${fmt(k.debt)}</b><small>أكثر من 90 يوم: ${fmt(old)} (${pct(k.debt?old/k.debt:0)})</small></div>
    <div ${ck("elec")}><span>الكهربائيين${mgr?" ▸":""}</span><b>${fmt(ec.all)}</b><small>تمت متابعة ${ec.month} هذا الشهر</small></div>${extra}</div>`;
 }
