@@ -431,11 +431,14 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
       const gk=rg||"_x",open=!!ex[gk];const lbl=rg==="~"?"بدون مندوب في القائمة":rg===""?"مناديب خارجيين (خارج المملكة)":"إجمالي "+esc(rg);
       return `<tr><td style="text-align:start;white-space:normal;min-width:170px;max-width:240px;font-weight:800;background:var(--info-bg,rgba(31,92,139,.12))"><button class="btn sm" data-pg="${esc(gk)}" aria-expanded="${open}" style="margin-inline-end:6px">${open?"▾":"▸"}</button>${lbl} <span class="small muted">(${A.length})</span></td>${years.map((y,i)=>cellv(sub,y,i,1,1)).join("")}</tr>`
        +(open?A.map((o,i)=>`<tr><td style="text-align:start;white-space:normal;min-width:170px;max-width:240px"><span class="small muted">${i+1}.</span> ${esc(o.lb)}</td>${years.map((y,i)=>cellv(o.v,y,i)).join("")}</tr>`).join(""):"")}).join("");
-    return `<div class="tbl"><table><thead><tr>${th("المندوب")}${years.map(y=>th(y===TY?y+" حتى اليوم":y)).join("")}</tr></thead><tbody>${body}
+    return `<div class="tbl"><table><thead><tr>${th("المندوب")}${years.map(y=>th(`${y===TY?y+" حتى اليوم":y} <button class="btn sm" data-phy="${y}" title="إخفاء ${y}" aria-label="إخفاء ${y}" style="padding:0 5px;min-height:0;font-size:12px">👁</button>`)).join("")}</tr></thead><tbody>${body}
       <tr>${td("الإجمالي",1,"#cfe0f0")}${years.map((y,i)=>cellv(T,y,i,1,"#cfe0f0")).join("")}</tr>
       <tr>${td("النمو عن السنة قبلها",1)}${years.map((y,i)=>td(i?(y===TY?gp(g(what==="s"?all[3]:all[4],what==="s"?all[2]:null))+'<div style="font-size:10px;color:#666">عن نفس الفترة</div>':gp(g(T[y],T[years[i-1]]))):"—",1)).join("")}</tr></tbody></table></div>
       <div class="small muted" style="margin-top:4px">اضغط ▸ جنب الفرع تشوف مناديبه من الأفضل للأقل. الرقم الملوّن بين قوسين تحت كل سنة = الفرق بين ${TY} وهذي السنة، وجنبه معدل النمو %: بالموجب (أخضر) إذا ${TY} أعلى، وبالسالب (أحمر) إذا هذي السنة أعلى. ${TY} حتى اليوم.</div>`};
-  const SY=[];for(let y=FY-5;y<=TY;y++)SY.push(y);const CY=Object.keys(YR).map(Number).sort();for(let y=FY+1;y<=TY;y++)CY.push(y);
+  const SY0=[];for(let y=FY-5;y<=TY;y++)SY0.push(y);const CY0=Object.keys(YR).map(Number).sort();for(let y=FY+1;y<=TY;y++)CY0.push(y);
+  const HID=pHid(),SY=SY0.filter(y=>!HID.has(y)),CY=CY0.filter(y=>!HID.has(y));
+  const AY=[...new Set([...SY0,...CY0])].sort((a,b)=>a-b);
+  const ybar=`<div class="row" style="gap:6px;flex-wrap:wrap;align-items:center"><span class="small muted">السنوات المعروضة (اضغط على السنة تخفيها أو تظهرها):</span>${AY.map(y=>{const h=HID.has(y);return `<button class="btn sm" data-phy="${y}" aria-pressed="${!h}" title="${h?"إظهار":"إخفاء"} ${y}" style="${h?"opacity:.55;text-decoration:line-through":""}">${h?"🙈":"👁"} ${y}</button>`}).join("")}${HID.size?`<button class="btn sm" data-phy="all">إظهار الكل</button>`:""}</div>`;
   const sTot=y=>salesRows(y).reduce((a,r)=>a+r[3],0);
   /* yearly summary with VAT and the year detail */
   const vatRows=y=>{const L=[];if(y<=FY)(YR[y]||[]).forEach(r=>L.push([r[0],nmId(r[2],r[1],r[0]),r[3],r[6]||0,r[5]]));
@@ -465,20 +468,24 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
   const k=n.k;const hy=n.y||TY;
   const foot=`<p class="small muted" style="margin:0">«مناديب سابقين / غير محدد» = صفوف بدون اسم مندوب في الملفات. المناديب الخارجيين (اليمن، عويضة / شاهنور) من ملفات Target sell، ومبيعاتهم داخلة في المجموع.</p>`;
   if(!k){app.innerHTML=`<div class="stack"><h1>مبيعات السنوات الماضية</h1><p class="small muted" style="margin:0">${SY[0]}–${LY} من ملفات المبيعات السنوية، و${TY} من النظام حتى ${fd(S.D.asof)}</p>
-     <div class="card">${chart}</div>
+     ${ybar}<div class="card">${chart}</div>
      <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))">${TABS.map(([t,ic,l,sub])=>`<button class="tile" data-pk="${t}" style="align-items:center;text-align:center;padding:22px 14px"><span style="font-size:34px;line-height:1" aria-hidden="true">${ic}</span><b style="font-size:18px">${l}</b><span class="small muted">${sub}</span></button>`).join("")}</div></div>`;
-    app.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>go({t:"past",k:b.dataset.pk}));return}
+    app.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>go({t:"past",k:b.dataset.pk}));pHidBind(app);return}
   const T=TABS.find(x=>x[0]===k)||TABS[0];let h="";
   if(k==="s")h=matrix(SY,salesRows,"s");else if(k==="c")h=matrix(CY,colRows,"c");else if(k==="y")h=sumTab();
-  else h=`<div class="row" style="gap:6px">${CY.map(y=>`<button class="btn sm ${y===hy?"pri":""}" data-py="${y}">${y===TY?y+" حتى اليوم":y}</button>`).join("")}</div><h2 style="margin:6px 0 0">${hy===TY?TY+" حتى اليوم":hy}</h2>`+yearTab(hy);
+  else h=`<div class="row" style="gap:6px">${(CY.includes(hy)?CY:[...CY,hy].sort()).map(y=>`<button class="btn sm ${y===hy?"pri":""}" data-py="${y}">${y===TY?y+" حتى اليوم":y}</button>`).join("")}</div><h2 style="margin:6px 0 0">${hy===TY?TY+" حتى اليوم":hy}</h2>`+yearTab(hy);
   const idx=TABS.indexOf(T),prev=TABS[idx-1],next=TABS[idx+1];
   app.innerHTML=`<div class="stack"><h1>${T[1]} ${T[2]}</h1><p class="small muted" style="margin:0">${T[3]}</p>
     <div class="row" style="gap:6px;flex-wrap:wrap">${TABS.map(([t,ic,l])=>`<button class="btn sm ${t===k?"pri":""}" data-pk="${t}">${ic} ${l}</button>`).join("")}</div>
-    <div class="card">${h}</div>${foot}
+    ${ybar}<div class="card">${h}</div>${foot}
     <div class="row" style="justify-content:space-between">${prev?`<button class="btn" data-pk="${prev[0]}">→ ${prev[2]}</button>`:"<span></span>"}${next?`<button class="btn" data-pk="${next[0]}">${next[2]} ←</button>`:"<span></span>"}</div></div>`;
   app.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>{S.nav[S.nav.length-1]={t:"past",k:b.dataset.pk};S.opt={};render();window.scrollTo(0,0)});
   app.querySelectorAll("[data-py]").forEach(b=>b.onclick=()=>{const ex=S.opt.pexp;S.nav[S.nav.length-1]={t:"past",k:"d",y:+b.dataset.py};S.opt.pexp=ex;render()});
-  app.querySelectorAll("[data-pg]").forEach(b=>b.onclick=()=>{const ex=S.opt.pexp||(S.opt.pexp={});ex[b.dataset.pg]=!ex[b.dataset.pg];render()})}
+  app.querySelectorAll("[data-pg]").forEach(b=>b.onclick=()=>{const ex=S.opt.pexp||(S.opt.pexp={});ex[b.dataset.pg]=!ex[b.dataset.pg];render()});pHidBind(app)}
+/* years hidden by the user in the past-years pages (kept on this device) */
+function pHid(){if(!window._pHid){let a=[];try{a=JSON.parse(localStorage.getItem("us-phide")||"[]")}catch(e){}window._pHid=new Set(a.map(Number))}return window._pHid}
+function pHidBind(app){app.querySelectorAll("[data-phy]").forEach(b=>b.onclick=()=>{const H=pHid(),v=b.dataset.phy;if(v==="all")H.clear();else{const y=+v;H.has(y)?H.delete(y):H.add(y)}
+  try{localStorage.setItem("us-phide",JSON.stringify([...H]))}catch(e){}const ex=S.opt.pexp;render();if(ex)S.opt.pexp=ex})}
 if(!window._histL){window._histL=1;const h=e=>{const c=e.target.closest&&e.target.closest("[data-hist]");if(!c)return;if(e.type==="keydown"&&e.key!=="Enter"&&e.key!==" ")return;e.preventDefault();if(myRole()==="sales_mgr")go({t:"past"})};document.addEventListener("click",h);document.addEventListener("keydown",h)}
 
 /* ---------- branch trips (زيارات الفروع): customers visited per branch, what happened each year (from the trip Excel files) ---------- */
