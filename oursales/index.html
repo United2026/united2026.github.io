@@ -403,55 +403,76 @@ function usersView(app){
       r.querySelector("button").onclick=()=>{S.people[h.id]=h;const m=clone();m[h.id]={role:r.querySelector("select").value,at:new Date().toISOString()};save(m)};ur.append(r)})};
 }
 
-/* ---------- past years (sales manager only): 2020-2025 sales from the user's file, 2025 collection + this year from Odoo ---------- */
+/* ---------- past years (sales manager only): chart + 4 tabs (sales, collection, yearly summary incl. VAT, one year in detail) ---------- */
 function histDialog(){const P=S.D.past;if(!P)return toast("ما فيه بيانات سنوات سابقة");
-  const LY=P.ly,TY=LY+1,YS=[LY-5,LY-4,LY-3,LY-2,LY-1,LY],O=P.odoo||{},oz=[0,0,0,0,0],od=id=>O[id]||oz,all=O.all||oz;
-  const nm=x=>x.id&&S.D.reps[x.id]?R(x.id).name:(x.n?x.n:"مناديب سابقين");
-  const g=(a,b)=>b>0?a/b-1:null,gp=v=>v==null?"—":`<span style="color:${v<0?"#c0392b":"#1e7b34"};font-weight:700">${v>0?"+":""}${Math.round(v*100)}%</span>`;
+  const LY=P.ly,TY=LY+1,O=P.odoo||{},oz=[0,0,0,0,0],od=id=>O[id]||oz,all=O.all||oz,YR=P.yrs||{},EX=P.ext||{};
+  const EXN={"Bateyah Yemen":"اليمن (بتيّه)","Awida / shannor":"عويضة / شاهنور"};const exl=k=>EXN[k]||k;
+  const g=(a,b)=>b>0?a/b-1:null,gp=v=>v==null?"—":`<span dir="ltr" style="color:${v<0?"#c0392b":"#1e7b34"};font-weight:700">${v>0?"+":""}${Math.round(v*100)}%</span>`;
   const n0=v=>v?fmt(v):"—";const regs=[...new Set(P.rows.map(x=>x.reg))];
-  const tY=y=>sum(P.rows.map(x=>x.y[y]||0));const T={};YS.forEach(y=>T[y]=tY(y));
-  const lst=P.rows.filter(x=>x.id);const sumO=k=>sum(lst.map(x=>od(x.id)[k]));const oth=k=>all[k]-sumO(k);
   const th=h=>`<th style="border:1px solid #9aa;padding:5px 6px;background:#1f5c8b;color:#fff;white-space:nowrap">${h}</th>`;
   const td=(v,b,bg)=>`<td style="border:1px solid #cfd8e3;padding:5px 6px;text-align:center;white-space:nowrap;${b?"font-weight:800;":""}${bg?"background:"+bg:""}">${v}</td>`;
-  const mx=Math.max(1,...YS.map(y=>T[y]),all[3]);
-  const bars=[...YS.map(y=>[String(y),T[y],null]),[TY+" حتى اليوم",all[3],g(all[3],all[2])]];
-  const chart=`<div style="display:flex;align-items:flex-end;gap:14px;height:210px;padding:8px 4px 0;border-bottom:2px solid #1f5c8b">${bars.map((b,i)=>{const pv=i>0&&i<YS.length?g(b[1],bars[i-1][1]):b[2];
+  const lst=P.rows.filter(x=>x.id);const ext=(y,k)=>(EX[y]&&EX[y][k])||{};const extSum=(y,k)=>Object.values(ext(y,k)).reduce((a,b)=>a+b,0);
+  const nmId=(id,n,reg)=>id&&S.D.reps[id]?R(id).name:(n||(reg?"مناديب سابقين / غير محدد":"بدون مندوب في القائمة / تسويات"));
+  /* rows of one measure for one year: [key, region, label, value] (region "" = foreign reps / unassigned) */
+  const salesRows=y=>{const L=[];if(y<=LY)P.rows.forEach(x=>{if(x.y[y])L.push([x.id?"i"+x.id:x.reg+"|"+x.n,x.reg,nmId(x.id,x.n,x.reg),x.y[y]])});
+    else{lst.forEach(x=>L.push(["i"+x.id,x.reg,nmId(x.id),od(x.id)[3]]));L.push(["oth","~","مبيعات بدون مندوب في القائمة",all[3]-lst.reduce((a,x)=>a+od(x.id)[3],0)-extSum(y,"sale")])}
+    Object.entries(ext(y,"sale")).forEach(([k,v])=>L.push(["x"+k,"",exl(k),v]));return L};
+  const colRows=y=>{const L=[];if(y<=LY)(YR[y]||[]).forEach(r=>{if(r[5])L.push([r[2]?"i"+r[2]:r[0]+"|"+r[1],r[0],nmId(r[2],r[1],r[0]),r[5]])});
+    else{lst.forEach(x=>L.push(["i"+x.id,x.reg,nmId(x.id),od(x.id)[4]]));L.push(["oth","~","تحصيل بدون مندوب في القائمة / تسويات",all[4]-lst.reduce((a,x)=>a+od(x.id)[4],0)-extSum(y,"col")])}
+    Object.entries(ext(y,"col")).forEach(([k,v])=>{if(v)L.push(["x"+k,"",exl(k),v])});return L};
+  /* matrix: one row per rep, a column per year, the change vs the year before under each number */
+  const matrix=(years,fn,what)=>{const M=new Map(),T={};years.forEach(y=>{T[y]=0;fn(y).forEach(([k,rg,lb,v])=>{if(!M.has(k))M.set(k,{rg,lb,v:{}});const o=M.get(k);o.v[y]=(o.v[y]||0)+v;T[y]+=v})});
+    const cellv=(o,y,i,b,bg)=>{const v=o[y],pv=i?o[years[i-1]]:undefined;const d=v!=null&&pv!=null&&i?v-pv:null;
+      return td(v==null||!Math.round(v)?"—":`<div>${fmt(v)}</div>${d==null||!Math.round(d)?"":`<div style="border-top:1px solid #9aa;margin-top:2px;padding-top:1px;font-size:11px;font-weight:700;color:${d<0?"#c0392b":"#1e7b34"}"><span dir="ltr">(${d>0?"+":""}${fmt(d)})</span></div>`}`,b,bg)};
+    const order=[...regs,"~",""];const rows=[...M.values()];
+    const body=order.map(rg=>{const A=rows.filter(o=>o.rg===rg);if(!A.length)return "";const sub={};years.forEach(y=>{const s=A.filter(o=>o.v[y]!=null);if(s.length)sub[y]=s.reduce((a,o)=>a+o.v[y],0)});
+      const head=rg===""?`<tr><td colspan="${years.length+1}" style="border:1px solid #cfd8e3;padding:5px 6px;background:#fff4d6;font-weight:800">مبيعات مناديب خارجيين (خارج المملكة) — داخلة في المجموع</td></tr>`:"";
+      return head+A.map(o=>`<tr>${td(esc(o.lb))}${years.map((y,i)=>cellv(o.v,y,i)).join("")}</tr>`).join("")+(rg&&rg!=="~"&&A.length>1||rg===""&&A.length>1?`<tr>${td(rg?"إجمالي "+esc(rg):"إجمالي الخارجيين",1,"#e8eef5")}${years.map((y,i)=>cellv(sub,y,i,1,"#e8eef5")).join("")}</tr>`:"")}).join("");
+    return `<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("المندوب")}${years.map(y=>th(y===TY?y+" حتى اليوم":y)).join("")}</tr></thead><tbody>${body}
+      <tr>${td("الإجمالي",1,"#cfe0f0")}${years.map((y,i)=>cellv(T,y,i,1,"#cfe0f0")).join("")}</tr>
+      <tr>${td("النمو عن السنة قبلها",1)}${years.map((y,i)=>td(i?(y===TY?gp(g(what==="s"?all[3]:all[4],what==="s"?all[2]:null))+'<div style="font-size:10px;color:#666">عن نفس الفترة</div>':gp(g(T[y],T[years[i-1]]))):"—",1)).join("")}</tr></tbody></table>
+      <div style="font-size:11px;color:#666;margin-top:4px">الرقم بين قوسين تحت كل مبلغ = الفرق عن السنة اللي قبلها: بالموجب إذا السنة الحالية أعلى، وبالسالب إذا اللي قبلها أعلى. ${TY} حتى اليوم مقارنة بسنة ${LY} كاملة.</div>`};
+  const SY=[LY-5,LY-4,LY-3,LY-2,LY-1,LY,TY],CY=Object.keys(YR).map(Number).sort();CY.push(TY);
+  const sTot=y=>salesRows(y).reduce((a,r)=>a+r[3],0);
+  /* yearly summary with VAT and the year detail */
+  const vatRows=y=>{const L=[];if(y<=LY)(YR[y]||[]).forEach(r=>L.push([r[0],nmId(r[2],r[1],r[0]),r[3],r[6]||0,r[5]]));
+    else{P.rows.filter(x=>x.id||x.car).forEach(x=>{const o=x.id?od(x.id):oz;L.push([x.reg,nmId(x.id,x.n,x.reg),x.car||0,Math.round(o[3]*1.15),o[4]])});
+      L.push(["~","بدون مندوب في القائمة / تسويات",0,Math.round((all[3]-lst.reduce((a,x)=>a+od(x.id)[3],0)-extSum(y,"sale"))*1.15),all[4]-lst.reduce((a,x)=>a+od(x.id)[4],0)-extSum(y,"col")])}
+    const xs=new Set([...Object.keys(ext(y,"vat")),...Object.keys(ext(y,"col"))]);xs.forEach(k=>L.push(["",exl(k),0,y<=LY?(ext(y,"vat")[k]||0):Math.round((ext(y,"sale")[k]||0)*1.15),ext(y,"col")[k]||0]));return L};
+  const VT={};CY.forEach(y=>{const L=vatRows(y);VT[y]=[L.reduce((a,r)=>a+r[2],0),L.reduce((a,r)=>a+r[3],0),L.reduce((a,r)=>a+r[4],0)]});
+  const pc=(c,car,sl)=>car+sl>0?Math.round(c/(car+sl)*100)+"%":"—";
+  const sumTab=()=>`<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("السنة")}${th("رصيد مرحل من السنة اللي قبلها")}${th("المبيعات شامل الضريبة")}${th("التحصيل")}${th("الفرق (مبيعات − تحصيل)")}${th("نسبة التحصيل من (المرحل + المبيعات)")}${th("نمو التحصيل")}</tr></thead><tbody>
+    ${CY.map((y,i)=>{const [c0,s0,c1]=VT[y];return `<tr>${td(y===TY?y+" حتى اليوم":y,1)}${td(n0(c0))}${td(n0(s0))}${td(n0(c1),1)}${td(n0(s0-c1))}${td(pc(c1,c0,s0))}${td(i&&y!==TY?gp(g(c1,VT[CY[i-1]][2])):"—")}</tr>`}).join("")}</tbody></table>
+    <div style="font-size:11px;color:#666;margin-top:4px">المبيعات هنا شامل الضريبة 15% من ورقة «Sales With 15%VAT» في ملف كل سنة، و${TY} من النظام × 1.15. التحصيل مبالغ مقبوضة فهو شامل الضريبة. تشمل مبيعات وتحصيل المناديب الخارجيين.</div>`;
+  const yearTab=y=>{const L=vatRows(y);const order=[...regs,"~",""];
+    const tr=(r,b,bg)=>`<tr>${td(esc(r[1]),b,bg)}${td(n0(r[2]),b,bg)}${td(n0(r[3]),b,bg)}${td(n0(r[4]),b,bg)}${td(n0(r[3]-r[4]),b,bg)}${td(pc(r[4],r[2],r[3]),b,bg)}</tr>`;
+    const sm=(A,lb)=>["",lb,A.reduce((a,r)=>a+r[2],0),A.reduce((a,r)=>a+r[3],0),A.reduce((a,r)=>a+r[4],0)];
+    return `<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("المندوب")}${th("رصيد مرحل من "+(y-1))}${th("مبيعات "+y+" شامل الضريبة")}${th("تحصيل "+y)}${th("الفرق")}${th("نسبة التحصيل")}</tr></thead><tbody>
+     ${order.map(rg=>{const A=L.filter(r=>r[0]===rg);if(!A.length)return "";return (rg===""?`<tr><td colspan="6" style="border:1px solid #cfd8e3;padding:5px 6px;background:#fff4d6;font-weight:800">مناديب خارجيين (خارج المملكة) — داخلين في المجموع</td></tr>`:"")+A.map(r=>tr(r)).join("")+(rg&&rg!=="~"?tr(sm(A,"إجمالي "+rg),1,"#e8eef5"):"")}).join("")}
+     ${tr(sm(L,"الإجمالي"),1,"#cfe0f0")}</tbody></table>`};
+  /* chart: sales w/o VAT per year incl. foreign reps */
+  const bars=SY.map(y=>[y===TY?y+" حتى اليوم":String(y),sTot(y)]);const mx=Math.max(1,...bars.map(b=>b[1]));
+  const chart=`<div style="display:flex;align-items:flex-end;gap:14px;height:210px;padding:8px 4px 0;border-bottom:2px solid #1f5c8b">${bars.map((b,i)=>{const pv=i===bars.length-1?g(all[3],all[2]):(i?g(b[1],bars[i-1][1]):null);
     return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><div style="font-size:11px">${gp(pv)}</div><div style="font-size:12px;font-weight:800;margin:2px 0">${fmt(b[1])}</div><div style="width:70%;height:${(b[1]/mx*150).toFixed(0)}px;background:${i===bars.length-1?"#E0A100":"#1f5c8b"};border-radius:5px 5px 0 0"></div></div>`}).join("")}</div>
     <div style="display:flex;gap:14px;padding:4px">${bars.map(b=>`<div style="flex:1;text-align:center;font-size:12px;font-weight:700">${b[0]}</div>`).join("")}</div>
-    <div style="font-size:11px;color:#666">النسبة فوق كل عمود = النمو عن السنة اللي قبلها · ${TY} مقارنة بنفس الفترة من ${LY}</div>`;
-  const rowA=(x,label,bold,bg)=>{const o=x.id?od(x.id):null;const t26=o?o[3]:null;
-    return `<tr>${td(esc(label),bold,bg)}${YS.map(y=>td(n0(x.y[y]),bold,bg)).join("")}${td(t26==null?"—":n0(t26),bold,bg)}${td(o?gp(g(o[3],o[2])):"—",bold,bg)}${td(gp(g(x.y[LY]||0,x.y[LY-1]||0)),bold,bg)}</tr>`};
-  const tabA=`<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("المندوب")}${YS.map(y=>th(y)).join("")}${th(TY+" حتى اليوم")}${th("نمو "+TY+" عن نفس الفترة")}${th("نمو "+LY+" عن "+(LY-1))}</tr></thead><tbody>
-   ${regs.map(rg=>{const L=P.rows.filter(x=>x.reg===rg);const sy={};YS.forEach(y=>sy[y]=sum(L.map(x=>x.y[y]||0)));const ids=L.filter(x=>x.id);const s26=sum(ids.map(x=>od(x.id)[3])),s25p=sum(ids.map(x=>od(x.id)[2]));
-     return L.map(x=>rowA(x,nm(x))).join("")+`<tr>${td("إجمالي "+esc(rg),1,"#e8eef5")}${YS.map(y=>td(n0(sy[y]),1,"#e8eef5")).join("")}${td(n0(s26),1,"#e8eef5")}${td(gp(g(s26,s25p)),1,"#e8eef5")}${td(gp(g(sy[LY],sy[LY-1])),1,"#e8eef5")}</tr>`}).join("")}
-   <tr>${td("مبيعات بدون مندوب في القائمة",0)}${YS.map(()=>td("—")).join("")}${td(n0(oth(3)))}${td("—")}${td("—")}</tr>
-   <tr>${td("الإجمالي",1,"#cfe0f0")}${YS.map(y=>td(fmt(T[y]),1,"#cfe0f0")).join("")}${td(fmt(all[3]),1,"#cfe0f0")}${td(gp(g(all[3],all[2])),1,"#cfe0f0")}${td(gp(g(T[LY],T[LY-1])),1,"#cfe0f0")}</tr>
-   <tr>${td("النمو عن السنة قبلها",1)}${YS.map((y,i)=>td(i?gp(g(T[y],T[YS[i-1]])):"—",1)).join("")}${td(gp(g(all[3],all[2])),1)}${td("")}${td("")}</tr></tbody></table>`;
-  /* section B: per year (carried in, sales, collection, difference) — past years from each year's sales file, this year from Odoo */
-  const YR=P.yrs||{};const yB=Object.keys(YR).map(Number).sort();yB.push(TY);
-  const rowsOf=y=>y===TY?P.rows.filter(x=>x.id||x.car).map(x=>{const o=x.id?od(x.id):oz;return [x.reg,x.n,x.id,x.car||0,o[3],o[4]]}).concat([["","",null,0,oth(3),oth(4)]]):(YR[y]||[]);
-  const totOf=y=>{const L=rowsOf(y);return [sum(L.map(r=>r[3])),sum(L.map(r=>r[4])),sum(L.map(r=>r[5]))]};
-  const TT={};yB.forEach(y=>TT[y]=totOf(y));
-  const pc=(c,car,sl)=>car+sl>0?Math.round(c/(car+sl)*100)+"%":"—";
-  const sumTab=`<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("السنة")}${th("رصيد مرحل من السنة اللي قبلها")}${th("المبيعات")}${th("التحصيل")}${th("الفرق (مبيعات − تحصيل)")}${th("نسبة التحصيل من (المرحل + المبيعات)")}${th("نمو التحصيل")}</tr></thead><tbody>
-    ${yB.map((y,i)=>{const [c0,s0,c1]=TT[y];return `<tr>${td(y===TY?y+" حتى اليوم":y,1)}${td(n0(c0))}${td(n0(s0))}${td(n0(c1),1)}${td(n0(s0-c1))}${td(pc(c1,c0,s0))}${td(i?gp(y===TY?null:g(c1,TT[yB[i-1]][2])):"—")}</tr>`}).join("")}</tbody></table>`;
-  const tabYear=y=>{const L=rowsOf(y);const regs2=[...new Set(L.map(r=>r[0]))];const nmY=r=>r[2]&&S.D.reps[r[2]]?R(r[2]).name:(r[1]||(r[0]?"مناديب سابقين / غير محدد":"بدون مندوب في القائمة / تسويات"));
-    const tr=(r,label,b,bg)=>`<tr>${td(esc(label),b,bg)}${td(n0(r[3]),b,bg)}${td(n0(r[4]),b,bg)}${td(n0(r[5]),b,bg)}${td(n0(r[4]-r[5]),b,bg)}${td(pc(r[5],r[3],r[4]),b,bg)}</tr>`;
-    const sm=A=>["","",null,sum(A.map(r=>r[3])),sum(A.map(r=>r[4])),sum(A.map(r=>r[5]))];
-    return `<table style="border-collapse:collapse;width:100%;font-size:13px;color:#111"><thead><tr>${th("المندوب")}${th("رصيد مرحل من "+(y-1))}${th("مبيعات "+y)}${th("تحصيل "+y)}${th("الفرق")}${th("نسبة التحصيل")}</tr></thead><tbody>
-     ${regs2.map(rg=>{const A=L.filter(r=>r[0]===rg);return A.map(r=>tr(r,nmY(r))).join("")+(rg?tr(sm(A),"إجمالي "+rg,1,"#e8eef5"):"")}).join("")}
-     ${tr(sm(L),"الإجمالي",1,"#cfe0f0")}</tbody></table>`};
-  const tabB=`${sumTab}<div class="row" id="histyb" style="margin:12px 0 6px;gap:6px" data-html2canvas-ignore="true">${yB.map(y=>`<button class="btn sm" data-hy="${y}">${y===TY?y+" حتى اليوم":y}</button>`).join("")}</div><div id="histyt"></div>`;
-  let d=document.getElementById("histd");if(!d){d=document.createElement("dialog");d.id="histd";d.style.cssText="max-width:1200px;width:calc(100% - 16px)";document.body.append(d)}
+    <div style="font-size:11px;color:#666">المبيعات بدون ضريبة، شامل المناديب الخارجيين من 2022 · النسبة فوق كل عمود = النمو عن السنة اللي قبلها، و${TY} مقارنة بنفس الفترة من ${LY}</div>`;
+  const TABS=[["s","📈 المبيعات"],["c","💰 التحصيل"],["y","🧾 المبيعات والتحصيل والفرق والرصيد المرحل لكل سنة"],["d","📅 تفاصيل سنة"]];
+  let d=document.getElementById("histd");if(!d){d=document.createElement("dialog");d.id="histd";d.style.cssText="max-width:1250px;width:calc(100% - 16px)";document.body.append(d)}
   d.innerHTML=`<div class="stack"><div class="row"><h2 style="margin-inline-end:auto">مبيعات السنوات الماضية</h2><button class="btn sm pri" id="histw">📲 واتساب (JPG)</button><button class="btn sm" id="histc">إغلاق</button></div>
-   <div style="max-height:78vh;overflow:auto"><div id="histdoc" dir="rtl" style="background:#fff;color:#111;padding:16px;border-radius:10px;min-width:900px">
-    <div style="border-bottom:3px solid #1f5c8b;padding-bottom:8px;margin-bottom:10px"><div style="font-size:20px;font-weight:800;color:#1f5c8b">مبيعات السنوات الماضية — ${esc(COMP.ar)}</div><div style="font-size:12px;color:#555">المبيعات بدون ضريبة · ${YS[0]}–${LY} من ملفات المبيعات السنوية، و${TY} من النظام حتى ${fd(S.D.asof)}</div></div>
+   <div style="max-height:80vh;overflow:auto"><div id="histdoc" dir="rtl" style="background:#fff;color:#111;padding:16px;border-radius:10px;min-width:900px">
+    <div style="border-bottom:3px solid #1f5c8b;padding-bottom:8px;margin-bottom:10px"><div style="font-size:20px;font-weight:800;color:#1f5c8b">مبيعات السنوات الماضية — ${esc(COMP.ar)}</div><div style="font-size:12px;color:#555">${SY[0]}–${LY} من ملفات المبيعات السنوية، و${TY} من النظام حتى ${fd(S.D.asof)}</div></div>
     ${chart}
-    <div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:14px 0 6px">المبيعات السنوية لكل مندوب</div>${tabA}
-    <div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:16px 0 6px">المبيعات والتحصيل والفرق والرصيد المرحل لكل سنة</div>${tabB}
-    <div style="font-size:11px;color:#666;margin-top:6px">الفرق = المبيعات − التحصيل (التحصيل يشمل الضريبة لأنه مبالغ مقبوضة، والمبيعات بدونها) · جدول السنوات: كل سنة من ملف مبيعاتها (Target sell) — الرصيد المرحل والمبيعات والتحصيل، و${TY} من النظام مع الرصيد المرحل من ملف ${TY} · «مناديب سابقين» = صفوف بدون اسم مندوب في الملف</div></div></div></div>`;
-  const showY=y=>{d.querySelector("#histyt").innerHTML=`<div style="font-size:14px;font-weight:800;margin:4px 0">${y===TY?y+" حتى اليوم":y}</div>`+tabYear(y);d.querySelectorAll("[data-hy]").forEach(b=>b.classList.toggle("pri",+b.dataset.hy===y))};
-  d.querySelectorAll("[data-hy]").forEach(b=>b.onclick=()=>showY(+b.dataset.hy));showY(TY);
+    <div class="row" style="gap:8px;margin:14px 0 8px;flex-wrap:wrap" data-html2canvas-ignore="true">${TABS.map(([k,l])=>`<button class="btn" data-ht="${k}" style="font-weight:700">${l}</button>`).join("")}</div>
+    <div id="hbody"></div>
+    <div style="font-size:11px;color:#666;margin-top:6px">«مناديب سابقين / غير محدد» = صفوف بدون اسم مندوب في الملفات. المناديب الخارجيين (اليمن، عويضة / شاهنور) من ملفات Target sell، وما فيه في الملفات مبيعات لليبيا.</div></div></div></div>`;
+  const show=k=>{const b=d.querySelector("#hbody");let h="";
+    if(k==="s")h=`<div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:4px 0 6px">المبيعات بدون ضريبة لكل مندوب</div>`+matrix(SY,salesRows,"s");
+    else if(k==="c")h=`<div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:4px 0 6px">التحصيل لكل مندوب</div>`+matrix(CY,colRows,"c");
+    else if(k==="y")h=`<div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:4px 0 6px">المبيعات (شامل الضريبة) والتحصيل والفرق والرصيد المرحل لكل سنة</div>`+sumTab();
+    else h=`<div class="row" style="gap:6px;margin:4px 0 8px" data-html2canvas-ignore="true">${CY.map(y=>`<button class="btn sm ${y===(d._hy||TY)?"pri":""}" data-hy="${y}">${y===TY?y+" حتى اليوم":y}</button>`).join("")}</div><div style="font-size:16px;font-weight:800;color:#1f5c8b;margin:4px 0 6px">${(d._hy||TY)===TY?TY+" حتى اليوم":d._hy} — لكل مندوب (المبيعات شامل الضريبة)</div>`+yearTab(d._hy||TY);
+    b.innerHTML=h;d._ht=k;d.querySelectorAll("[data-ht]").forEach(x=>x.classList.toggle("pri",x.dataset.ht===k));
+    b.querySelectorAll("[data-hy]").forEach(x=>x.onclick=()=>{d._hy=+x.dataset.hy;show("d")})};
+  d.querySelectorAll("[data-ht]").forEach(x=>x.onclick=()=>show(x.dataset.ht));
   d.querySelector("#histc").onclick=()=>d.close();
   const w=d.querySelector("#histw");w.onclick=()=>busy(w,async()=>{const c=await elCanvas(d.querySelector("#histdoc"));const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.9));
     await shareFile(new File([blob],fname("مبيعات السنوات الماضية "+S.D.asof)+".jpg",{type:"image/jpeg"}),"مبيعات السنوات الماضية")});
