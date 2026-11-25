@@ -428,9 +428,9 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
     const rank=o=>{for(let i=years.length-1;i>=0;i--){const v=o.v[years[i]];if(v!=null&&Math.round(v))return [i,v]}return [-1,0]};
     const best=(a,b)=>{const ra=rank(a),rb=rank(b);return rb[0]-ra[0]||rb[1]-ra[1]};
     const body=order.map(rg=>{const A=rows.filter(o=>o.rg===rg).sort(best);if(!A.length)return "";const sub={};years.forEach(y=>{const s=A.filter(o=>o.v[y]!=null);if(s.length)sub[y]=s.reduce((a,o)=>a+o.v[y],0)});
-      const gk=rg||"_x",open=!!ex[gk];const lbl=rg==="~"?"بدون مندوب في القائمة":rg===""?"مبيعات مناديب خارجيين (خارج المملكة) — داخلة في المجموع":"إجمالي "+esc(rg);
-      return `<tr><td class="n" style="white-space:nowrap;font-weight:800;background:var(--info-bg,rgba(31,92,139,.12))"><button class="btn sm" data-pg="${esc(gk)}" aria-expanded="${open}" style="margin-inline-end:6px">${open?"▾":"▸"}</button>${lbl} <span class="small muted">(${A.length})</span></td>${years.map((y,i)=>cellv(sub,y,i,1,1)).join("")}</tr>`
-       +(open?A.map((o,i)=>`<tr>${td(`<span class="small muted">${i+1}.</span> ${esc(o.lb)}`)}${years.map((y,i)=>cellv(o.v,y,i)).join("")}</tr>`).join(""):"")}).join("");
+      const gk=rg||"_x",open=!!ex[gk];const lbl=rg==="~"?"بدون مندوب في القائمة":rg===""?"مناديب خارجيين (خارج المملكة)":"إجمالي "+esc(rg);
+      return `<tr><td class="n" style="white-space:normal;min-width:170px;max-width:240px;font-weight:800;background:var(--info-bg,rgba(31,92,139,.12))"><button class="btn sm" data-pg="${esc(gk)}" aria-expanded="${open}" style="margin-inline-end:6px">${open?"▾":"▸"}</button>${lbl} <span class="small muted">(${A.length})</span></td>${years.map((y,i)=>cellv(sub,y,i,1,1)).join("")}</tr>`
+       +(open?A.map((o,i)=>`<tr><td style="white-space:normal;min-width:170px;max-width:240px"><span class="small muted">${i+1}.</span> ${esc(o.lb)}</td>${years.map((y,i)=>cellv(o.v,y,i)).join("")}</tr>`).join(""):"")}).join("");
     return `<div class="tbl"><table><thead><tr>${th("المندوب")}${years.map(y=>th(y===TY?y+" حتى اليوم":y)).join("")}</tr></thead><tbody>${body}
       <tr>${td("الإجمالي",1,"#cfe0f0")}${years.map((y,i)=>cellv(T,y,i,1,"#cfe0f0")).join("")}</tr>
       <tr>${td("النمو عن السنة قبلها",1)}${years.map((y,i)=>td(i?(y===TY?gp(g(what==="s"?all[3]:all[4],what==="s"?all[2]:null))+'<div style="font-size:10px;color:#666">عن نفس الفترة</div>':gp(g(T[y],T[years[i-1]]))):"—",1)).join("")}</tr></tbody></table></div>
@@ -452,8 +452,8 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
     const sm=(A,lb)=>["",lb,A.reduce((a,r)=>a+r[2],0),A.reduce((a,r)=>a+r[3],0),A.reduce((a,r)=>a+r[4],0)];
     return `<div class="tbl"><table><thead><tr>${th("المندوب")}${th("رصيد مرحل من "+(y-1))}${th("مبيعات "+y+" شامل الضريبة")}${th("تحصيل "+y)}${th("الفرق")}${th("نسبة التحصيل")}</tr></thead><tbody>
      ${order.map(rg=>{const A=L.filter(r=>r[0]===rg).sort((a,b)=>b[3]-a[3]);if(!A.length)return "";const ex=S.opt.pexp||(S.opt.pexp={});const gk=rg||"_x",open=!!ex[gk];
-       const lbl=rg==="~"?"بدون مندوب في القائمة":rg===""?"مناديب خارجيين (خارج المملكة) — داخلين في المجموع":"إجمالي "+rg;const t=sm(A,lbl);
-       return `<tr>${td(`<button class="btn sm" data-pg="${esc(gk)}" aria-expanded="${open}" style="margin-inline-end:6px">${open?"▾":"▸"}</button>${esc(lbl)} <span class="small muted">(${A.length})</span>`,1,1)}${[2,3,4].map(i=>td(n0(t[i]),1,1)).join("")}${td(n0(t[3]-t[4]),1,1)}${td(pc(t[4],t[2],t[3]),1,1)}</tr>`+(open?A.map((r,i)=>tr([r[0],(i+1)+". "+r[1],r[2],r[3],r[4]])).join(""):"")}).join("")}
+       const lbl=rg==="~"?"بدون مندوب في القائمة":rg===""?"مناديب خارجيين (خارج المملكة)":"إجمالي "+rg;const t=sm(A,lbl);
+       return `<tr><td style="white-space:normal;min-width:170px;max-width:240px;font-weight:800;background:var(--info-bg,rgba(31,92,139,.12))"><button class="btn sm" data-pg="${esc(gk)}" aria-expanded="${open}" style="margin-inline-end:6px">${open?"▾":"▸"}</button>${esc(lbl)} <span class="small muted">(${A.length})</span></td>${[2,3,4].map(i=>td(n0(t[i]),1,1)).join("")}${td(n0(t[3]-t[4]),1,1)}${td(pc(t[4],t[2],t[3]),1,1)}</tr>`+(open?A.map((r,i)=>tr([r[0],(i+1)+". "+r[1],r[2],r[3],r[4]])).join(""):"")}).join("")}
      ${tr(sm(L,"الإجمالي"),1,"#cfe0f0")}</tbody></table></div>`};
   /* chart: sales w/o VAT per year incl. foreign reps */
   const bars=SY.map(y=>[y===TY?y+" حتى اليوم":String(y),sTot(y)]);const mx=Math.max(1,...bars.map(b=>b[1]));
@@ -463,7 +463,7 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
     <div class="small muted">المبيعات بدون ضريبة، شامل المناديب الخارجيين من 2022 · النسبة فوق كل عمود = النمو عن السنة اللي قبلها، و${TY} مقارنة بنفس الفترة من ${LY}</div>`;
   const TABS=[["s","📈","المبيعات","مبيعات كل مندوب بدون ضريبة من "+SY[0]+" لين "+TY+"، والفرق بين "+TY+" وكل سنة"],["c","💰","التحصيل","تحصيل كل مندوب من "+CY[0]+" لين "+TY+"، والفرق بين "+TY+" وكل سنة"],["y","🧾","المبيعات والتحصيل والفرق والرصيد المرحل","لكل سنة، والمبيعات شامل الضريبة"],["d","📅","تفاصيل سنة","كل مندوب في السنة اللي تختارها، والمبيعات شامل الضريبة"]];
   const k=n.k;const hy=n.y||TY;
-  const foot=`<p class="small muted" style="margin:0">«مناديب سابقين / غير محدد» = صفوف بدون اسم مندوب في الملفات. المناديب الخارجيين (اليمن، عويضة / شاهنور) من ملفات Target sell وداخلين في المجموع.</p>`;
+  const foot=`<p class="small muted" style="margin:0">«مناديب سابقين / غير محدد» = صفوف بدون اسم مندوب في الملفات. المناديب الخارجيين (اليمن، عويضة / شاهنور) من ملفات Target sell، ومبيعاتهم داخلة في المجموع.</p>`;
   if(!k){app.innerHTML=`<div class="stack"><h1>مبيعات السنوات الماضية</h1><p class="small muted" style="margin:0">${SY[0]}–${LY} من ملفات المبيعات السنوية، و${TY} من النظام حتى ${fd(S.D.asof)}</p>
      <div class="card">${chart}</div>
      <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(250px,1fr))">${TABS.map(([t,ic,l,sub])=>`<button class="tile" data-pk="${t}" style="align-items:center;text-align:center;padding:22px 14px"><span style="font-size:34px;line-height:1" aria-hidden="true">${ic}</span><b style="font-size:18px">${l}</b><span class="small muted">${sub}</span></button>`).join("")}</div></div>`;
