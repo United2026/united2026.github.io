@@ -423,7 +423,7 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
   /* matrix: one row per rep, a column per year, the change vs the year before under each number */
   const matrix=(years,fn,what)=>{const M=new Map(),T={};years.forEach(y=>{T[y]=0;fn(y).forEach(([k,rg,lb,v])=>{if(!M.has(k))M.set(k,{rg,lb,v:{}});const o=M.get(k);o.v[y]=(o.v[y]||0)+v;T[y]+=v})});
     const LYR=years[years.length-1];const cellv=(o,y,i,b,bg)=>{const v=o[y],cv=o[LYR];const d=v!=null&&cv!=null&&y!==LYR?cv-v:null;
-      return td(v==null||!Math.round(v)?"—":`<div>${fmt(v)}</div>${d==null||!Math.round(d)?"":`<div style="border-top:1px solid currentColor;margin-top:2px;padding-top:1px;font-size:11px;font-weight:700;color:${d<0?"#c0392b":"#1e7b34"}"><span dir="ltr">(${d>0?"+":""}${fmt(d)})</span></div>`}`,b,bg)};
+      return td(v==null||!Math.round(v)?"—":`<div>${fmt(v)}</div>${d==null||!Math.round(d)?"":`<div style="border-top:1px solid currentColor;margin-top:2px;padding-top:1px;font-size:11px;font-weight:700;color:${d<0?"#c0392b":"#1e7b34"}"><span dir="ltr">(${d>0?"+":""}${fmt(d)})</span>${v>0?` <span dir="ltr">${d>0?"+":""}${Math.round(d/v*100)}%</span>`:""}</div>`}`,b,bg)};
     const order=[...regs,"~",""];const rows=[...M.values()];const ex=S.opt.pexp||(S.opt.pexp={});
     const rank=o=>{for(let i=years.length-1;i>=0;i--){const v=o.v[years[i]];if(v!=null&&Math.round(v))return [i,v]}return [-1,0]};
     const best=(a,b)=>{const ra=rank(a),rb=rank(b);return rb[0]-ra[0]||rb[1]-ra[1]};
@@ -434,7 +434,7 @@ function pastView(app,n){const P=S.D.past;if(myRole()!=="sales_mgr"||!P){app.inn
     return `<div class="tbl"><table><thead><tr>${th("المندوب")}${years.map(y=>th(y===TY?y+" حتى اليوم":y)).join("")}</tr></thead><tbody>${body}
       <tr>${td("الإجمالي",1,"#cfe0f0")}${years.map((y,i)=>cellv(T,y,i,1,"#cfe0f0")).join("")}</tr>
       <tr>${td("النمو عن السنة قبلها",1)}${years.map((y,i)=>td(i?(y===TY?gp(g(what==="s"?all[3]:all[4],what==="s"?all[2]:null))+'<div style="font-size:10px;color:#666">عن نفس الفترة</div>':gp(g(T[y],T[years[i-1]]))):"—",1)).join("")}</tr></tbody></table></div>
-      <div class="small muted" style="margin-top:4px">اضغط ▸ جنب الفرع تشوف مناديبه من الأفضل للأقل. الرقم الملوّن بين قوسين تحت كل سنة = الفرق بين ${TY} وهذي السنة: بالموجب (أخضر) إذا ${TY} أعلى، وبالسالب (أحمر) إذا هذي السنة أعلى. ${TY} حتى اليوم.</div>`};
+      <div class="small muted" style="margin-top:4px">اضغط ▸ جنب الفرع تشوف مناديبه من الأفضل للأقل. الرقم الملوّن بين قوسين تحت كل سنة = الفرق بين ${TY} وهذي السنة، وجنبه معدل النمو %: بالموجب (أخضر) إذا ${TY} أعلى، وبالسالب (أحمر) إذا هذي السنة أعلى. ${TY} حتى اليوم.</div>`};
   const SY=[LY-5,LY-4,LY-3,LY-2,LY-1,LY,TY],CY=Object.keys(YR).map(Number).sort();CY.push(TY);
   const sTot=y=>salesRows(y).reduce((a,r)=>a+r[3],0);
   /* yearly summary with VAT and the year detail */
