@@ -476,9 +476,9 @@ function visitsView(app,n){const V=S.D.visits||{};const YS=[2026,2025,2024,2023,
     .sort((a,b)=>rt(b)-rt(a)||(a.city||"").localeCompare(b.city||"","ar")||a.n.localeCompare(b.n,"ar"));
   const cell=(c,y)=>{const vs=c.v.filter(v=>v[0]===y);if(!vs.length)return '<span class="muted">—</span>';
     const months=[...new Set(vs.map(v=>v[1]))].sort((x,z)=>z-x);const prev=c.v.filter(v=>v[0]<y).map(v=>v[3]).filter(Boolean).pop()||"";
-    return months.map(m=>{const vm=vs.filter(v=>v[1]===m);const notes=[...new Set(vm.map(v=>v[3]).filter(Boolean))];const reps=[...new Set(vm.map(v=>v[2]).filter(Boolean))];
+    const out=months.map(m=>{const vm=vs.filter(v=>v[1]===m);const notes=[...new Set(vm.map(v=>v[3]).filter(t=>t&&t!==prev))];if(!notes.length)return "";const reps=[...new Set(vm.map(v=>v[2]).filter(Boolean))];
       const head=months.length>1?`<b>${MON_AR[m-1]} ${y}</b>${reps.length?" · ":""}`:"";
-      return `<div style="margin-bottom:6px">${head}${reps.length?`<span class="small muted">${esc(reps.join("، "))}</span><br>`:(head?"<br>":"")}${notes.length?notes.map(t=>esc(t)+(t===prev?' <span class="small muted">(نفس ملاحظة الزيارة اللي قبلها)</span>':"")).join("<br>"):'<span class="muted">زيارة بدون ملاحظة</span>'}</div>`}).join("")};
+      return `<div style="margin-bottom:6px">${head}${reps.length?`<span class="small muted">${esc(reps.join("، "))}</span><br>`:(head?"<br>":"")}${notes.map(t=>esc(t)).join("<br>")}</div>`}).join("");return out||'<span class="muted">—</span>'};
   const stars=c=>{const r=rt(c),k=vKey(n.br,c.n);return `<div class="vstars" role="radiogroup" aria-label="تقييم العميل" style="white-space:nowrap;font-size:20px;line-height:1">${[1,2,3,4,5].map(i=>`<button type="button" data-vs="${k}" data-vn="${esc(c.n)}" data-vr="${i}" role="radio" aria-checked="${r===i}" aria-label="${i} من 5" title="${i} من 5" style="background:none;border:0;padding:0 1px;cursor:pointer;color:${i<=r?"#E0A100":"var(--line,#bbb)"}">${i<=r?"★":"☆"}</button>`).join("")}</div>`};
   const cnt=[5,4,3,2,1].map(i=>[i,o.cust.filter(c=>rt(c)===i).length]);
   app.innerHTML=`<div class="stack"><h1>زيارات ${esc(brLabel(n.br))}</h1>
