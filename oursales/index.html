@@ -614,7 +614,7 @@ function vNewView(app,n,o){const f=S.opt.vf||(S.opt.vf={y:new Date().getFullYear
 /* ---------- «ميزان المتحد» (sales manager only): sales, cost of goods, branch expenses, branch staff salaries and a share of the general expenses per branch per month ---------- */
 const MZB=[["RI","الرياض"],["MN","المركز الرئيسي"],["JE","جدة"],["DA","الدمام"],["KH","خميس مشيط"],["QA","القصيم"],["MA","المدينة المنورة"],["TA","تبوك"],["SA","سكاكا"]];
 const MZN=Object.fromEntries(MZB);
-(()=>{const st=document.createElement("style");st.textContent=".mzl{background:none;border:0;padding:0;color:var(--brand,#1F5C8B);font:inherit;font-weight:700;cursor:pointer;text-align:start}.mzl:hover{text-decoration:underline}";document.head.appendChild(st)})();
+(()=>{const st=document.createElement("style");st.textContent=".mzl{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:700;cursor:pointer;text-align:start}.mzl:hover{text-decoration:underline}";document.head.appendChild(st)})();
 async function loadMz(){if(S._mzl)return;S._mzl=1;try{const r=await fetch("mz.json",{cache:"no-store"});if(r.ok)S.mz=await r.json();else S.mz={err:r.status}}catch(e){S.mz={err:"net"}}S._mzl=0;render()}
 /* the year's numbers: per branch per month; salaries entered in the app (db msal) come out of the general pool */
 function mzCalc(y){const M=S.mz,ms=[];const lastM=(M.asof||"").slice(0,7);for(let m=1;m<=12;m++){const k=y+"-"+String(m).padStart(2,"0");if(lastM&&k>lastM)break;ms.push(k)}
@@ -652,7 +652,7 @@ function mzView(app,n){
   if(!n.br){
     const rows=MZB.filter(([b])=>{const o=B[b];return sum(o.s)||sum(o.c)||sum(o.exT)||sum(o.salT)}).map(([b,l])=>{const o=B[b],s=sum(o.s),g=sum(o.g),nt=sum(o.net);return {b,l,s,c:sum(o.c),g,ex:sum(o.exT),sal:sum(o.salT),sh:sum(o.sh),nt}});
     const T=k=>rows.reduce((a,r)=>a+r[k],0);
-    const tr=(r,tot)=>`<tr ${tot?'style="font-weight:700;background:var(--soft,#eef3f8)"':""}><td style="white-space:nowrap">${tot?"إجمالي الفروع":`<button class="mzl" data-mzb="${r.b}">${esc(r.l)}</button>`}</td><td>${f0(r.s)}</td><td>${f0(r.c)}</td><td>${f0(r.g)} ${pc(r.g,r.s)}</td><td>${f0(r.ex)}</td><td>${f0(r.sal)}</td><td>${f0(r.sh)}</td><td style="font-weight:700">${f0(r.nt)} ${pc(r.nt,r.s)}</td></tr>`;
+    const tr=(r,tot)=>`<tr ${tot?'style="font-weight:700;background:var(--sunk)"':""}><td style="white-space:nowrap">${tot?"إجمالي الفروع":`<button class="mzl" data-mzb="${r.b}">${esc(r.l)}</button>`}</td><td>${f0(r.s)}</td><td>${f0(r.c)}</td><td>${f0(r.g)} ${pc(r.g,r.s)}</td><td>${f0(r.ex)}</td><td>${f0(r.sal)}</td><td>${f0(r.sh)}</td><td style="font-weight:700">${f0(r.nt)} ${pc(r.nt,r.s)}</td></tr>`;
     const tot={s:T("s"),c:T("c"),g:T("g"),ex:T("ex"),sal:T("sal"),sh:T("sh"),nt:T("nt")};
     app.innerHTML=`<div class="stack"><div class="row" style="gap:8px;flex-wrap:wrap"><h1 style="margin-inline-end:auto">⚖️ ميزان المتحد ${n.y}${n.y===new Date().getFullYear()?" حتى اليوم":""}</h1><button class="btn" data-mzall="1">📋 تفاصيل إجمالي الفروع</button><button class="btn" data-mzsal="1">👥 رواتب موظفي الفروع</button></div>
      <div class="card"><div class="tbl"><table><thead><tr><th>الفرع</th><th>المبيعات</th><th>تكلفة البضاعة</th><th>مجمل الربح</th><th>مصاريف الفرع</th><th>رواتب موظفي الفرع</th><th>نصيبه من المصاريف العامة</th><th>صافي الربح / الخسارة</th></tr></thead><tbody>
@@ -665,7 +665,7 @@ function mzView(app,n){
   let o;if(all){o={s:z(),c:z(),g:z(),ex:{},exL:{},sal:{},salT:z(),sh:z(),exT:z(),net:z()};MZB.forEach(([b])=>{const x=B[b];["s","c","g","salT","exT","net"].forEach(k=>o[k]=add(o[k],x[k]));Object.entries(x.ex).forEach(([c,a])=>o.ex[c]=add(o.ex[c]||z(),a));Object.entries(x.exL).forEach(([c,a])=>(o.exL[c]=o.exL[c]||[]).push(...a.map(r=>[r[0],MZN[b]+" — "+r[1],r[2]])));Object.entries(x.sal).forEach(([id,s])=>o.sal[id]={...s,n:s.n+" ("+MZN[b]+")"})})}else o=B[n.br];
   const ex=S.opt.mzx||(S.opt.mzx={});
   const cells=a=>a.map(v=>`<td>${f0(v)}</td>`).join("")+`<td style="font-weight:700">${f0(sum(a))}</td>`;
-  const head=t=>`<tr style="background:var(--soft,#eef3f8)"><td colspan="${ms.length+2}"><b>${t}</b></td></tr>`;
+  const head=t=>`<tr style="background:var(--sunk)"><td colspan="${ms.length+2}"><b>${t}</b></td></tr>`;
   const accRows=(E,L,pref)=>Object.entries(E).sort((a,b)=>sum(b[1])-sum(a[1])).map(([c,a])=>{const key=pref+c,open=ex[key];const lines=(L&&L[c])||[];
     return `<tr><td class="wrap" style="min-width:170px">${lines.length?`<button class="mzl" data-mzx="${key}" aria-expanded="${!!open}">${open?"▾":"▸"} ${esc(an(c))}</button>`:esc(an(c))}</td>${cells(a)}</tr>`+(open?`<tr><td colspan="${ms.length+2}"><div class="tbl" style="max-height:340px;overflow:auto"><table class="small"><thead><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th></tr></thead><tbody>${lines.slice().sort((x,y)=>x[0].localeCompare(y[0])).map(r=>`<tr><td style="white-space:nowrap">${esc(r[0])}</td><td class="wrap">${esc(r[1])}</td><td>${f0(r[2])}</td></tr>`).join("")}</tbody></table></div></td></tr>`:"")}).join("");
   const S2=o.s,net=all?add(z(),o.g).map((v,i)=>v-o.exT[i]-C.GT[i]):o.net;
@@ -681,7 +681,7 @@ function mzView(app,n){
     <tr style="font-weight:700"><td>إجمالي الرواتب</td>${cells(o.salT)}</tr>
     ${all?head("المصاريف العامة (غير مسجّلة على فرع)")+accRows(C.G,null,"g")+`<tr><td>ناقص رواتب موظفي الفروع (محسوبة فوق)</td>${cells(C.salAll.map(v=>-v))}</tr><tr style="font-weight:700"><td>صافي المصاريف العامة</td>${cells(C.pool)}</tr>`
          :`<tr style="font-weight:700"><td>نصيبه من المصاريف العامة <span class="small muted">(بالتساوي بين الفروع)</span></td>${cells(o.sh)}</tr>`}
-    <tr style="font-weight:800;background:var(--soft,#eef3f8)"><td>صافي الربح / الخسارة</td>${cells(net)}</tr>
+    <tr style="font-weight:800;background:var(--sunk)"><td>صافي الربح / الخسارة</td>${cells(net)}</tr>
     <tr><td class="small muted">نسبة الصافي من المبيعات</td>${net.map((v,i)=>`<td>${pc(v,S2[i])}</td>`).join("")}<td>${pc(sum(net),sum(S2))}</td></tr>
    </tbody></table></div></div>
    <p class="small muted" style="margin:0">اضغط على البند تشوف كل حركة بتاريخها ووصفها مثل ما هي في النظام.</p></div>`;
@@ -700,7 +700,7 @@ function mzSalView(app,n){const L=Object.values(S.msal||{});const emp=(S.mz&&S.m
   app.innerHTML=`<div class="stack"><h1>👥 رواتب موظفي الفروع</h1>
    <p class="small muted" style="margin:0">اكتب الراتب الشهري الكامل لكل موظف (الراتب مع السكن والنقل والبدلات). ينحسب على فرعه في ميزان المتحد لكل شهر من «من شهر» إلى «إلى شهر» (فاضي = مستمر)، وينخصم من المصاريف العامة. لا تكتب هنا الرواتب اللي تنصرف من خزينة الفرع، لأنها محسوبة في مصاريف الفرع. هذي الصفحة تظهر لمدير المبيعات فقط.</p>
    <div class="card"><div class="tbl"><table><thead><tr><th>الموظف</th><th>الوظيفة</th><th>الفرع</th><th>الراتب الشهري</th><th>من شهر</th><th>إلى شهر</th><th></th></tr></thead><tbody>
-   ${byB.map(([b,l,xs])=>`<tr style="background:var(--soft,#eef3f8)"><td colspan="7"><b>${esc(l)}</b> <span class="small muted">· ${xs.length} موظف · ${fmt(xs.reduce((a,x)=>a+(+x.amt||0),0))} شهرياً</span></td></tr>${xs.map(row).join("")}`).join("")||`<tr><td colspan="7" class="muted">ما فيه موظفين مسجّلين.</td></tr>`}
+   ${byB.map(([b,l,xs])=>`<tr style="background:var(--sunk)"><td colspan="7"><b>${esc(l)}</b> <span class="small muted">· ${xs.length} موظف · ${fmt(xs.reduce((a,x)=>a+(+x.amt||0),0))} شهرياً</span></td></tr>${xs.map(row).join("")}`).join("")||`<tr><td colspan="7" class="muted">ما فيه موظفين مسجّلين.</td></tr>`}
    </tbody></table></div><div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn pri" id="msadd">+ موظف</button><span class="small muted" style="align-self:center">المجموع الشهري: ${fmt(tot)}</span></div></div>
    ${sug.length?`<div class="card"><h2 style="margin:0 0 6px">موظفين الفروع في النظام (${sug.length})</h2><p class="small muted" style="margin:0 0 6px">اضغط «إضافة» وبعدها اكتب راتبه.</p><div class="tbl"><table><tbody>${sug.map((e,i)=>`<tr><td>${esc(e[0])}</td><td class="small muted">${esc(e[1]||"")}</td><td>${esc(MZN[e[2]]||"")}</td><td><button class="btn sm" data-msadd="${i}">إضافة</button></td></tr>`).join("")}</tbody></table></div></div>`:""}</div>`;
   const save=async x=>{if(!S.db||S.offline)return toast("الحفظ يحتاج اتصال");try{await S.db.doc("msal/"+x.id).set({...x,at:nowIso(),by:S.uid||""})}catch(e){toast("ما انحفظ")}};
