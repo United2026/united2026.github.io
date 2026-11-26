@@ -612,7 +612,7 @@ function vNewView(app,n,o){const f=S.opt.vf||(S.opt.vf={y:new Date().getFullYear
       toast("انحفظت الزيارة");S.opt.vf=null;render()}catch(e){toast("ما انحفظت الزيارة")}};
   app.querySelectorAll("[data-vfdel]").forEach(b=>b.onclick=async()=>{if(!confirm("تحذف هذي الزيارة؟"))return;try{await S.db.doc("vnew/"+b.dataset.vfdel).delete();delete S.vnew[b.dataset.vfdel];render()}catch(e){toast("ما انحذفت")}})}
 /* ---------- «ميزان المتحد» (sales manager only): sales, cost of goods, branch expenses, branch staff salaries and a share of the general expenses per branch per month ---------- */
-const MZB=[["RI","الرياض"],["ML","الملز"],["MN","المركز الرئيسي"],["JE","جدة"],["DA","الدمام"],["KH","خميس مشيط"],["QA","القصيم"],["MA","المدينة المنورة"],["TA","تبوك"],["SA","سكاكا"]];
+const MZB=[["RI","الرياض"],["MN","المركز الرئيسي"],["JE","جدة"],["DA","الدمام"],["KH","خميس مشيط"],["QA","القصيم"],["MA","المدينة المنورة"],["TA","تبوك"],["SA","سكاكا"]];
 const MZN=Object.fromEntries(MZB);
 (()=>{const st=document.createElement("style");st.textContent=".mzl{background:none;border:0;padding:0;color:var(--brand,#1F5C8B);font:inherit;font-weight:700;cursor:pointer;text-align:start}.mzl:hover{text-decoration:underline}";document.head.appendChild(st)})();
 async function loadMz(){if(S._mzl)return;S._mzl=1;try{const r=await fetch("mz.json",{cache:"no-store"});if(r.ok)S.mz=await r.json();else S.mz={err:r.status}}catch(e){S.mz={err:"net"}}S._mzl=0;render()}
@@ -623,6 +623,9 @@ function mzCalc(y){const M=S.mz,ms=[];const lastM=(M.asof||"").slice(0,7);for(le
   M.s.forEach(([k,b,s,c])=>{const i=mi(k);if(i<0||!B[b])return;B[b].s[i]+=s;B[b].c[i]+=c});
   M.d.forEach(([d,b,code,a,nm])=>{const i=mi(d.slice(0,7));if(i<0||!B[b])return;const o=B[b];(o.ex[code]=o.ex[code]||z())[i]+=a;(o.exL[code]=o.exL[code]||[]).push([d,nm,a])});
   const G={},GT=z();M.g.forEach(([k,code,a])=>{const i=mi(k);if(i<0)return;const v=code==="410001"?-a:a;(G[code]=G[code]||z())[i]+=v;GT[i]+=v});
+  /* branches not in the balance (الملز, removed at the user's request): their sales/costs/expenses go to the general pool */
+  M.d.forEach(([d,b,code,a])=>{if(B[b])return;const i=mi(d.slice(0,7));if(i<0)return;(G[code]=G[code]||z())[i]+=a;GT[i]+=a});
+  M.s.forEach(([k,b,s,c])=>{if(B[b])return;const i=mi(k);if(i<0)return;(G["511001"]=G["511001"]||z())[i]+=c;(G["410001"]=G["410001"]||z())[i]-=s;GT[i]+=c-s});
   const SAL=Object.values(S.msal||{}).filter(x=>x.br&&B[x.br]&&+x.amt);const salAll=z();
   SAL.forEach(x=>{ms.forEach((k,i)=>{if((x.from&&k<x.from)||(x.to&&k>x.to))return;const o=B[x.br];(o.sal[x.id]=o.sal[x.id]||{n:x.n,job:x.job,v:z()}).v[i]+=+x.amt;o.salT[i]+=+x.amt;salAll[i]+=+x.amt})});
   const pool=GT.map((v,i)=>v-salAll[i]);
