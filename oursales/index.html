@@ -284,7 +284,7 @@ function back(i){S.nav=S.nav.slice(0,i+1);S.opt={};render();window.scrollTo(0,0)
 const PB={1:"RI",25:"RI",64:"RI",30:"JE",36:"JE",31:"KH",32:"DA",35:"DA",27:"SA",28:"TA",29:"MA",26:"QA"};
 const prodOf=b=>S.prod?(S.prod.items||[]).filter(x=>PB[x.branch]===b):(S.D.branches[b].prod||[]);
 const brLabel=b=>(b==="DP"?"":"فرع ")+S.D.branches[b].name;
-const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة":" "+((S[(DOCK[n.k]||{}).col]||{})[n.id]||{}).no):n.t==="subm"?(n.id==="new"?"تقديم جديد":"تقديم"):n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="calc"?(n.id==="new"?"New Calculation Sheet":"Calculation Sheet "+(((S.calc||{})[n.id]||{}).csno||"")):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="past"?({s:"المبيعات",c:"التحصيل",y:"المبيعات والتحصيل والفرق",d:"تفاصيل سنة"}[n.k]||"مبيعات السنوات الماضية"):n.t==="visits"?(n.m==="new"?"زيارة جديدة":n.m?"الزيارات السابقة":n.br?"زيارات "+brLabel(n.br):"زيارات الفروع"):n.t==="branches"?"الفروع":"";
+const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة":" "+((S[(DOCK[n.k]||{}).col]||{})[n.id]||{}).no):n.t==="subm"?(n.id==="new"?"تقديم جديد":"تقديم"):n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="calc"?(n.id==="new"?"New Calculation Sheet":"Calculation Sheet "+(((S.calc||{})[n.id]||{}).csno||"")):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="past"?({s:"المبيعات",c:"التحصيل",y:"المبيعات والتحصيل والفرق",d:"تفاصيل سنة"}[n.k]||"مبيعات السنوات الماضية"):n.t==="mz"?(n.k==="sal"?"رواتب موظفي الفروع":n.br?(n.br==="ALL"?"إجمالي الفروع":MZN[n.br]):n.y?"ميزان "+n.y:"ميزان المتحد"):n.t==="visits"?(n.m==="new"?"زيارة جديدة":n.m?"الزيارات السابقة":n.br?"زيارات "+brLabel(n.br):"زيارات الفروع"):n.t==="branches"?"الفروع":"";
 
 /* ---------- boot ---------- */
 async function boot(){
@@ -318,6 +318,7 @@ async function boot(){
   db.collection("tgt").onSnapshot(s=>{S.tgt={};s.docs.forEach(d=>S.tgt[d.id]=d.data());render()},()=>{});
   db.collection("wplan").onSnapshot(s=>{S.wplan={};s.docs.forEach(d=>S.wplan[d.id]={id:d.id,...d.data()});render()},()=>{});
   db.collection("vrate").onSnapshot(s=>{S.vrate={};s.docs.forEach(d=>S.vrate[d.id]=d.data());render()},()=>{});
+  db.collection("msal").onSnapshot(s=>{S.msal={};s.docs.forEach(d=>S.msal[d.id]={id:d.id,...d.data()});render()},()=>{});
   db.collection("vnew").onSnapshot(s=>{S.vnew={};s.docs.forEach(d=>S.vnew[d.id]={id:d.id,...d.data()});render()},()=>{});
   db.collection("daily").onSnapshot(s=>{S.daily=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{});
   db.collection("elec").onSnapshot(s=>{S.elecDb=s.docs.map(d=>({id:d.id,...d.data()}));mergeElec();render()},()=>toast("تعذّر تحميل الكهربائيين"));
@@ -364,7 +365,7 @@ function _render(){const _a=document.getElementById("app");if(_a)_a.oninput=null
   if(["projects","proj","quote","calc","pdoc","subm"].includes(n.t)&&!canProj(role)||["forecast","exports"].includes(n.t)&&role!=="sales_mgr"){S.nav=[{t:"home"}];return render()}
   const ok=allowedBranches();
   if((n.t==="branch"&&!ok.includes(n.id))||(n.t==="rep"&&!ok.includes(brOf(n.id)))||(n.t==="items"&&!ok.includes(n.scope.t==="rep"?brOf(n.scope.id):n.scope.id))||(n.t==="area"&&!areasFor(role).includes(n.id))){S.nav=[{t:"home"}];return render()}
-  ({agrs:agrsView,agr:agrView,sales:salesView,projects:projectsView,proj:projView,quote:quoteView,calc:calcView,pdoc:pdocView,subm:submView,forecast:forecastView,exports:exportsView,targets:targetsView,daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,visits:visitsView,past:pastView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
+  ({agrs:agrsView,agr:agrView,sales:salesView,projects:projectsView,proj:projView,quote:quoteView,calc:calcView,pdoc:pdocView,subm:submView,forecast:forecastView,exports:exportsView,targets:targetsView,daily:dailyView,items:itemsView,home:homeView,mgrs:mgrsView,visits:visitsView,past:pastView,mz:mzView,branches:branchesView,area:areaView,branch:branchView,rep:repView,report:reportView,users:usersView})[n.t](app,n);
 }
 
 /* ---------- join ---------- */
@@ -610,6 +611,102 @@ function vNewView(app,n,o){const f=S.opt.vf||(S.opt.vf={y:new Date().getFullYear
       const cur=(S.vrate||{})[rk]||{};const nv={...cur,br:n.br,n:f.cn,r:rv!=null?rv:(cur.r||0),rep:f.rep,by:S.uid,at:d.at};S.vrate=S.vrate||{};S.vrate[rk]=nv;await S.db.doc("vrate/"+rk).set(nv);
       toast("انحفظت الزيارة");S.opt.vf=null;render()}catch(e){toast("ما انحفظت الزيارة")}};
   app.querySelectorAll("[data-vfdel]").forEach(b=>b.onclick=async()=>{if(!confirm("تحذف هذي الزيارة؟"))return;try{await S.db.doc("vnew/"+b.dataset.vfdel).delete();delete S.vnew[b.dataset.vfdel];render()}catch(e){toast("ما انحذفت")}})}
+/* ---------- «ميزان المتحد» (sales manager only): sales, cost of goods, branch expenses, branch staff salaries and a share of the general expenses per branch per month ---------- */
+const MZB=[["RI","الرياض"],["ML","الملز"],["MN","المركز الرئيسي"],["JE","جدة"],["DA","الدمام"],["KH","خميس مشيط"],["QA","القصيم"],["MA","المدينة المنورة"],["TA","تبوك"],["SA","سكاكا"]];
+const MZN=Object.fromEntries(MZB);
+(()=>{const st=document.createElement("style");st.textContent=".mzl{background:none;border:0;padding:0;color:var(--brand,#1F5C8B);font:inherit;font-weight:700;cursor:pointer;text-align:start}.mzl:hover{text-decoration:underline}";document.head.appendChild(st)})();
+async function loadMz(){if(S._mzl)return;S._mzl=1;try{const r=await fetch("mz.json",{cache:"no-store"});if(r.ok)S.mz=await r.json();else S.mz={err:r.status}}catch(e){S.mz={err:"net"}}S._mzl=0;render()}
+/* the year's numbers: per branch per month; salaries entered in the app (db msal) come out of the general pool */
+function mzCalc(y){const M=S.mz,ms=[];const lastM=(M.asof||"").slice(0,7);for(let m=1;m<=12;m++){const k=y+"-"+String(m).padStart(2,"0");if(lastM&&k>lastM)break;ms.push(k)}
+  const z=()=>ms.map(()=>0),B={};MZB.forEach(([b])=>B[b]={s:z(),c:z(),ex:{},exL:{},sal:{},salT:z(),sh:z()});
+  const mi=k=>ms.indexOf(k);
+  M.s.forEach(([k,b,s,c])=>{const i=mi(k);if(i<0||!B[b])return;B[b].s[i]+=s;B[b].c[i]+=c});
+  M.d.forEach(([d,b,code,a,nm])=>{const i=mi(d.slice(0,7));if(i<0||!B[b])return;const o=B[b];(o.ex[code]=o.ex[code]||z())[i]+=a;(o.exL[code]=o.exL[code]||[]).push([d,nm,a])});
+  const G={},GT=z();M.g.forEach(([k,code,a])=>{const i=mi(k);if(i<0)return;const v=code==="410001"?-a:a;(G[code]=G[code]||z())[i]+=v;GT[i]+=v});
+  const SAL=Object.values(S.msal||{}).filter(x=>x.br&&B[x.br]&&+x.amt);const salAll=z();
+  SAL.forEach(x=>{ms.forEach((k,i)=>{if((x.from&&k<x.from)||(x.to&&k>x.to))return;const o=B[x.br];(o.sal[x.id]=o.sal[x.id]||{n:x.n,job:x.job,v:z()}).v[i]+=+x.amt;o.salT[i]+=+x.amt;salAll[i]+=+x.amt})});
+  const pool=GT.map((v,i)=>v-salAll[i]);
+  ms.forEach((k,i)=>{let tot=0;MZB.forEach(([b])=>{if(B[b].s[i]>0)tot+=B[b].s[i]});
+    if(tot<=0){let ty=0;MZB.forEach(([b])=>{ty+=Math.max(0,B[b].s.reduce((a,x)=>a+x,0))});MZB.forEach(([b])=>{B[b].sh[i]=ty?pool[i]*Math.max(0,B[b].s.reduce((a,x)=>a+x,0))/ty:0})}
+    else MZB.forEach(([b])=>{B[b].sh[i]=pool[i]*Math.max(0,B[b].s[i])/tot})});
+  const sum=a=>a.reduce((x,y)=>x+y,0);
+  MZB.forEach(([b])=>{const o=B[b];o.g=o.s.map((v,i)=>v-o.c[i]);o.exT=z();Object.values(o.ex).forEach(a=>a.forEach((v,i)=>o.exT[i]+=v));o.net=o.g.map((v,i)=>v-o.exT[i]-o.salT[i]-o.sh[i])});
+  return {ms,B,G,GT,salAll,pool,sum}}
+function mzView(app,n){
+  if(myRole()!=="sales_mgr"){app.innerHTML='<div class="empty">هذي الصفحة لمدير المبيعات فقط.</div>';return}
+  if(!S.mz){app.innerHTML='<div class="empty">جاري تحميل الميزان…</div>';loadMz();return}
+  if(S.mz.err){app.innerHTML=`<div class="card empty"><span style="font-size:40px">⚖️</span><h2>ميزان المتحد</h2><p>${S.mz.err===404?"بيانات الميزان تنزل مع التحديث اليومي القادم.":"تعذّر تحميل بيانات الميزان."}</p><button class="btn" id="mzr">إعادة المحاولة</button></div>`;app.querySelector("#mzr").onclick=()=>{S.mz=null;render()};return}
+  if(n.k==="sal")return mzSalView(app,n);
+  const yrs=[...new Set(S.mz.s.map(x=>+x[0].slice(0,4)))].sort((a,b)=>b-a);
+  const f0=v=>{const r=Math.round(v);return `<span dir="ltr" style="${r<0?"color:#C0392B":""}">${r?fmt(r):"—"}</span>`};
+  const pc=(a,b)=>b?`<span dir="ltr" class="small" style="color:${a<0?"#C0392B":"#2E7D32"}">${Math.round(a/b*1000)/10}%</span>`:"";
+  if(!n.y){app.innerHTML=`<div class="stack"><h1>⚖️ ميزان المتحد</h1><p class="small muted" style="margin:0">مبيعات وتكلفة ومصاريف كل فرع لكل شهر، والربح أو الخسارة. البيانات حتى ${esc((S.mz.asof||"").split("-").reverse().join("/"))}.</p>
+    <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">${yrs.map(y=>{const C=mzCalc(y),T=MZB.reduce((a,[b])=>a+C.sum(C.B[b].s),0),N=MZB.reduce((a,[b])=>a+C.sum(C.B[b].net),0);
+      return `<button class="tile" data-mzy="${y}" style="align-items:center;text-align:center;padding:22px 14px"><b style="font-size:24px">${y}</b><span class="small muted">${y===new Date().getFullYear()?"حتى اليوم":"السنة كاملة"}</span><span class="small">المبيعات ${fmt(Math.round(T))}</span><span class="small">الصافي ${f0(N)}</span></button>`}).join("")}
+     <button class="tile" data-mzsal="1" style="align-items:center;text-align:center;padding:22px 14px"><span style="font-size:30px" aria-hidden="true">👥</span><b style="font-size:17px">رواتب موظفي الفروع</b><span class="small muted">${Object.keys(S.msal||{}).length} موظف مسجّل</span></button></div></div>`;
+    app.querySelectorAll("[data-mzy]").forEach(b=>b.onclick=()=>go({t:"mz",y:+b.dataset.mzy}));app.querySelector("[data-mzsal]").onclick=()=>go({t:"mz",k:"sal"});return}
+  const C=mzCalc(n.y),{ms,B,sum}=C;const A=S.mz.acc||{};const an=c=>A[c]||c;
+  if(!n.br){
+    const rows=MZB.filter(([b])=>{const o=B[b];return sum(o.s)||sum(o.c)||sum(o.exT)||sum(o.salT)}).map(([b,l])=>{const o=B[b],s=sum(o.s),g=sum(o.g),nt=sum(o.net);return {b,l,s,c:sum(o.c),g,ex:sum(o.exT),sal:sum(o.salT),sh:sum(o.sh),nt}});
+    const T=k=>rows.reduce((a,r)=>a+r[k],0);
+    const tr=(r,tot)=>`<tr ${tot?'style="font-weight:700;background:var(--soft,#eef3f8)"':""}><td style="white-space:nowrap">${tot?"إجمالي الفروع":`<button class="mzl" data-mzb="${r.b}">${esc(r.l)}</button>`}</td><td>${f0(r.s)}</td><td>${f0(r.c)}</td><td>${f0(r.g)} ${pc(r.g,r.s)}</td><td>${f0(r.ex)}</td><td>${f0(r.sal)}</td><td>${f0(r.sh)}</td><td style="font-weight:700">${f0(r.nt)} ${pc(r.nt,r.s)}</td></tr>`;
+    const tot={s:T("s"),c:T("c"),g:T("g"),ex:T("ex"),sal:T("sal"),sh:T("sh"),nt:T("nt")};
+    app.innerHTML=`<div class="stack"><div class="row" style="gap:8px;flex-wrap:wrap"><h1 style="margin-inline-end:auto">⚖️ ميزان المتحد ${n.y}${n.y===new Date().getFullYear()?" حتى اليوم":""}</h1><button class="btn" data-mzall="1">📋 تفاصيل إجمالي الفروع</button><button class="btn" data-mzsal="1">👥 رواتب موظفي الفروع</button></div>
+     <div class="card"><div class="tbl"><table><thead><tr><th>الفرع</th><th>المبيعات</th><th>تكلفة البضاعة</th><th>مجمل الربح</th><th>مصاريف الفرع</th><th>رواتب موظفي الفرع</th><th>نصيبه من المصاريف العامة</th><th>صافي الربح / الخسارة</th></tr></thead><tbody>
+     ${rows.map(r=>tr(r)).join("")}${tr(tot,1)}</tbody></table></div></div>
+     <p class="small muted" style="margin:0">اضغط اسم الفرع تشوف كل شهر ومصاريفه بالوصف. المبيعات بدون ضريبة بعد المرتجعات. مصاريف الفرع = المسجّلة على خزينة الفرع أو مركز تكلفة الفرع. الرواتب من صفحة «رواتب موظفي الفروع». المصاريف العامة (الرواتب والسكن والكهرباء والعمولات والمصنع والشحن والتخليص وغيرها) بعد خصم رواتب موظفي الفروع، تتوزّع على الفروع كل شهر حسب نسبة مبيعات الفرع.</p></div>`;
+    app.querySelectorAll("[data-mzb]").forEach(b=>b.onclick=()=>go({t:"mz",y:n.y,br:b.dataset.mzb}));
+    app.querySelector("[data-mzall]").onclick=()=>go({t:"mz",y:n.y,br:"ALL"});app.querySelectorAll("[data-mzsal]").forEach(b=>b.onclick=()=>go({t:"mz",k:"sal"}));return}
+  /* one branch (or all branches) month by month */
+  const all=n.br==="ALL";const z=()=>ms.map(()=>0);const add=(a,b)=>a.map((v,i)=>v+b[i]);
+  let o;if(all){o={s:z(),c:z(),g:z(),ex:{},exL:{},sal:{},salT:z(),sh:z(),exT:z(),net:z()};MZB.forEach(([b])=>{const x=B[b];["s","c","g","salT","exT","net"].forEach(k=>o[k]=add(o[k],x[k]));Object.entries(x.ex).forEach(([c,a])=>o.ex[c]=add(o.ex[c]||z(),a));Object.entries(x.exL).forEach(([c,a])=>(o.exL[c]=o.exL[c]||[]).push(...a.map(r=>[r[0],MZN[b]+" — "+r[1],r[2]])));Object.entries(x.sal).forEach(([id,s])=>o.sal[id]={...s,n:s.n+" ("+MZN[b]+")"})})}else o=B[n.br];
+  const ex=S.opt.mzx||(S.opt.mzx={});
+  const cells=a=>a.map(v=>`<td>${f0(v)}</td>`).join("")+`<td style="font-weight:700">${f0(sum(a))}</td>`;
+  const head=t=>`<tr style="background:var(--soft,#eef3f8)"><td colspan="${ms.length+2}"><b>${t}</b></td></tr>`;
+  const accRows=(E,L,pref)=>Object.entries(E).sort((a,b)=>sum(b[1])-sum(a[1])).map(([c,a])=>{const key=pref+c,open=ex[key];const lines=(L&&L[c])||[];
+    return `<tr><td class="wrap" style="min-width:170px">${lines.length?`<button class="mzl" data-mzx="${key}" aria-expanded="${!!open}">${open?"▾":"▸"} ${esc(an(c))}</button>`:esc(an(c))}</td>${cells(a)}</tr>`+(open?`<tr><td colspan="${ms.length+2}"><div class="tbl" style="max-height:340px;overflow:auto"><table class="small"><thead><tr><th>التاريخ</th><th>الوصف</th><th>المبلغ</th></tr></thead><tbody>${lines.slice().sort((x,y)=>x[0].localeCompare(y[0])).map(r=>`<tr><td style="white-space:nowrap">${esc(r[0])}</td><td class="wrap">${esc(r[1])}</td><td>${f0(r[2])}</td></tr>`).join("")}</tbody></table></div></td></tr>`:"")}).join("");
+  const S2=o.s,net=all?add(z(),o.g).map((v,i)=>v-o.exT[i]-C.GT[i]):o.net;
+  app.innerHTML=`<div class="stack"><div class="row" style="gap:8px;flex-wrap:wrap"><h1 style="margin-inline-end:auto">⚖️ ${all?"إجمالي الفروع":esc(MZN[n.br])} — ${n.y}</h1>
+   <select id="mzbr" aria-label="الفرع"><option value="ALL" ${all?"selected":""}>إجمالي الفروع</option>${MZB.map(([b,l])=>`<option value="${b}" ${b===n.br?"selected":""}>${esc(l)}</option>`).join("")}</select></div>
+   <div class="card"><div class="tbl"><table><thead><tr><th>البند</th>${ms.map(k=>`<th>${MON_AR[+k.slice(5)-1]}</th>`).join("")}<th>الإجمالي</th></tr></thead><tbody>
+    <tr><td><b>المبيعات</b></td>${cells(S2)}</tr>
+    <tr><td>تكلفة البضاعة المباعة</td>${cells(o.c)}</tr>
+    <tr style="font-weight:700"><td>مجمل الربح</td>${cells(o.g)}</tr>
+    ${head("مصاريف "+(all?"الفروع":"الفرع")+" (من خزينة الفرع ومركز تكلفته)")}${accRows(o.ex,o.exL,"x")||`<tr><td colspan="${ms.length+2}" class="muted">لا يوجد</td></tr>`}
+    <tr style="font-weight:700"><td>إجمالي مصاريف ${all?"الفروع":"الفرع"}</td>${cells(o.exT)}</tr>
+    ${head("رواتب موظفي "+(all?"الفروع":"الفرع"))}${Object.values(o.sal).map(s=>`<tr><td class="wrap">${esc(s.n)}${s.job?` <span class="small muted">· ${esc(s.job)}</span>`:""}</td>${cells(s.v)}</tr>`).join("")||`<tr><td colspan="${ms.length+2}" class="muted">ما فيه رواتب مسجّلة — سجّلها من «رواتب موظفي الفروع»</td></tr>`}
+    <tr style="font-weight:700"><td>إجمالي الرواتب</td>${cells(o.salT)}</tr>
+    ${all?head("المصاريف العامة (غير مسجّلة على فرع)")+accRows(C.G,null,"g")+`<tr><td>ناقص رواتب موظفي الفروع (محسوبة فوق)</td>${cells(C.salAll.map(v=>-v))}</tr><tr style="font-weight:700"><td>صافي المصاريف العامة</td>${cells(C.pool)}</tr>`
+         :`<tr style="font-weight:700"><td>نصيبه من المصاريف العامة <span class="small muted">(حسب نسبة مبيعاته في الشهر)</span></td>${cells(o.sh)}</tr>`}
+    <tr style="font-weight:800;background:var(--soft,#eef3f8)"><td>صافي الربح / الخسارة</td>${cells(net)}</tr>
+    <tr><td class="small muted">نسبة الصافي من المبيعات</td>${net.map((v,i)=>`<td>${pc(v,S2[i])}</td>`).join("")}<td>${pc(sum(net),sum(S2))}</td></tr>
+   </tbody></table></div></div>
+   <p class="small muted" style="margin:0">اضغط على البند تشوف كل حركة بتاريخها ووصفها مثل ما هي في النظام.</p></div>`;
+  app.querySelector("#mzbr").onchange=e=>{S.nav[S.nav.length-1]={t:"mz",y:n.y,br:e.target.value};render()};
+  app.querySelectorAll("[data-mzx]").forEach(b=>b.onclick=()=>{ex[b.dataset.mzx]=!ex[b.dataset.mzx];render()})}
+/* branch staff salaries (monthly), entered by the sales manager */
+function mzSalView(app,n){const L=Object.values(S.msal||{});const emp=(S.mz&&S.mz.emp)||[];const has=new Set(L.map(x=>vNorm(x.n)));
+  const sug=emp.filter(e=>!has.has(vNorm(e[0])));const ym=new Date().toISOString().slice(0,7);
+  const row=x=>`<tr><td><input data-ms="${x.id}" data-f="n" value="${esc(x.n||"")}" style="min-width:170px"></td><td><input data-ms="${x.id}" data-f="job" value="${esc(x.job||"")}" placeholder="مندوب / أمين مستودع / سائق" style="width:150px"></td>
+    <td><select data-ms="${x.id}" data-f="br">${MZB.map(([b,l])=>`<option value="${b}" ${b===x.br?"selected":""}>${esc(l)}</option>`).join("")}</select></td>
+    <td><input data-ms="${x.id}" data-f="amt" type="number" inputmode="decimal" min="0" value="${x.amt||""}" placeholder="0" style="width:110px" dir="ltr"></td>
+    <td><input data-ms="${x.id}" data-f="from" type="month" value="${esc(x.from||"")}" style="width:140px"></td><td><input data-ms="${x.id}" data-f="to" type="month" value="${esc(x.to||"")}" style="width:140px"></td>
+    <td><button class="btn sm" data-msdel="${x.id}" aria-label="حذف">🗑</button></td></tr>`;
+  const byB=MZB.map(([b,l])=>[b,l,L.filter(x=>x.br===b).sort((a,c)=>(a.n||"").localeCompare(c.n||"","ar"))]).filter(x=>x[2].length);
+  const tot=L.reduce((a,x)=>a+(+x.amt||0),0);
+  app.innerHTML=`<div class="stack"><h1>👥 رواتب موظفي الفروع</h1>
+   <p class="small muted" style="margin:0">اكتب الراتب الشهري الكامل لكل موظف (الراتب مع السكن والنقل والبدلات). ينحسب على فرعه في ميزان المتحد لكل شهر من «من شهر» إلى «إلى شهر» (فاضي = مستمر)، وينخصم من المصاريف العامة. لا تكتب هنا الرواتب اللي تنصرف من خزينة الفرع، لأنها محسوبة في مصاريف الفرع. هذي الصفحة تظهر لمدير المبيعات فقط.</p>
+   <div class="card"><div class="tbl"><table><thead><tr><th>الموظف</th><th>الوظيفة</th><th>الفرع</th><th>الراتب الشهري</th><th>من شهر</th><th>إلى شهر</th><th></th></tr></thead><tbody>
+   ${byB.map(([b,l,xs])=>`<tr style="background:var(--soft,#eef3f8)"><td colspan="7"><b>${esc(l)}</b> <span class="small muted">· ${xs.length} موظف · ${fmt(xs.reduce((a,x)=>a+(+x.amt||0),0))} شهرياً</span></td></tr>${xs.map(row).join("")}`).join("")||`<tr><td colspan="7" class="muted">ما فيه موظفين مسجّلين.</td></tr>`}
+   </tbody></table></div><div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn pri" id="msadd">+ موظف</button><span class="small muted" style="align-self:center">المجموع الشهري: ${fmt(tot)}</span></div></div>
+   ${sug.length?`<div class="card"><h2 style="margin:0 0 6px">موظفين الفروع في النظام (${sug.length})</h2><p class="small muted" style="margin:0 0 6px">اضغط «إضافة» وبعدها اكتب راتبه.</p><div class="tbl"><table><tbody>${sug.map((e,i)=>`<tr><td>${esc(e[0])}</td><td class="small muted">${esc(e[1]||"")}</td><td>${esc(MZN[e[2]]||"")}</td><td><button class="btn sm" data-msadd="${i}">إضافة</button></td></tr>`).join("")}</tbody></table></div></div>`:""}</div>`;
+  const save=async x=>{if(!S.db||S.offline)return toast("الحفظ يحتاج اتصال");try{await S.db.doc("msal/"+x.id).set({...x,at:nowIso(),by:S.uid||""})}catch(e){toast("ما انحفظ")}};
+  const mk=(nm,job,br)=>{const x={id:newId("s"),n:nm||"",job:job||"",br:br||"RI",amt:0,from:(S.mz.s[0]||["2025-01"])[0].slice(0,4)+"-01",to:""};S.msal=S.msal||{};S.msal[x.id]=x;save(x);render()};
+  app.querySelector("#msadd").onclick=()=>mk("","","RI");
+  app.querySelectorAll("[data-msadd]").forEach(b=>b.onclick=()=>{const e=sug[+b.dataset.msadd];mk(e[0],e[1]==="sales man"?"مندوب":e[1]==="driver"?"سائق":e[1],e[2]||"RI")});
+  app.querySelectorAll("[data-ms]").forEach(el=>el.onchange=()=>{const x=S.msal[el.dataset.ms];if(!x)return;x[el.dataset.f]=el.dataset.f==="amt"?(+el.value||0):el.value;save(x);if(el.dataset.f==="br"||el.dataset.f==="amt")render()});
+  app.querySelectorAll("[data-msdel]").forEach(b=>b.onclick=async()=>{if(!confirm("تحذف هذا الموظف من الرواتب؟"))return;const id=b.dataset.msdel;delete S.msal[id];render();try{await S.db.doc("msal/"+id).delete()}catch(e){toast("ما انحذف")}})}
+
 /* ---------- shared bits ---------- */
 const initials=n=>n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("");
 const avatar=(n,i)=>`<span class="av" style="background:${AVC[i%AVC.length]}" aria-hidden="true">${esc(initials(n))}</span>`;
@@ -782,6 +879,7 @@ function mainMenuView(app){
     ${BIG("projects","🏗️","المشاريع","المشاريع وعروض الأسعار وتقاريرها")}
     ${BIG("forecast","📈","فوركاستنج","توقعات 2027 للمراوح واللوحات")}
     ${BIG("exports","🚢","الصادرات","قريباً",1)}
+    ${myRole()==="sales_mgr"?BIG("mz","⚖️","ميزان المتحد","مبيعات وتكاليف ومصاريف الفروع والربح"):""}
    </div></div>`;
   app.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go({t:b.dataset.go}));
 }
