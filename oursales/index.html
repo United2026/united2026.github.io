@@ -626,9 +626,9 @@ function mzCalc(y){const M=S.mz,ms=[];const lastM=(M.asof||"").slice(0,7);for(le
   const SAL=Object.values(S.msal||{}).filter(x=>x.br&&B[x.br]&&+x.amt);const salAll=z();
   SAL.forEach(x=>{ms.forEach((k,i)=>{if((x.from&&k<x.from)||(x.to&&k>x.to))return;const o=B[x.br];(o.sal[x.id]=o.sal[x.id]||{n:x.n,job:x.job,v:z()}).v[i]+=+x.amt;o.salT[i]+=+x.amt;salAll[i]+=+x.amt})});
   const pool=GT.map((v,i)=>v-salAll[i]);
-  ms.forEach((k,i)=>{let tot=0;MZB.forEach(([b])=>{if(B[b].s[i]>0)tot+=B[b].s[i]});
-    if(tot<=0){let ty=0;MZB.forEach(([b])=>{ty+=Math.max(0,B[b].s.reduce((a,x)=>a+x,0))});MZB.forEach(([b])=>{B[b].sh[i]=ty?pool[i]*Math.max(0,B[b].s.reduce((a,x)=>a+x,0))/ty:0})}
-    else MZB.forEach(([b])=>{B[b].sh[i]=pool[i]*Math.max(0,B[b].s[i])/tot})});
+  /* general expenses: split equally between the branches that have any activity that year */
+  const act=MZB.map(x=>x[0]).filter(b=>{const o=B[b];return [o.s,o.c,o.salT].some(a=>a.some(v=>v))||Object.keys(o.ex).length});
+  ms.forEach((k,i)=>act.forEach(b=>{B[b].sh[i]=act.length?pool[i]/act.length:0}));
   const sum=a=>a.reduce((x,y)=>x+y,0);
   MZB.forEach(([b])=>{const o=B[b];o.g=o.s.map((v,i)=>v-o.c[i]);o.exT=z();Object.values(o.ex).forEach(a=>a.forEach((v,i)=>o.exT[i]+=v));o.net=o.g.map((v,i)=>v-o.exT[i]-o.salT[i]-o.sh[i])});
   return {ms,B,G,GT,salAll,pool,sum}}
@@ -654,7 +654,7 @@ function mzView(app,n){
     app.innerHTML=`<div class="stack"><div class="row" style="gap:8px;flex-wrap:wrap"><h1 style="margin-inline-end:auto">⚖️ ميزان المتحد ${n.y}${n.y===new Date().getFullYear()?" حتى اليوم":""}</h1><button class="btn" data-mzall="1">📋 تفاصيل إجمالي الفروع</button><button class="btn" data-mzsal="1">👥 رواتب موظفي الفروع</button></div>
      <div class="card"><div class="tbl"><table><thead><tr><th>الفرع</th><th>المبيعات</th><th>تكلفة البضاعة</th><th>مجمل الربح</th><th>مصاريف الفرع</th><th>رواتب موظفي الفرع</th><th>نصيبه من المصاريف العامة</th><th>صافي الربح / الخسارة</th></tr></thead><tbody>
      ${rows.map(r=>tr(r)).join("")}${tr(tot,1)}</tbody></table></div></div>
-     <p class="small muted" style="margin:0">اضغط اسم الفرع تشوف كل شهر ومصاريفه بالوصف. المبيعات بدون ضريبة بعد المرتجعات. مصاريف الفرع = المسجّلة على خزينة الفرع أو مركز تكلفة الفرع. الرواتب من صفحة «رواتب موظفي الفروع». المصاريف العامة (الرواتب والسكن والكهرباء والعمولات والمصنع والشحن والتخليص وغيرها) بعد خصم رواتب موظفي الفروع، تتوزّع على الفروع كل شهر حسب نسبة مبيعات الفرع.</p></div>`;
+     <p class="small muted" style="margin:0">اضغط اسم الفرع تشوف كل شهر ومصاريفه بالوصف. المبيعات بدون ضريبة بعد المرتجعات. مصاريف الفرع = المسجّلة على خزينة الفرع أو مركز تكلفة الفرع. الرواتب من صفحة «رواتب موظفي الفروع». المصاريف العامة (الرواتب والسكن والكهرباء والعمولات والمصنع والشحن والتخليص وغيرها) بعد خصم رواتب موظفي الفروع، تتوزّع على الفروع بالتساوي كل شهر.</p></div>`;
     app.querySelectorAll("[data-mzb]").forEach(b=>b.onclick=()=>go({t:"mz",y:n.y,br:b.dataset.mzb}));
     app.querySelector("[data-mzall]").onclick=()=>go({t:"mz",y:n.y,br:"ALL"});app.querySelectorAll("[data-mzsal]").forEach(b=>b.onclick=()=>go({t:"mz",k:"sal"}));return}
   /* one branch (or all branches) month by month */
@@ -677,7 +677,7 @@ function mzView(app,n){
     ${head("رواتب موظفي "+(all?"الفروع":"الفرع"))}${Object.values(o.sal).map(s=>`<tr><td class="wrap">${esc(s.n)}${s.job?` <span class="small muted">· ${esc(s.job)}</span>`:""}</td>${cells(s.v)}</tr>`).join("")||`<tr><td colspan="${ms.length+2}" class="muted">ما فيه رواتب مسجّلة — سجّلها من «رواتب موظفي الفروع»</td></tr>`}
     <tr style="font-weight:700"><td>إجمالي الرواتب</td>${cells(o.salT)}</tr>
     ${all?head("المصاريف العامة (غير مسجّلة على فرع)")+accRows(C.G,null,"g")+`<tr><td>ناقص رواتب موظفي الفروع (محسوبة فوق)</td>${cells(C.salAll.map(v=>-v))}</tr><tr style="font-weight:700"><td>صافي المصاريف العامة</td>${cells(C.pool)}</tr>`
-         :`<tr style="font-weight:700"><td>نصيبه من المصاريف العامة <span class="small muted">(حسب نسبة مبيعاته في الشهر)</span></td>${cells(o.sh)}</tr>`}
+         :`<tr style="font-weight:700"><td>نصيبه من المصاريف العامة <span class="small muted">(بالتساوي بين الفروع)</span></td>${cells(o.sh)}</tr>`}
     <tr style="font-weight:800;background:var(--soft,#eef3f8)"><td>صافي الربح / الخسارة</td>${cells(net)}</tr>
     <tr><td class="small muted">نسبة الصافي من المبيعات</td>${net.map((v,i)=>`<td>${pc(v,S2[i])}</td>`).join("")}<td>${pc(sum(net),sum(S2))}</td></tr>
    </tbody></table></div></div>
