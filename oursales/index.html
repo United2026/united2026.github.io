@@ -2310,12 +2310,16 @@ function forecastView(app,n){
       return `<button class="tile" data-fy="${y}" style="align-items:center;text-align:center;padding:20px 14px"><b style="font-size:26px">${y}</b>${L}</button>`}).join("")}</div></div>`;
     app.querySelectorAll("[data-fy]").forEach(b=>b.onclick=()=>go({t:"forecast",y:+b.dataset.fy}));return}
   const Y=H.years[n.y];if(!Y){S.nav.pop();return render()}
-  const bi=Math.min(+(S.opt.fhb||0),Y.books.length-1),B=Y.books[bi];const brs=Object.keys(B.br);const bk=brs.includes(S.opt.fhr)?S.opt.fhr:(brs.includes("KSA")?"KSA":brs[0]);
+  const bi=Math.min(+(S.opt.fhb||0),Y.books.length),ALL=bi===Y.books.length;
+  /* «الإجمالي»: both files together, each file's groups under its name */
+  const B=ALL?{title:"الإجمالي",k:"all",file:Y.books.map(b=>b.file).join(" و "),cut:Y.books.map(b=>b.cut).filter(Boolean).sort()[0]||null,
+    br:(()=>{const o={};Y.books.forEach(b=>Object.entries(b.br).forEach(([k,v])=>{const x=o[k]=o[k]||{name:v.name,items:[]};x.items.push(...v.items.map(i=>[i[0],i[1],i[2],i[3],i[4],b.title+" — "+(i[5]||"")]))}));return o})()}:Y.books[bi];
+  const brs=Object.keys(B.br);const bk=brs.includes(S.opt.fhr)?S.opt.fhr:(brs.includes("KSA")?"KSA":brs[0]);
   const BR=B.br[bk]||{items:[],name:""};const t=tot(B,bk);const fut=n.y>new Date().getFullYear();
   const cutTxt=B.cut?` (الفعلي حتى ${esc(B.cut.replace(/-/g,"/"))})`:"";
-  const rows=BR.items.slice();
+  const ex=S.opt.fhx||(S.opt.fhx={});const groups=[];BR.items.forEach(i=>{const g=i[5]||"";let x=groups.find(z=>z[0]===g);if(!x)groups.push(x=[g,[]]);x[1].push(i)});
   app.innerHTML=`<div class="stack"><div class="row" style="gap:8px;flex-wrap:wrap"><h1 style="margin-inline-end:auto">📈 فوركاستنج ${n.y}</h1>${n.y===2027?`<button class="btn" id="fdet">📋 جداول 2027 بالتفصيل</button>`:""}<button class="btn pri" id="fpdf">🖨️ PDF</button></div>
-   <div class="seg">${Y.books.map((b,i)=>`<button data-fhb="${i}" aria-pressed="${i===bi}">${esc(b.title)}</button>`).join("")}</div>
+   <div class="seg">${Y.books.map((b,i)=>`<button data-fhb="${i}" aria-pressed="${i===bi}">${esc(b.title)}</button>`).join("")}<button data-fhb="${Y.books.length}" aria-pressed="${ALL}">الإجمالي</button></div>
    <div class="seg">${brs.sort((a,b)=>(a==="KSA")?-1:(b==="KSA")?1:0).map(b=>`<button data-fhr="${b}" aria-pressed="${b===bk}">${esc(B.br[b].name)}</button>`).join("")}</div>
    <div id="fhdoc" class="stack" style="background:var(--surface)">
    <div class="card"><h2 style="margin-top:0">${esc(B.title)} — ${esc(BR.name)} — ${n.y}${cutTxt}</h2>
@@ -2328,11 +2332,13 @@ function forecastView(app,n){
      <div class="tile" style="cursor:default"><span class="small muted">التحقق بالقيمة</span><b style="font-size:20px">${t.has?pcs(pc(t.av,t.fv)):"—"}</b></div></div>
     ${fut?'<p class="small muted" style="margin:6px 0 0">سنة قادمة: التوقع بس، والفعلي يطلع لما تبدأ السنة.</p>':""}</div>
    <div class="card"><div class="tbl" style="max-height:none"><table><thead><tr><th>كود الصنف</th><th>الصنف</th><th>السعر</th><th>التوقع</th><th>الفعلي${B.cut?" حتى "+esc(B.cut.slice(0,5).split("-").reverse().join("/")):""}</th><th>الفرق</th><th>نسبة التحقق</th></tr></thead><tbody>
-    ${rows.map(([c,d,p,q,a])=>{const v=a!=null&&q?Math.round(a/q*100):null;return `<tr><td><span class="ltr">${esc(c)}</span></td><td class="wrap">${esc(d)}</td><td>${fmt(p,Number.isInteger(p)?0:2)}</td><td><b>${fmt(q)}</b></td><td>${a==null?"—":fmt(a)}</td><td>${a==null?"—":`<span dir="ltr" style="color:${a-q<0?"var(--bad)":"var(--ok)"}">${a-q>0?"+":""}${fmt(a-q)}</span>`}</td><td>${a==null?"—":q?pcs(v):'<span class="small muted">بدون توقع</span>'}</td></tr>`}).join("")}
+    ${groups.map(([g,its])=>{const k=n.y+"|"+B.k+"|"+bk+"|"+g,open=!!ex[k];let fq=0,aq=0,fv=0,av=0,has=false;its.forEach(([c,d,p,q,a])=>{fq+=q||0;fv+=(q||0)*(p||0);if(a!=null){has=true;aq+=a;av+=a*(p||0)}});
+      return `<tr style="background:var(--sunk);font-weight:700"><td colspan="3"><button class="mzl" data-fhg="${esc(k)}" aria-expanded="${open}">${open?"▾":"▸"} ${esc(g||"أخرى")}</button> <span class="small muted">· ${its.length} صنف · التحقق بالقيمة ${has?pcs(pc(av,fv)):"—"}</span></td><td>${fmt(fq)}</td><td>${has?fmt(aq):"—"}</td><td>${has?`<span dir="ltr" style="color:${aq-fq<0?"var(--bad)":"var(--ok)"}">${aq-fq>0?"+":""}${fmt(aq-fq)}</span>`:"—"}</td><td>${has?pcs(pc(aq,fq)):"—"}</td></tr>`+(open?its.map(([c,d,p,q,a])=>{const v=a!=null&&q?Math.round(a/q*100):null;return `<tr><td><span class="ltr">${esc(c)}</span></td><td class="wrap">${esc(d)}</td><td>${fmt(p,Number.isInteger(p)?0:2)}</td><td><b>${fmt(q)}</b></td><td>${a==null?"—":fmt(a)}</td><td>${a==null?"—":`<span dir="ltr" style="color:${a-q<0?"var(--bad)":"var(--ok)"}">${a-q>0?"+":""}${fmt(a-q)}</span>`}</td><td>${a==null?"—":q?pcs(v):'<span class="small muted">بدون توقع</span>'}</td></tr>`}).join(""):"")}).join("")}
     <tr style="font-weight:700;background:var(--sunk)"><td colspan="3">الإجمالي</td><td>${fmt(t.fq)}</td><td>${t.has?fmt(t.aq):"—"}</td><td>${t.has?`<span dir="ltr">${t.aq-t.fq>0?"+":""}${fmt(t.aq-t.fq)}</span>`:"—"}</td><td>${t.has?pcs(pc(t.aq,t.fq)):"—"}</td></tr></tbody></table></div></div></div>
-   <p class="small muted" style="margin:0">التوقع من ملف ${esc(B.file)}. الفعلي ${B.k==="lc"?"من ملف مبيعات اللوحات 2021–2026":"من ملف المراوح 2027 (أعمدة السنوات السابقة)"}. نسبة التحقق = الفعلي ÷ التوقع: أخضر 100% وفوق، برتقالي 70–99%، أحمر أقل من 70%.${n.y===2024?" توقع اللوحات 2024 هو نفس ملف 2023 (الموجود في مجلد 2024).":""}</p></div>`;
+   <p class="small muted" style="margin:0">التوقع من ملف ${esc(B.file)}. الفعلي ${B.k==="lc"?"من ملف مبيعات اللوحات 2021–2026":B.k==="fans"?"من ملف المراوح 2027 (أعمدة السنوات السابقة)":"من ملف مبيعات اللوحات وملف المراوح 2027"}. اضغط السهم جنب المجموعة يطلع أصنافها. نسبة التحقق = الفعلي ÷ التوقع: أخضر 100% وفوق، برتقالي 70–99%، أحمر أقل من 70%.${n.y===2024?" توقع اللوحات 2024 هو نفس ملف 2023 (الموجود في مجلد 2024).":""}</p></div>`;
   app.querySelectorAll("[data-fhb]").forEach(b=>b.onclick=()=>{S.opt.fhb=+b.dataset.fhb;render()});
   app.querySelectorAll("[data-fhr]").forEach(b=>b.onclick=()=>{S.opt.fhr=b.dataset.fhr;render()});
+  app.querySelectorAll("[data-fhg]").forEach(b=>b.onclick=()=>{ex[b.dataset.fhg]=!ex[b.dataset.fhg];render()});
   const d=app.querySelector("#fdet");if(d)d.onclick=()=>go({t:"forecast",y:n.y,k:"det"});
   app.querySelector("#fpdf").onclick=e=>chartPdf(app.querySelector("#fhdoc"),"فوركاستنج "+n.y+" - "+B.title+" - "+BR.name,e.currentTarget);
 }
