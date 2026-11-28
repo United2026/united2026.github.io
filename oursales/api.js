@@ -15,7 +15,7 @@
   }
   var f=window.fetch.bind(window);
   window.fetch=function(u,o){
-    if(typeof u==="string"&&(/^api\//.test(u)||/^(data|stmt|prod|elec|forecast|ucat|mz)\.json/.test(u))){
+    if(typeof u==="string"&&(/^api\//.test(u)||/^(data|stmt|prod|elec|forecast|ucat|mz|fch)\.json/.test(u))){
       o=Object.assign({},o||{});o.headers=Object.assign({},o.headers||{},{"X-Session":window.US_TOK()});delete o.credentials;
       return f(API+u,o).then(function(r){if(r.status===423)maint();return r});
     }

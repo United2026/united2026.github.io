@@ -284,7 +284,7 @@ function back(i){S.nav=S.nav.slice(0,i+1);S.opt={};render();window.scrollTo(0,0)
 const PB={1:"RI",25:"RI",64:"RI",30:"JE",36:"JE",31:"KH",32:"DA",35:"DA",27:"SA",28:"TA",29:"MA",26:"QA"};
 const prodOf=b=>S.prod?(S.prod.items||[]).filter(x=>PB[x.branch]===b):(S.D.branches[b].prod||[]);
 const brLabel=b=>(b==="DP"?"":"فرع ")+S.D.branches[b].name;
-const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة":" "+((S[(DOCK[n.k]||{}).col]||{})[n.id]||{}).no):n.t==="subm"?(n.id==="new"?"تقديم جديد":"تقديم"):n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="calc"?(n.id==="new"?"New Calculation Sheet":"Calculation Sheet "+(((S.calc||{})[n.id]||{}).csno||"")):n.t==="forecast"?"فوركاستنج":n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="past"?({s:"المبيعات",c:"التحصيل",y:"المبيعات والتحصيل والفرق",d:"تفاصيل سنة"}[n.k]||"مبيعات السنوات الماضية"):n.t==="mz"?(n.k==="sal"?"رواتب موظفي الفروع":n.br?(n.br==="ALL"?"إجمالي الفروع":MZN[n.br]):n.y?"ميزان "+n.y:"ميزان المتحد"):n.t==="visits"?(n.m==="new"?"زيارة جديدة":n.m?"الزيارات السابقة":n.br?"زيارات "+brLabel(n.br):"زيارات الفروع"):n.t==="branches"?"الفروع":"";
+const navLabel=n=>n.t==="pdoc"?(DOCK[n.k]||{t:""}).t+(n.id==="new"?" جديدة":" "+((S[(DOCK[n.k]||{}).col]||{})[n.id]||{}).no):n.t==="subm"?(n.id==="new"?"تقديم جديد":"تقديم"):n.t==="home"?"الرئيسية":n.t==="agrs"?"الاتفاقيات":n.t==="agr"?(n.id==="new"?"اتفاقية جديدة":"اتفاقية"):n.t==="sales"?"متابعة المبيعات":n.t==="projects"?"المشاريع":n.t==="proj"?(n.id==="new"?"مشروع جديد":((S.proj||{})[n.id]||{}).name||"مشروع"):n.t==="quote"?(n.id==="new"?"عرض سعر جديد":"عرض سعر"):n.t==="calc"?(n.id==="new"?"New Calculation Sheet":"Calculation Sheet "+(((S.calc||{})[n.id]||{}).csno||"")):n.t==="forecast"?(n.k==="det"?"جداول 2027":n.y?"فوركاستنج "+n.y:"فوركاستنج"):n.t==="exports"?"الصادرات":n.t==="targets"?"الأهداف":n.t==="area"?S.D.areas[n.id].name:n.t==="branch"?brLabel(n.id):n.t==="rep"?R(n.id).name:n.t==="report"?REPORTS.find(r=>r[0]===n.k)[1]:n.t==="users"?"المستخدمون":n.t==="daily"?"التقرير اليومي":n.t==="items"?"البيع بالعوائل والأصناف":n.t==="mgrs"?"المديرات":n.t==="past"?({s:"المبيعات",c:"التحصيل",y:"المبيعات والتحصيل والفرق",d:"تفاصيل سنة"}[n.k]||"مبيعات السنوات الماضية"):n.t==="mz"?(n.k==="sal"?"رواتب موظفي الفروع":n.br?(n.br==="ALL"?"إجمالي الفروع":MZN[n.br]):n.y?"ميزان "+n.y:"ميزان المتحد"):n.t==="visits"?(n.m==="new"?"زيارة جديدة":n.m?"الزيارات السابقة":n.br?"زيارات "+brLabel(n.br):"زيارات الفروع"):n.t==="branches"?"الفروع":"";
 
 /* ---------- boot ---------- */
 async function boot(){
@@ -880,7 +880,7 @@ function mainMenuView(app){
    <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
     ${BIG("sales","📊","متابعة المبيعات","المديرات والفروع والمناديب والتقارير")}
     ${BIG("projects","🏗️","المشاريع","المشاريع وعروض الأسعار وتقاريرها")}
-    ${BIG("forecast","📈","فوركاستنج","توقعات 2027 للمراوح واللوحات")}
+    ${BIG("forecast","📈","فوركاستنج","التوقع والفعلي ونسبة التحقق لكل سنة")}
     ${BIG("exports","🚢","الصادرات","قريباً",1)}
     ${myRole()==="sales_mgr"?BIG("mz","⚖️","ميزان المتحد","مبيعات وتكاليف ومصاريف الفروع والربح"):""}
    </div></div>`;
@@ -2291,9 +2291,52 @@ function wireQuoteReport(app){
   const b=app.querySelector("#rpdf");if(b)b.onclick=async e=>{S._ymAll=1;render();try{await chartPdf(document.querySelector("#qrep"),"تقرير عروض الأسعار - "+todayR(),document.querySelector("#rpdf"))}finally{S._ymAll=0;render()}};
 }
 
-/* ----- forecasting (tables as in the user's Excel files) ----- */
-function forecastView(app){
+/* ----- forecasting by year: each year's forecast file next to what was actually sold and the achievement ----- */
+async function loadFch(){if(S._fhl)return;S._fhl=1;try{const r=await fetch("fch.json",{cache:"no-store"});if(r.ok)S.fch=await r.json();else S.fch={err:r.status}}catch(e){S.fch={err:"net"}}S._fhl=0;render()}
+function forecastView(app,n){
   if(myRole()!=="sales_mgr"){S.nav=[{t:"home"}];return render()}
+  if(n&&n.k==="det")return fc27View(app);
+  const H=S.fch;if(!H){app.innerHTML='<div class="empty">جاري تحميل الفوركاستنج…</div>';loadFch();return}
+  if(H.err){app.innerHTML=`<div class="empty">تعذّر تحميل ملفات الفوركاستنج.</div>`;return}
+  const yrs=Object.keys(H.years).map(Number).sort((a,b)=>a-b);
+  const tot=(B,b)=>{const it=((B.br[b]||{}).items)||[];let fq=0,aq=0,fv=0,av=0,has=false;it.forEach(([c,d,p,q,a])=>{fq+=q||0;fv+=(q||0)*(p||0);if(a!=null){has=true;aq+=a;av+=a*(p||0)}});return {fq,aq,fv,av,has}};
+  const pc=(a,f)=>f?Math.round(a/f*100):null;
+  const pcol=v=>v==null?"":v>=100?"var(--ok)":v>=70?"var(--warn)":"var(--bad)";
+  const pcs=v=>v==null?"—":`<b style="color:${pcol(v)}">${v}%</b>`;
+  if(!n||!n.y){
+    app.innerHTML=`<div class="stack"><h1>📈 فوركاستنج</h1><p class="small muted" style="margin:0">كل سنة: ملف الفوركاستنج اللي سويناه، والعدد الفعلي اللي بعناه، ونسبة التحقق.</p>
+     <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))">${yrs.slice().reverse().map(y=>{const Y=H.years[y];
+      const L=Y.books.map(B=>{const t=tot(B,"KSA");return `<span class="small">${esc(B.title)}: ${t.has?pcs(pc(t.av,t.fv))+" من قيمة التوقع":y>new Date().getFullYear()?"توقع "+fmt(t.fq)+" حبة":"—"}</span>`}).join("");
+      return `<button class="tile" data-fy="${y}" style="align-items:center;text-align:center;padding:20px 14px"><b style="font-size:26px">${y}</b>${L}</button>`}).join("")}</div></div>`;
+    app.querySelectorAll("[data-fy]").forEach(b=>b.onclick=()=>go({t:"forecast",y:+b.dataset.fy}));return}
+  const Y=H.years[n.y];if(!Y){S.nav.pop();return render()}
+  const bi=Math.min(+(S.opt.fhb||0),Y.books.length-1),B=Y.books[bi];const brs=Object.keys(B.br);const bk=brs.includes(S.opt.fhr)?S.opt.fhr:(brs.includes("KSA")?"KSA":brs[0]);
+  const BR=B.br[bk]||{items:[],name:""};const t=tot(B,bk);const fut=n.y>new Date().getFullYear();
+  const cutTxt=B.cut?` (الفعلي حتى ${esc(B.cut.replace(/-/g,"/"))})`:"";
+  const rows=BR.items.slice();
+  app.innerHTML=`<div class="stack"><div class="row" style="gap:8px;flex-wrap:wrap"><h1 style="margin-inline-end:auto">📈 فوركاستنج ${n.y}</h1>${n.y===2027?`<button class="btn" id="fdet">📋 جداول 2027 بالتفصيل</button>`:""}<button class="btn pri" id="fpdf">🖨️ PDF</button></div>
+   <div class="seg">${Y.books.map((b,i)=>`<button data-fhb="${i}" aria-pressed="${i===bi}">${esc(b.title)}</button>`).join("")}</div>
+   <div class="seg">${brs.sort((a,b)=>(a==="KSA")?-1:(b==="KSA")?1:0).map(b=>`<button data-fhr="${b}" aria-pressed="${b===bk}">${esc(B.br[b].name)}</button>`).join("")}</div>
+   <div id="fhdoc" class="stack" style="background:var(--surface)">
+   <div class="card"><h2 style="margin-top:0">${esc(B.title)} — ${esc(BR.name)} — ${n.y}${cutTxt}</h2>
+    <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+     <div class="tile" style="cursor:default"><span class="small muted">التوقع (حبة)</span><b style="font-size:20px">${fmt(t.fq)}</b></div>
+     <div class="tile" style="cursor:default"><span class="small muted">الفعلي (حبة)</span><b style="font-size:20px">${t.has?fmt(t.aq):"—"}</b></div>
+     <div class="tile" style="cursor:default"><span class="small muted">التحقق بالحبة</span><b style="font-size:20px">${t.has?pcs(pc(t.aq,t.fq)):"—"}</b></div>
+     <div class="tile" style="cursor:default"><span class="small muted">قيمة التوقع</span><b style="font-size:20px">${fmt(Math.round(t.fv))}</b></div>
+     <div class="tile" style="cursor:default"><span class="small muted">قيمة الفعلي</span><b style="font-size:20px">${t.has?fmt(Math.round(t.av)):"—"}</b></div>
+     <div class="tile" style="cursor:default"><span class="small muted">التحقق بالقيمة</span><b style="font-size:20px">${t.has?pcs(pc(t.av,t.fv)):"—"}</b></div></div>
+    ${fut?'<p class="small muted" style="margin:6px 0 0">سنة قادمة: التوقع بس، والفعلي يطلع لما تبدأ السنة.</p>':""}</div>
+   <div class="card"><div class="tbl" style="max-height:none"><table><thead><tr><th>كود الصنف</th><th>الصنف</th><th>السعر</th><th>التوقع</th><th>الفعلي${B.cut?" حتى "+esc(B.cut.slice(0,5).split("-").reverse().join("/")):""}</th><th>الفرق</th><th>نسبة التحقق</th></tr></thead><tbody>
+    ${rows.map(([c,d,p,q,a])=>{const v=a!=null&&q?Math.round(a/q*100):null;return `<tr><td><span class="ltr">${esc(c)}</span></td><td class="wrap">${esc(d)}</td><td>${fmt(p,Number.isInteger(p)?0:2)}</td><td><b>${fmt(q)}</b></td><td>${a==null?"—":fmt(a)}</td><td>${a==null?"—":`<span dir="ltr" style="color:${a-q<0?"var(--bad)":"var(--ok)"}">${a-q>0?"+":""}${fmt(a-q)}</span>`}</td><td>${a==null?"—":q?pcs(v):'<span class="small muted">بدون توقع</span>'}</td></tr>`}).join("")}
+    <tr style="font-weight:700;background:var(--sunk)"><td colspan="3">الإجمالي</td><td>${fmt(t.fq)}</td><td>${t.has?fmt(t.aq):"—"}</td><td>${t.has?`<span dir="ltr">${t.aq-t.fq>0?"+":""}${fmt(t.aq-t.fq)}</span>`:"—"}</td><td>${t.has?pcs(pc(t.aq,t.fq)):"—"}</td></tr></tbody></table></div></div></div>
+   <p class="small muted" style="margin:0">التوقع من ملف ${esc(B.file)}. الفعلي ${B.k==="lc"?"من ملف مبيعات اللوحات 2021–2026":"من ملف المراوح 2027 (أعمدة السنوات السابقة)"}. نسبة التحقق = الفعلي ÷ التوقع: أخضر 100% وفوق، برتقالي 70–99%، أحمر أقل من 70%.${n.y===2024?" توقع اللوحات 2024 هو نفس ملف 2023 (الموجود في مجلد 2024).":""}</p></div>`;
+  app.querySelectorAll("[data-fhb]").forEach(b=>b.onclick=()=>{S.opt.fhb=+b.dataset.fhb;render()});
+  app.querySelectorAll("[data-fhr]").forEach(b=>b.onclick=()=>{S.opt.fhr=b.dataset.fhr;render()});
+  const d=app.querySelector("#fdet");if(d)d.onclick=()=>go({t:"forecast",y:n.y,k:"det"});
+  app.querySelector("#fpdf").onclick=e=>chartPdf(app.querySelector("#fhdoc"),"فوركاستنج "+n.y+" - "+B.title+" - "+BR.name,e.currentTarget);
+}
+function fc27View(app){
   const F=S.fc;if(!F){app.innerHTML='<div class="empty">جاري تحميل جداول الفوركاستنج…</div>';loadFc();return}
   const bi=+(S.opt.fb||0),B=F.books[bi];const si=Math.min(+(S.opt.fs??(B.sheets.length-1)),B.sheets.length-1),SH=B.sheets[si];
   const cell=(h,v)=>v==null||v===""?"":typeof v==="number"?(/^نسبة/.test(h)||(h==="31-12-2026"&&Math.abs(v)<20&&!Number.isInteger(v))?pct(v):fmt(v,Number.isInteger(v)?0:2)):esc(v);
