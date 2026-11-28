@@ -503,6 +503,7 @@ let _vrep=null;function vRepOf(br,c){if(!_vrep)_vrep={};if(!_vrep[br]){const ids
   if(n.length>=3){const ks=new Set(o.cands.filter(([cn])=>cn&&(cn===n||(n.length>=4&&cn.includes(n))||(cn.length>=4&&n.includes(cn)))).map(x=>x[1]));if(ks.size===1)return [...ks][0]}
   const sh=c.v.map(v=>v[2]).filter(Boolean).pop();if(sh&&VSHEET[sh])return VSHEET[sh];return ""}
 /* visits from the Excel files + visits added in the app (db «vnew»), merged per branch */
+function vToday(x){const d=t=>new Date(new Date(t).getTime()+3*3600e3).toISOString().slice(0,10);return !!(x&&x.at)&&d(x.at)===d(Date.now())}
 function vMerge(br){const o0=(S.D.visits||{})[br]||{trips:[],cust:[]};const add=Object.values(S.vnew||{}).filter(x=>x.br===br);if(!add.length)return o0;
   const cust=o0.cust.map(c=>({...c,ct:[...c.ct],v:[...c.v]})),trips=[...o0.trips];const idx={};cust.forEach((c,i)=>idx[vNorm(c.n)]=i);
   add.sort((a,b)=>(a.y*100+a.m)-(b.y*100+b.m)||String(a.at).localeCompare(String(b.at))).forEach(x=>{const k=vNorm(x.n);let c=idx[k]!=null?cust[idx[k]]:null;
@@ -592,7 +593,7 @@ function vNewView(app,n,o){const f=S.opt.vf||(S.opt.vf={y:new Date().getFullYear
     <div class="stack" style="gap:4px"><span>المسؤول وجواله</span>${f.ct.map((c,i)=>`<div class="row" style="gap:6px;flex-wrap:wrap"><input data-vfct="${i}" data-p="0" placeholder="الاسم — الصفة (مثلاً: شهاب — مشتريات)" value="${esc(c[0])}" style="min-width:230px"><input data-vfct="${i}" data-p="1" placeholder="الجوال" inputmode="tel" dir="ltr" value="${esc(c[1])}" style="width:150px"></div>`).join("")}<button class="btn sm" id="vfadd" style="align-self:flex-start">+ مسؤول آخر</button></div>
     <label class="stack" style="gap:2px">وش صار في الزيارة<textarea id="vfn" rows="5" placeholder="الملاحظة">${esc(f.note)}</textarea></label>
     <div class="row" style="gap:8px"><button class="btn pri" id="vfsave">💾 حفظ الزيارة</button><button class="btn" id="vfclr">مسح</button></div></div>
-   ${mine.length?`<div class="card"><h2 style="margin:0 0 6px">زيارات مسجّلة من التطبيق (${mine.length})</h2><div class="tbl"><table><thead><tr><th>التاريخ</th><th>العميل</th><th>المندوب</th><th>الملاحظة</th><th></th></tr></thead><tbody>${mine.map(x=>`<tr><td style="white-space:nowrap">${MON_AR[x.m-1]} ${x.y}</td><td class="wrap">${esc(x.n)}</td><td>${esc(repN(x.rep))}</td><td class="wrap small">${esc(x.note||"")}</td><td><button class="btn sm" data-vfdel="${x.id}" aria-label="حذف الزيارة">🗑</button></td></tr>`).join("")}</tbody></table></div></div>`:""}
+   ${mine.length?`<div class="card"><h2 style="margin:0 0 6px">زيارات مسجّلة من التطبيق (${mine.length})</h2><div class="tbl"><table><thead><tr><th>التاريخ</th><th>العميل</th><th>المندوب</th><th>الملاحظة</th><th></th></tr></thead><tbody>${mine.map(x=>`<tr><td style="white-space:nowrap">${MON_AR[x.m-1]} ${x.y}</td><td class="wrap">${esc(x.n)}</td><td>${esc(repN(x.rep))}</td><td class="wrap small">${S.opt.vfe===x.id&&vToday(x)?`<textarea id="vfen" rows="3" style="width:100%;min-width:180px">${esc(x.note||"")}</textarea><div style="display:flex;gap:6px;margin-top:4px"><button class="btn sm pri" id="vfes">حفظ</button><button class="btn sm" id="vfec">إلغاء</button></div>`:esc(x.note||"")}</td><td style="white-space:nowrap">${vToday(x)&&S.opt.vfe!==x.id?`<button class="btn sm" data-vfed="${x.id}" aria-label="تعديل الملاحظة" title="التعديل متاح اليوم فقط">✏️</button> `:""}<button class="btn sm" data-vfdel="${x.id}" aria-label="حذف الزيارة">🗑</button></td></tr>`).join("")}</tbody></table></div></div>`:""}
    </div>`;
   const keep=()=>{f.city=$("#vfc").value;f.note=$("#vfn").value;app.querySelectorAll("[data-vfct]").forEach(e=>f.ct[+e.dataset.vfct][+e.dataset.p]=e.value)};
   $("#vfm").onchange=e=>{keep();f.m=+e.target.value};$("#vfy").onchange=e=>{keep();f.y=+e.target.value};
@@ -610,6 +611,11 @@ function vNewView(app,n,o){const f=S.opt.vf||(S.opt.vf={y:new Date().getFullYear
     try{await S.db.doc("vnew/"+id).set(d);S.vnew=S.vnew||{};S.vnew[id]={id,...d};
       const cur=(S.vrate||{})[rk]||{};const nv={...cur,br:n.br,n:f.cn,r:rv!=null?rv:(cur.r||0),rep:f.rep,by:S.uid,at:d.at};S.vrate=S.vrate||{};S.vrate[rk]=nv;await S.db.doc("vrate/"+rk).set(nv);
       toast("انحفظت الزيارة");S.opt.vf=null;render()}catch(e){toast("ما انحفظت الزيارة")}};
+  app.querySelectorAll("[data-vfed]").forEach(b=>b.onclick=()=>{keep();S.opt.vfe=b.dataset.vfed;render()});
+  if($("#vfec"))$("#vfec").onclick=()=>{keep();S.opt.vfe=null;render()};
+  if($("#vfes"))$("#vfes").onclick=async()=>{const id=S.opt.vfe,x=(S.vnew||{})[id];if(!x)return;if(!vToday(x)){S.opt.vfe=null;toast("التعديل متاح فقط في نفس يوم كتابة الزيارة");return render()}
+    const t=$("#vfen").value.trim();if(!t)return toast("اكتب وش صار في الزيارة");if(!S.db||S.offline)return toast("الحفظ يحتاج اتصال");
+    const {id:_,...d}=x;d.note=t;d.ed=new Date().toISOString();try{await S.db.doc("vnew/"+id).set(d);S.vnew[id]={id,...d};keep();S.opt.vfe=null;toast("انحفظ التعديل");render()}catch(e){toast("ما انحفظ التعديل")}};
   app.querySelectorAll("[data-vfdel]").forEach(b=>b.onclick=async()=>{if(!confirm("تحذف هذي الزيارة؟"))return;try{await S.db.doc("vnew/"+b.dataset.vfdel).delete();delete S.vnew[b.dataset.vfdel];render()}catch(e){toast("ما انحذفت")}})}
 /* ---------- «ميزان المتحد» (sales manager only): sales, cost of goods, branch expenses, branch staff salaries and a share of the general expenses per branch per month ---------- */
 const MZB=[["RI","الرياض"],["MN","المركز الرئيسي"],["JE","جدة"],["DA","الدمام"],["KH","خميس مشيط"],["QA","القصيم"],["MA","المدينة المنورة"],["TA","تبوك"],["SA","سكاكا"]];
